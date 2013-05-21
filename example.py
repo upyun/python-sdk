@@ -4,11 +4,11 @@
 import upyun
 
 
-#################### CONFIG #####################
+# ================== CONFIG =====================
 BUCKETNAME = 'bucketname'
 USERNAME = 'username'
 PASSWORD = 'password'
-#################################################
+# ===============================================
 
 
 def ascii():
@@ -22,6 +22,7 @@ def ascii():
 
 
 def example():
+
     up = upyun.UpYun(BUCKETNAME, USERNAME, PASSWORD, timeout=30,
                      endpoint=upyun.ED_AUTO)
 
@@ -36,8 +37,8 @@ def example():
 
         print "Uploading a new object to UpYun from a file ... ",
         headers = {"x-gmkerl-rotate": "180"}
-        with open('unix.png') as f:
-            res = up.put(rootpath + 'xinu.png', f, checksum=True,
+        with open('unix.png', 'rb') as f:
+            res = up.put(rootpath + 'xinu.png', f, checksum=False,
                          headers=headers)
         print "oked\n"
 
@@ -49,7 +50,7 @@ def example():
             ispicbucket = False
 
         print "Downloading an object(%sxinu.png) ... " % rootpath,
-        with open('xinu.png', 'w') as f:
+        with open('xinu.png', 'wb') as f:
             up.get(rootpath + 'xinu.png', f)
         print 'oked\n'
 

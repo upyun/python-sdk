@@ -54,7 +54,7 @@ up.put('/upyun-python-sdk/ascii.txt', 'abcdefghijklmnopqrstuvwxyz\n')
 ````
 headers = { "x-gmkerl-rotate": "180"  }
 
-with open('unix.png') as f:
+with open('unix.png', 'rb') as f:
     res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, headers=headers)
 ````
 
@@ -81,7 +81,7 @@ res = up.get('/upyun-python-sdk/ascii.txt')
 #### 使用数据流模式下载，节省内存占用
 
 ````
-with open('xinu.png', 'w') as f:
+with open('xinu.png', 'wb') as f:
     up.get('/upyun-python-sdk/xinu.png', f)
 ````
 
@@ -170,9 +170,9 @@ except upyun.UpYunClientException as ce:
 具体请参考 `example.py` 的代码，建议可在修改以下代码后直接运行该脚本，观察其输出情况，以便对整个 Python SDK 接口有个大致的了解：
 
 ````
-#################### CONFIG #####################
+# ================== CONFIG =====================
 BUCKETNAME = 'bucketname'
 USERNAME = 'username'
 PASSWORD = 'password'
-#################################################
+# ===============================================
 ````
