@@ -16,7 +16,7 @@ except ImportError:
     import httplib
 
 
-__version__ = "2.x"
+__version__ = "2.0.1"
 
 
 ED_LIST = ['v%d.api.upyun.com' % ed for ed in range(4)]
@@ -93,6 +93,8 @@ class UpYun:
 
     def getlist(self, key='/'):
         content = self.__do_http_request('GET', key)
+        if content == "":
+            return []
         items = content.split('\n')
         return [dict(zip(['name', 'type', 'size', 'time'],
                 x.split('\t'))) for x in items]
