@@ -24,10 +24,11 @@ ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 
 
 class UpYunServiceException(Exception):
-    def __init__(self, status, msg):
-        self.args = (status, msg)
+    def __init__(self, status, msg, err):
+        self.args = (status, msg, err)
         self.status = status
         self.msg = msg
+        self.err = err
 
 
 class UpYunClientException(Exception):
@@ -48,14 +49,6 @@ class UpYun:
 
         if HTTP_EXTEND:
             self.session = requests.Session()
-
-    @property
-    def endpoint(self):
-        return self.endpoint
-
-    @endpoint.setter
-    def endpoint(self, endpoint):
-        self.endpoint = endpoint
 
     # --- public API
 
@@ -109,6 +102,9 @@ class UpYun:
                           value=None, headers=None, of=None, args=''):
 
         uri = '/' + self.bucket + (lambda x: x[0] == '/' and x or '/'+x)(key)
+        if isinstance(uri, unicode):
+            uri = uri.encode('utf-8')
+
         uri = urllib.quote(uri) + args
 
         if headers is None:
@@ -170,8 +166,7 @@ class UpYun:
     def __do_http_basic(self, method, uri,
                         value=None, headers=None, of=None):
 
-        content, err, status = None, None, None
-
+        content, msg, err, status = None, None, None, None
         try:
             connection = httplib.HTTPConnection(self.endpoint,
                                                 timeout=self.timeout)
@@ -192,7 +187,8 @@ class UpYun:
                 if method == "PUT" or method == "HEAD":
                     content = response.getheaders()
             else:
-                err = response.read() or "nothing"
+                msg = response.reason
+                err = response.read()
 
         except (httplib.HTTPException, socket.error, socket.timeout) as e:
             raise UpYunClientException(str(e))
@@ -202,8 +198,8 @@ class UpYun:
             if connection:
                 connection.close()
 
-        if err:
-            raise UpYunServiceException(status, err)
+        if msg:
+            raise UpYunServiceException(status, msg, err)
 
         return content
 
@@ -212,7 +208,7 @@ class UpYun:
     def __do_http_extend(self, method, uri,
                          value=None, headers=None, of=None):
 
-        content, err, status = None, None, None
+        content, msg, err, status = None, None, None, None
         URL = "http://" + self.endpoint + uri
         requests.adapters.DEFAULT_RETRIES = 5
 
@@ -232,7 +228,8 @@ class UpYun:
                 elif method == "PUT" or method == "HEAD":
                     content = response.headers.items()
             else:
-                err = response.content or "nothing"
+                msg = response.reason
+                err = response.content
 
         except requests.exceptions.ConnectionError as e:
             raise UpYunClientException(str(e))
@@ -241,8 +238,8 @@ class UpYun:
         except Exception as e:
             raise UpYunClientException(str(e))
 
-        if err:
-            raise UpYunServiceException(status, err)
+        if msg:
+            raise UpYunServiceException(status, msg, err)
 
         return content
 

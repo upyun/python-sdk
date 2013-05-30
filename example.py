@@ -112,6 +112,8 @@ def example():
         print "Except an UpYunServiceException ..."
         print "HTTP Status Code: " + str(se.status)
         print "Error Message:    " + se.msg + "\n"
+        if se.err:
+            print se.err
     except upyun.UpYunClientException as ce:
         print "failed\n"
         print "Except an UpYunClientException ..."
