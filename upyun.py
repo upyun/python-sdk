@@ -46,6 +46,7 @@ class UpYun:
         self.password = hashlib.md5(password).hexdigest()
         self.timeout = timeout or 60
         self.endpoint = endpoint or ED_AUTO
+        self.user_agent = None
 
         if HTTP_EXTEND:
             self.session = requests.Session()
@@ -125,7 +126,10 @@ class UpYun:
 
         headers['Date'] = dt
         headers['Authorization'] = signature
-        headers['User-Agent'] = self.__make_user_agent()
+        if self.user_agent:
+            headers['User-Agent'] = self.user_agent
+        else:
+            headers['User-Agent'] = self.__make_user_agent()
 
         if HTTP_EXTEND:
             return self.__do_http_extend(method, uri, value, headers, of)
