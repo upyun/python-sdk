@@ -16,7 +16,7 @@ except ImportError:
     import httplib
 
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 
 
 ED_LIST = ['v%d.api.upyun.com' % ed for ed in range(4)]
@@ -106,7 +106,7 @@ class UpYun:
         if isinstance(uri, unicode):
             uri = uri.encode('utf-8')
 
-        uri = urllib.quote(uri) + args
+        uri = urllib.quote(uri, safe="~/") + args
 
         if headers is None:
             headers = {}
@@ -179,7 +179,7 @@ class UpYun:
             response = connection.getresponse()
 
             status = response.status
-            if status == 200:
+            if status / 100 == 2:
                 if method == "GET" and of:
                     while True:
                         chunk = response.read(8192)
@@ -221,7 +221,7 @@ class UpYun:
                                             headers=headers,
                                             timeout=self.timeout)
             status = response.status_code
-            if status == 200:
+            if status / 100 == 2:
                 if method == "GET" and of:
                     for chunk in response.iter_content(8192):
                         if not chunk:
