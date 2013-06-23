@@ -4,11 +4,11 @@
 import upyun
 
 
-# ================== CONFIG =====================
+# ------------------ CONFIG ---------------------
 BUCKETNAME = 'bucketname'
 USERNAME = 'username'
 PASSWORD = 'password'
-# ===============================================
+# -----------------------------------------------
 
 
 def ascii():
@@ -21,7 +21,7 @@ def ascii():
     return content
 
 
-def example():
+def run():
 
     up = upyun.UpYun(BUCKETNAME, USERNAME, PASSWORD, timeout=30,
                      endpoint=upyun.ED_AUTO)
@@ -121,4 +121,4 @@ def example():
 
 
 if __name__ == '__main__':
-    example()
+    run()

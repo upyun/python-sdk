@@ -15,9 +15,7 @@ try:
 except ImportError:
     import httplib
 
-
-__version__ = "2.0.2"
-
+from . import __version__
 
 ED_LIST = ['v%d.api.upyun.com' % ed for ed in range(4)]
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST

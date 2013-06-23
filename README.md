@@ -4,7 +4,7 @@
 
 ## 更新说明
 
-Python SDK 2.0 不再兼容 1.x 的版本，相比旧版本，新版接口设计和实现更加 Pythonic ，且代码风格完全符合 [pep8](https://pypi.python.org/pypi/pep8) 规范。
+新版本不再兼容 1.x 的版本，相比旧版本，新版接口设计和实现更加 Pythonic ，且代码风格完全符合 [pep8](https://pypi.python.org/pypi/pep8) 规范。
 
 ## 使用说明
 
@@ -29,9 +29,7 @@ upyun.ED_CNC      联通网通接入点
 upyun.ED_CTT      移动铁通接入点
 ````
 
-默认设置为 `upyun.ED_AUTO` ， 但是我们推荐根据服务器网络状况，手动设置合理的接入点以获取最佳的访问速度。
-
-同时，也可通过：
+默认设置为 `upyun.ED_AUTO` ， 但是我们推荐根据服务器网络状况，手动设置合理的接入点以获取最佳的访问速度。同时，也可通过：
 
 ````
 up.endpoint = upyun.ED_TELECOM
@@ -163,16 +161,16 @@ except upyun.UpYunClientException as ce:
     print "Error Message: " + ce.msg + "\n"
 ````
 
-其中， `UpYunServiceException` 主要是又拍云存储端返回的错误信息，具体错误代码请参考 [标准 API 错误代码表](http://wiki.upyun.com/index.php?title=%E6%A0%87%E5%87%86API%E9%94%99%E8%AF%AF%E4%BB%A3%E7%A0%81%E8%A1%A8); 而 `UpYunClientException` 则主要是一些客户端环境的异常，例如网络不稳定、Python 对象类型错误等。
+其中， `UpYunServiceException` 主要是又拍云存储端返回的错误信息，具体错误代码请参考 [标准 API 错误代码表](http://wiki.upyun.com/index.php?title=%E6%A0%87%E5%87%86API%E9%94%99%E8%AF%AF%E4%BB%A3%E7%A0%81%E8%A1%A8); 而 `UpYunClientException` 则主要是一些客户端环境的异常，例如客户端网络超时等。
 
 ### 其他说明
 
-具体请参考 `example.py` 的代码，建议可在修改以下代码后直接运行该脚本，观察其输出情况，以便对整个 Python SDK 接口有个大致的了解：
+具体请参考 `demo/try.py` 的代码，建议可在修改以下代码后直接运行该脚本，观察其输出情况，以便对整个 Python SDK 接口有个大致的了解：
 
 ````
-# ================== CONFIG =====================
+# ------------------ CONFIG ---------------------
 BUCKETNAME = 'bucketname'
 USERNAME = 'username'
 PASSWORD = 'password'
-# ===============================================
+# -----------------------------------------------
 ````
