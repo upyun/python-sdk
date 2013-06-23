@@ -2,11 +2,11 @@
 
 又拍云存储 Python SDK，基于 [又拍云存储 HTTP REST API 接口](http://wiki.upyun.com/index.php?title=HTTP_REST_API%E6%8E%A5%E5%8F%A3) 开发。
 
-## 更新说明
+### 更新说明
 
 不再兼容 1.x 的版本，相比旧版本，新版接口设计和实现更加 Pythonic ，且代码风格完全符合 [pep8](https://pypi.python.org/pypi/pep8) 规范。
 
-## 安装说明
+### 安装说明
 
 ```
 python setup.py install
@@ -14,7 +14,7 @@ python setup.py install
 
 可选依赖: [requests](https://github.com/kennethreitz/requests)
 
-## 使用说明
+## SDK 接口
 
 ### 初始化 UpYun
 
