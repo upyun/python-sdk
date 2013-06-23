@@ -4,7 +4,15 @@
 
 ## 更新说明
 
-新版本不再兼容 1.x 的版本，相比旧版本，新版接口设计和实现更加 Pythonic ，且代码风格完全符合 [pep8](https://pypi.python.org/pypi/pep8) 规范。
+不再兼容 1.x 的版本，相比旧版本，新版接口设计和实现更加 Pythonic ，且代码风格完全符合 [pep8](https://pypi.python.org/pypi/pep8) 规范。
+
+## 安装说明
+
+```
+python setup.py install
+```
+
+可选依赖: [requests](https://github.com/kennethreitz/requests)
 
 ## 使用说明
 
