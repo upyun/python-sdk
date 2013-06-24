@@ -20,6 +20,21 @@ from . import __version__
 ED_LIST = ['v%d.api.upyun.com' % ed for ed in range(4)]
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 
+# wsgiref.handlers.format_date_time
+
+def httpdate_rfc1123(dt):
+    """Return a string representation of a date according to RFC 1123
+    (HTTP/1.1).
+
+    The supplied date must be in UTC.
+
+    """
+    weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday()]
+    month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
+             "Oct", "Nov", "Dec"][dt.month - 1]
+    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (weekday, dt.day, month,
+        dt.year, dt.hour, dt.minute, dt.second)
+
 
 class UpYunServiceException(Exception):
     def __init__(self, status, msg, err):
@@ -119,7 +134,7 @@ class UpYun:
             raise UpYunClientException("object type error")
 
         # Date Format: RFC 1123
-        dt = datetime.datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        dt = httpdate_rfc1123(datetime.datetime.utcnow())
         signature = self.__make_signature(method, uri, dt, length)
 
         headers['Date'] = dt

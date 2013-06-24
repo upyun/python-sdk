@@ -14,7 +14,7 @@ python setup.py install
 
 可选依赖: [requests](https://github.com/kennethreitz/requests)
 
-## SDK 接口
+## 基本函数接口
 
 ### 初始化 UpYun
 
