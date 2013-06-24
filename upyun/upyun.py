@@ -20,6 +20,7 @@ from . import __version__
 ED_LIST = ['v%d.api.upyun.com' % ed for ed in range(4)]
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 
+
 # wsgiref.handlers.format_date_time
 
 def httpdate_rfc1123(dt):
@@ -32,8 +33,8 @@ def httpdate_rfc1123(dt):
     weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday()]
     month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
              "Oct", "Nov", "Dec"][dt.month - 1]
-    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (weekday, dt.day, month,
-        dt.year, dt.hour, dt.minute, dt.second)
+    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % \
+        (weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
 
 
 class UpYunServiceException(Exception):
