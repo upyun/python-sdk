@@ -9,7 +9,7 @@
 ### 安装说明
 
 ```
-python setup.py install
+pip install upyun
 ```
 
 可选依赖: [requests](https://github.com/kennethreitz/requests)
