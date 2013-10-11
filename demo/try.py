@@ -85,8 +85,8 @@ def run():
                 print '|'.join([' ' + item[t].ljust(space-1) for t in types])
             print
 
-        print "Querying directory(%s) usage ... " % rootpath,
-        res = up.usage(rootpath)
+        print "Querying bucket usage ... ",
+        res = up.usage()
         print "oked\n"
         if res:
             print "[ use:" + res + " ]\n"

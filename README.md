@@ -145,19 +145,19 @@ print res['file-date']
 
 获取成功，返回一个 Python Dict 对象; 失败则抛出相应异常。
 
-### 获取空间或目录使用情况
+### 获取空间使用情况
 
 ````
-res = up.usage('/upyun-python-sdk/')
+res = up.usage()
 ````
 
-获取成功，返回指定目录下的空间使用量，单位 Bytes; 失败则抛出相应异常。默认返回根目录的使用情况。
+获取成功，始终返回该空间当前使用的总容量，单位 Bytes; 失败则抛出相应异常。
 
 ### 异常处理
 
 ````
 try:
-    res = up.usage('/upyun-python-sdk/')
+    res = up.usage()
     ...
 
 except upyun.UpYunServiceException as se:
