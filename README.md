@@ -8,11 +8,17 @@
 
 ### 安装说明
 
+> 可选依赖 [requests](https://github.com/kennethreitz/requests): HTTP for Humans，推荐！
+
+```
+pip install -r requirements.txt
+```
+
+#### 通过 pip 安装
+
 ```
 pip install upyun
 ```
-
-可选依赖: [requests](https://github.com/kennethreitz/requests)
 
 ## 基本函数接口
 
