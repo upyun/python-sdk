@@ -6,31 +6,22 @@ import sys
 PY3 = sys.version_info[0] == 3
 
 if PY3:
+    import http.client as httplib
     from urllib.parse import quote
-    quote = quote
-
-    import http.client
-    httplib = http.client
-
-    def s(s):
-        return s.decode("utf-8")
 
     def b(s):
         return s.encode("utf-8")
 
-    unicode = str
-
+    builtin_str = str
+    str = str
+    bytes = bytes
 else:
-    from urllib import quote
-    quote = quote
-
     import httplib
-    httplib = httplib
-
-    def s(s):
-        return s
+    from urllib import quote
 
     def b(s):
         return s
 
-    unicode = unicode
+    builtin_str = str
+    str = unicode
+    bytes = str

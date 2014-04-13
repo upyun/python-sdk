@@ -16,7 +16,7 @@ except ImportError:
     pass
 
 from . import __version__
-from .compat import s, b, unicode, quote, httplib
+from .compat import b, str, bytes, quote, httplib, PY3, builtin_str
 
 ED_LIST = ['v%d.api.upyun.com' % ed for ed in range(4)]
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
@@ -80,6 +80,8 @@ class UpYun:
         if headers is None:
             headers = {}
         headers['Mkdir'] = 'true'
+        if isinstance(value, str):
+            value = b(value)
         if checksum is True:
             headers['Content-MD5'] = self.__make_content_md5(value)
         h = self.__do_http_request('PUT', key, value, headers)
@@ -118,7 +120,7 @@ class UpYun:
                           value=None, headers=None, of=None, args=''):
 
         uri = '/' + self.bucket + (lambda x: x[0] == '/' and x or '/'+x)(key)
-        if isinstance(uri, unicode):
+        if isinstance(uri, str):
             uri = uri.encode('utf-8')
 
         uri = quote(uri, safe="~/") + args
@@ -129,7 +131,8 @@ class UpYun:
         length = 0
         if hasattr(value, 'fileno'):
             length = os.fstat(value.fileno()).st_size
-        elif isinstance(value, str):
+        elif isinstance(value, bytes) or (not PY3 and
+                                          isinstance(value, builtin_str)):
             length = len(value)
             headers['Content-Length'] = length
         elif value is not None:
@@ -171,8 +174,9 @@ class UpYun:
                 md5.update(chunk)
             value.seek(0)
             return md5.hexdigest()
-        elif isinstance(value, str):
-            return hashlib.md5(b(value)).hexdigest()
+        elif isinstance(value, bytes) or (not PY3 and
+                                          isinstance(value, builtin_str)):
+            return hashlib.md5(value).hexdigest()
         else:
             raise UpYunClientException("object type error")
 
@@ -202,12 +206,16 @@ class UpYun:
                             break
                         of.write(chunk)
                 if method == "GET" and of is None:
-                    content = s(response.read())
+                    content = response.read()
+                    if content and isinstance(content, bytes):
+                        content = content.decode("utf-8")
                 if method == "PUT" or method == "HEAD":
                     content = response.getheaders()
             else:
                 msg = response.reason
                 err = response.read()
+                if err and isinstance(err, bytes):
+                    err = err.decode("utf-8")
 
         except (httplib.HTTPException, socket.error, socket.timeout) as e:
             raise UpYunClientException(str(e))
@@ -235,6 +243,7 @@ class UpYun:
             response = self.session.request(method, URL, data=value,
                                             headers=headers,
                                             timeout=self.timeout)
+            response.encoding = 'utf-8'
             status = response.status_code
             if status / 100 == 2:
                 if method == "GET" and of:
@@ -243,12 +252,12 @@ class UpYun:
                             break
                         of.write(chunk)
                 elif method == "GET" and of is None:
-                    content = s(response.content)
+                    content = response.text
                 elif method == "PUT" or method == "HEAD":
                     content = response.headers.items()
             else:
                 msg = response.reason
-                err = response.content
+                err = response.text
 
         except requests.exceptions.ConnectionError as e:
             raise UpYunClientException(str(e))
