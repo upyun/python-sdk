@@ -13,9 +13,10 @@ try:
     import requests
     HTTP_EXTEND = True
 except ImportError:
-    import httplib
+    pass
 
 from . import __version__
+from .compat import s, b, unicode, quote, httplib
 
 ED_LIST = ['v%d.api.upyun.com' % ed for ed in range(4)]
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
@@ -57,7 +58,7 @@ class UpYun:
                  timeout=None, endpoint=None):
         self.bucket = bucket
         self.username = username
-        self.password = hashlib.md5(password).hexdigest()
+        self.password = hashlib.md5(b(password)).hexdigest()
         self.timeout = timeout or 60
         self.endpoint = endpoint or ED_AUTO
         self.user_agent = None
@@ -120,13 +121,13 @@ class UpYun:
         if isinstance(uri, unicode):
             uri = uri.encode('utf-8')
 
-        uri = urllib.quote(uri, safe="~/") + args
+        uri = quote(uri, safe="~/") + args
 
         if headers is None:
             headers = {}
 
         length = 0
-        if isinstance(value, file):
+        if hasattr(value, 'fileno'):
             length = os.fstat(value.fileno()).st_size
         elif isinstance(value, str):
             length = len(value)
@@ -152,7 +153,7 @@ class UpYun:
 
     def __make_signature(self, method, uri, date, length):
         signstr = '&'.join([method, uri, date, str(length), self.password])
-        signature = hashlib.md5(signstr).hexdigest()
+        signature = hashlib.md5(b(signstr)).hexdigest()
         return 'UpYun ' + self.username + ':' + signature
 
     def __make_user_agent(self):
@@ -164,14 +165,14 @@ class UpYun:
             return default
 
     def __make_content_md5(self, value):
-        if isinstance(value, file):
+        if hasattr(value, 'fileno'):
             md5 = hashlib.md5()
             for chunk in iter(lambda: value.read(8192), b''):
                 md5.update(chunk)
             value.seek(0)
             return md5.hexdigest()
         elif isinstance(value, str):
-            return hashlib.md5(value).hexdigest()
+            return hashlib.md5(b(value)).hexdigest()
         else:
             raise UpYunClientException("object type error")
 
@@ -201,7 +202,7 @@ class UpYun:
                             break
                         of.write(chunk)
                 if method == "GET" and of is None:
-                    content = response.read()
+                    content = s(response.read())
                 if method == "PUT" or method == "HEAD":
                     content = response.getheaders()
             else:
@@ -242,7 +243,7 @@ class UpYun:
                             break
                         of.write(chunk)
                 elif method == "GET" and of is None:
-                    content = response.content
+                    content = s(response.content)
                 elif method == "PUT" or method == "HEAD":
                     content = response.headers.items()
             else:

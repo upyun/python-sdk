@@ -12,8 +12,8 @@ import os
 import sys
 import upyun
 
-if sys.version_info <= (2, 5) or sys.version_info >= (2, 8):
-    error = "ERROR: UpYun SDK requires Python Version 2.6 or 2.7 ... exiting\n"
+if sys.version_info <= (2, 5) or sys.version_info >= (3, 4):
+    error = "ERROR: UpYun SDK requires Python Version 2.6 or 3.3 ... exiting\n"
     sys.stderr.write(error)
     sys.exit(1)
 
@@ -37,6 +37,8 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
     ],
 )
 
