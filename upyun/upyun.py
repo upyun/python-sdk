@@ -207,14 +207,14 @@ class UpYun:
                         of.write(chunk)
                 if method == "GET" and of is None:
                     content = response.read()
-                    if content and isinstance(content, bytes):
+                    if isinstance(content, bytes):
                         content = content.decode("utf-8")
                 if method == "PUT" or method == "HEAD":
                     content = response.getheaders()
             else:
                 msg = response.reason
                 err = response.read()
-                if err and isinstance(err, bytes):
+                if isinstance(err, bytes):
                     err = err.decode("utf-8")
 
         except (httplib.HTTPException, socket.error, socket.timeout) as e:
