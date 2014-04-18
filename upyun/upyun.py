@@ -93,7 +93,7 @@ class UpYun:
         >>> with open('bar.png', 'wb') as f:
         >>>    up.get('/path/to/bar.png', f)
         """
-        return self.__do_http_request('GET', key, of=value)
+        return self.__do_http_request('GET', key, of=value, stream=True)
 
     def delete(self, key):
         self.__do_http_request('DELETE', key)
@@ -117,7 +117,8 @@ class UpYun:
     # --- private API
 
     def __do_http_request(self, method, key,
-                          value=None, headers=None, of=None, args=''):
+                          value=None, headers=None, of=None, args='',
+                          stream=False):
 
         uri = '/' + self.bucket + (lambda x: x[0] == '/' and x or '/'+x)(key)
         if isinstance(uri, str):
@@ -150,7 +151,8 @@ class UpYun:
             headers['User-Agent'] = self.__make_user_agent()
 
         if HTTP_EXTEND:
-            return self.__do_http_extend(method, uri, value, headers, of)
+            return self.__do_http_extend(method, uri, value, headers, of,
+                                         stream)
         else:
             return self.__do_http_basic(method, uri, value, headers, of)
 
@@ -233,7 +235,7 @@ class UpYun:
     # http://docs.python-requests.org/
 
     def __do_http_extend(self, method, uri,
-                         value=None, headers=None, of=None):
+                         value=None, headers=None, of=None, stream=False):
 
         content, msg, err, status = None, None, None, None
         URL = "http://" + self.endpoint + uri
@@ -241,7 +243,7 @@ class UpYun:
 
         try:
             response = self.session.request(method, URL, data=value,
-                                            headers=headers,
+                                            headers=headers, stream=stream,
                                             timeout=self.timeout)
             response.encoding = 'utf-8'
             status = response.status_code
