@@ -21,6 +21,8 @@ from .compat import b, str, bytes, quote, httplib, PY3, builtin_str
 ED_LIST = ['v%d.api.upyun.com' % ed for ed in range(4)]
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 
+DEFAULT_CHUNKSIZE = 8192
+
 
 # wsgiref.handlers.format_date_time
 
@@ -52,16 +54,54 @@ class UpYunClientException(Exception):
         self.msg = msg
 
 
+class UploadObject(object):
+    def __init__(self, fileobj, chunksize=None, handler=None, params=None):
+        self.fileobj = fileobj
+        self.chunksize = chunksize or DEFAULT_CHUNKSIZE
+        self.totalsize = os.fstat(fileobj.fileno()).st_size
+        if handler:
+            self.hdr = handler(self.totalsize, params)
+
+    def __iter__(self):
+        readsofar = 0
+
+        while True:
+            chunk = self.fileobj.read(self.chunksize)
+            if chunk and self.hdr:
+                readsofar += len(chunk)
+                if readsofar != self.totalsize:
+                    self.hdr.update(readsofar)
+                else:
+                    self.hdr.finish()
+            yield chunk
+
+    def __len__(self):
+        return self.totalsize
+
+
+class IterableToFileAdapter(object):
+    def __init__(self, iterable):
+        self.iterator = iter(iterable)
+        self.length = len(iterable)
+
+    def read(self, size=-1):
+        return next(self.iterator, b'')
+
+    def __len__(self):
+        return self.length
+
+
 class UpYun:
 
     def __init__(self, bucket, username, password,
-                 timeout=None, endpoint=None):
+                 timeout=None, endpoint=None, chunksize=None):
         self.bucket = bucket
         self.username = username
         self.password = hashlib.md5(b(password)).hexdigest()
         self.timeout = timeout or 60
         self.endpoint = endpoint or ED_AUTO
         self.user_agent = None
+        self.chunksize = chunksize or DEFAULT_CHUNKSIZE
 
         if HTTP_EXTEND:
             self.session = requests.Session()
@@ -71,7 +111,8 @@ class UpYun:
     def usage(self, key='/'):
         return self.__do_http_request('GET', key, args='?usage')
 
-    def put(self, key, value, checksum=False, headers=None):
+    def put(self, key, value, checksum=False, headers=None,
+            handler=None, params=None):
         """
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
@@ -82,18 +123,26 @@ class UpYun:
         headers['Mkdir'] = 'true'
         if isinstance(value, str):
             value = b(value)
+
         if checksum is True:
             headers['Content-MD5'] = self.__make_content_md5(value)
+
+        if handler and hasattr(value, 'fileno'):
+            obj = UploadObject(value, chunksize=self.chunksize,
+                               handler=handler, params=params)
+            value = IterableToFileAdapter(obj)
+
         h = self.__do_http_request('PUT', key, value, headers)
 
         return self.__get_meta_headers(h)
 
-    def get(self, key, value=None):
+    def get(self, key, value=None, handler=None, params=None):
         """
         >>> with open('bar.png', 'wb') as f:
         >>>    up.get('/path/to/bar.png', f)
         """
-        return self.__do_http_request('GET', key, of=value, stream=True)
+        return self.__do_http_request('GET', key, of=value, stream=True,
+                                      handler=handler, params=params)
 
     def delete(self, key):
         self.__do_http_request('DELETE', key)
@@ -118,7 +167,7 @@ class UpYun:
 
     def __do_http_request(self, method, key,
                           value=None, headers=None, of=None, args='',
-                          stream=False):
+                          stream=False, handler=None, params=None):
 
         uri = '/' + self.bucket + (lambda x: x[0] == '/' and x or '/'+x)(key)
         if isinstance(uri, str):
@@ -132,8 +181,7 @@ class UpYun:
         length = 0
         if hasattr(value, 'fileno'):
             length = os.fstat(value.fileno()).st_size
-        elif isinstance(value, bytes) or (not PY3 and
-                                          isinstance(value, builtin_str)):
+        elif hasattr(value, '__len__'):
             length = len(value)
             headers['Content-Length'] = length
         elif value is not None:
@@ -152,9 +200,10 @@ class UpYun:
 
         if HTTP_EXTEND:
             return self.__do_http_extend(method, uri, value, headers, of,
-                                         stream)
+                                         stream, handler, params)
         else:
-            return self.__do_http_basic(method, uri, value, headers, of)
+            return self.__do_http_basic(method, uri, value, headers, of,
+                                        handler, params)
 
     def __make_signature(self, method, uri, date, length):
         signstr = '&'.join([method, uri, date, str(length), self.password])
@@ -172,7 +221,7 @@ class UpYun:
     def __make_content_md5(self, value):
         if hasattr(value, 'fileno'):
             md5 = hashlib.md5()
-            for chunk in iter(lambda: value.read(8192), b''):
+            for chunk in iter(lambda: value.read(self.chunksize), b''):
                 md5.update(chunk)
             value.seek(0)
             return md5.hexdigest()
@@ -189,7 +238,8 @@ class UpYun:
     # http://docs.python.org/2/library/httplib.html
 
     def __do_http_basic(self, method, uri,
-                        value=None, headers=None, of=None):
+                        value=None, headers=None, of=None,
+                        handler=None, params=None):
 
         content, msg, err, status = None, None, None, None
         try:
@@ -202,8 +252,22 @@ class UpYun:
             status = response.status
             if status / 100 == 2:
                 if method == "GET" and of:
+                    readsofar = 0
+                    totalsize = response.getheader("content-length")
+                    totalsize = totalsize and int(totalsize) or 0
+
+                    hdr = None
+                    if handler and totalsize > 0:
+                        hdr = handler(totalsize, params)
+
                     while True:
-                        chunk = response.read(8192)
+                        chunk = response.read(self.chunksize)
+                        if chunk and hdr:
+                            readsofar += len(chunk)
+                            if readsofar != totalsize:
+                                hdr.update(readsofar)
+                            else:
+                                hdr.finish()
                         if not chunk:
                             break
                         of.write(chunk)
@@ -235,7 +299,8 @@ class UpYun:
     # http://docs.python-requests.org/
 
     def __do_http_extend(self, method, uri,
-                         value=None, headers=None, of=None, stream=False):
+                         value=None, headers=None, of=None, stream=False,
+                         handler=None, params=None):
 
         content, msg, err, status = None, None, None, None
         URL = "http://" + self.endpoint + uri
@@ -249,7 +314,23 @@ class UpYun:
             status = response.status_code
             if status / 100 == 2:
                 if method == "GET" and of:
-                    for chunk in response.iter_content(8192):
+                    readsofar = 0
+                    try:
+                        totalsize = int(response.headers["content-length"])
+                    except (KeyError, TypeError):
+                        totalsize = 0
+
+                    hdr = None
+                    if handler and totalsize > 0:
+                        hdr = handler(totalsize, params)
+
+                    for chunk in response.iter_content(self.chunksize):
+                        if chunk and hdr:
+                            readsofar += len(chunk)
+                            if readsofar != totalsize:
+                                hdr.update(readsofar)
+                            else:
+                                hdr.finish()
                         if not chunk:
                             break
                         of.write(chunk)

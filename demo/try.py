@@ -11,6 +11,33 @@ USERNAME = 'username'
 PASSWORD = 'password'
 # -----------------------------------------------
 
+try:
+    import requests
+except ImportError:
+    print("\033[0;33;40mWarning: it is strongly recommended that "
+          "replace the default HTTP client with `requests` library.\033[0m\n")
+
+try:
+    from progressbar import *
+
+    class ProgressBarHandler(object):
+        def __init__(self, totalsize, params):
+            widgets = [params, Percentage(), ' ',
+                       Bar(marker='=', left='[', right=']'), ' ',
+                       ETA(), ' ', FileTransferSpeed()]
+            self.pbar = ProgressBar(widgets=widgets, maxval=totalsize).start()
+
+        def update(self, readsofar):
+            self.pbar.update(readsofar)
+
+        def finish(self):
+            self.pbar.finish()
+
+except ImportError:
+    print("\033[0;33;40mWarning: please install `progressbar2` library to show"
+          " the progress of file uploading and downloading.\033[0m\n")
+    ProgressBarHandler = None
+
 
 def ascii():
     content = "abcdefghijklmnopqrstuvwxyz\n" + \
@@ -36,12 +63,21 @@ def run():
     try:
         res = None
 
-        print("Uploading a new object to UpYun from a file ...", end=' ')
+        prompt = "Uploading a new object to UpYun from a file ... "
+
+        if not ProgressBarHandler:
+            print(prompt, end='')
+
         headers = {"x-gmkerl-rotate": "180"}
         with open('unix.png', 'rb') as f:
             res = up.put(rootpath + 'xinu.png', f, checksum=False,
-                         headers=headers)
-        print("oked\n")
+                         headers=headers, handler=ProgressBarHandler,
+                         params=prompt)
+
+        if not ProgressBarHandler:
+            print("oked")
+
+        print()
 
         ispicbucket = True
         if res:
@@ -50,10 +86,19 @@ def run():
         else:
             ispicbucket = False
 
-        print("Downloading an object(%sxinu.png) ..." % rootpath, end=' ')
+        prompt = "Downloading an object(%sxinu.png) ... " % rootpath
+
+        if not ProgressBarHandler:
+            print(prompt, end='')
+
         with open('xinu.png', 'wb') as f:
-            up.get(rootpath + 'xinu.png', f)
-        print('oked\n')
+            up.get(rootpath + 'xinu.png', f, handler=ProgressBarHandler,
+                   params=prompt)
+
+        if not ProgressBarHandler:
+            print("oked")
+
+        print()
 
         if not ispicbucket:
             print("Uploading a new object to UpYun from a stream "
