@@ -40,7 +40,4 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
     ],
-    install_requires=[
-        "requests >= 2.2.1"
-    ],
 )
