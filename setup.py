@@ -12,10 +12,9 @@ import os
 import sys
 import upyun
 
-if sys.version_info <= (2, 5) or sys.version_info >= (3, 4):
-    error = "ERROR: UpYun SDK requires Python Version 2.6 or 3.3 ... exiting\n"
-    sys.stderr.write(error)
-    sys.exit(1)
+if sys.argv[-1] == 'publish':
+    os.system('python setup.py sdist upload')
+    sys.exit()
 
 setup(
     name='upyun',
