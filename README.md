@@ -8,6 +8,8 @@
 
 不再兼容 1.x 的版本，相比旧版本，新版接口设计和实现更加 Pythonic ，且代码风格完全符合 [pep8](https://pypi.python.org/pypi/pep8) 规范。
 
+另外，v2.2.0 版本开始同时兼容了 Python 2.6.x / 2.7.x / 3.3.x，但建议对应主版本都升级到最新稳定版。
+
 ### 安装说明
 
 > 可选依赖 [requests](https://github.com/kennethreitz/requests): HTTP for Humans，推荐！
@@ -181,6 +183,14 @@ except upyun.UpYunClientException as ce:
 其中， `UpYunServiceException` 主要是又拍云存储端返回的错误信息，具体错误代码请参考 [标准 API 错误代码表](http://wiki.upyun.com/index.php?title=%E6%A0%87%E5%87%86API%E9%94%99%E8%AF%AF%E4%BB%A3%E7%A0%81%E8%A1%A8); 而 `UpYunClientException` 则主要是一些客户端环境的异常，例如客户端网络超时等。
 
 ## 高级特性
+
+### 自定义数据流大小
+
+```python
+up = upyun.UpYun('bucket', 'username', 'password', chunksize=8192)
+```
+
+当通过数据流方式上传和下载文件时，`chunksize` 决定了每次读操作的缓存区大小，默认 8192 字节。
 
 ### 自定义文件上传和下载过程
 
