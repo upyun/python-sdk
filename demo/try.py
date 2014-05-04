@@ -3,13 +3,21 @@
 
 from __future__ import print_function
 
-import upyun
+import os
+import sys
+
 
 # ------------------ CONFIG ---------------------
 BUCKETNAME = 'bucketname'
 USERNAME = 'username'
 PASSWORD = 'password'
 # -----------------------------------------------
+
+lib_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, lib_dir)
+
+# import upyun from local path
+import upyun
 
 try:
     import requests
