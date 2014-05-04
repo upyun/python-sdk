@@ -59,36 +59,25 @@ class UploadObject(object):
         self.fileobj = fileobj
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.totalsize = os.fstat(fileobj.fileno()).st_size
+        self.readsofar = 0
         if handler:
             self.hdr = handler(self.totalsize, params)
 
-    def __iter__(self):
-        readsofar = 0
-
-        while True:
-            chunk = self.fileobj.read(self.chunksize)
-            if chunk and self.hdr:
-                readsofar += len(chunk)
-                if readsofar != self.totalsize:
-                    self.hdr.update(readsofar)
-                else:
-                    self.hdr.finish()
-            yield chunk
+    def __next__(self):
+        chunk = self.fileobj.read(self.chunksize)
+        if chunk and self.hdr:
+            self.readsofar += len(chunk)
+            if self.readsofar != self.totalsize:
+                self.hdr.update(self.readsofar)
+            else:
+                self.hdr.finish()
+        return chunk
 
     def __len__(self):
         return self.totalsize
 
-
-class IterableToFileAdapter(object):
-    def __init__(self, iterable):
-        self.iterator = iter(iterable)
-        self.length = len(iterable)
-
     def read(self, size=-1):
-        return next(self.iterator, b'')
-
-    def __len__(self):
-        return self.length
+        return self.__next__()
 
 
 class UpYun:
@@ -128,9 +117,8 @@ class UpYun:
             headers['Content-MD5'] = self.__make_content_md5(value)
 
         if handler and hasattr(value, 'fileno'):
-            obj = UploadObject(value, chunksize=self.chunksize,
+            value = UploadObject(value, chunksize=self.chunksize,
                                handler=handler, params=params)
-            value = IterableToFileAdapter(obj)
 
         h = self.__do_http_request('PUT', key, value, headers)
 
