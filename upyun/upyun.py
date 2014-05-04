@@ -118,7 +118,7 @@ class UpYun:
 
         if handler and hasattr(value, 'fileno'):
             value = UploadObject(value, chunksize=self.chunksize,
-                               handler=handler, params=params)
+                                 handler=handler, params=params)
 
         h = self.__do_http_request('PUT', key, value, headers)
 
