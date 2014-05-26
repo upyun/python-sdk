@@ -6,7 +6,7 @@
 
 ### 更新说明
 
-不再兼容 1.x 的版本，相比旧版本，新版接口设计和实现更加 Pythonic ，且代码风格完全符合 [pep8](https://pypi.python.org/pypi/pep8) 规范。另外，2.2.0 版本开始同时兼容了 Python 2.6.x / 2.7.x / 3.3.x，但建议其对应修订版本号都升级到最新稳定版。
+不再兼容 1.x 的版本，相比旧版本，新版接口设计和实现更加 Pythonic ，且代码风格完全符合 [pep8](https://pypi.python.org/pypi/pep8) 规范。另外，2.2.0 及以上版本开始同时兼容了 Python 2.6.x / 2.7.x / 3.3.x，但建议其对应修订版本号都升级到最新稳定版。
 
 ### 安装说明
 
@@ -159,14 +159,14 @@ print res['file-date']
 res = up.usage()
 ```
 
-获取成功，始终返回该空间当前使用的总容量，单位 Bytes; 失败则抛出相应异常。
+获取成功，始终返回该空间当前使用的总容量，单位 Bytes，值类型为 Python `String` 对象; 失败则抛出相应异常。
 
 ### 异常处理
 
 ```python
 try:
     res = up.usage()
-    
+
     # do something else
 
 except upyun.UpYunServiceException as se:
