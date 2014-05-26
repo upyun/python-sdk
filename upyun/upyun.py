@@ -98,7 +98,8 @@ class UpYun:
     # --- public API
 
     def usage(self, key='/'):
-        return self.__do_http_request('GET', key, args='?usage')
+        res = self.__do_http_request('GET', key, args='?usage')
+        return str(int(res))
 
     def put(self, key, value, checksum=False, headers=None,
             handler=None, params=None):
