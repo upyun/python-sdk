@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 __title__ = 'upyun'
-__version__ = '2.2.0'
+__version__ = '2.2.1'
 __author__ = 'Monkey Zhang (timebug)'
 __license__ = 'MIT License: http://www.opensource.org/licenses/mit-license.php'
 __copyright__ = 'Copyright 2014 UPYUN'
