@@ -50,8 +50,8 @@ class UpYunServiceException(Exception):
 
 class UpYunClientException(Exception):
     def __init__(self, msg):
-        self.args = (msg)
         self.msg = msg
+        super(UpYunClientException, self).__init__(msg)
 
 
 class UploadObject(object):
