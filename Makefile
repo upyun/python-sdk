@@ -1,9 +1,8 @@
-VERSION=$(shell grep __version__ upyun/__init__.py)
 REQUIREMENTS="requirements.txt"
 TAG="\n\n\033[0;32m\#\#\# "
 END=" \#\#\# \033[0m\n"
 
-all: test
+all: init
 
 uninstall-upyun:
 	@echo $(TAG)Removing existing installation of upyun$(END)

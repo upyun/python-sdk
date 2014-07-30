@@ -36,4 +36,4 @@ nosetests.xml
 .pydevproject
 
 *.png
-!tests/unix.png
+!tests/test.png

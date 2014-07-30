@@ -7,11 +7,11 @@ import urllib
 import hashlib
 import datetime
 
-HTTP_EXTEND = None
+HUMAN_MODE = False
 
 try:
     import requests
-    HTTP_EXTEND = True
+    HUMAN_MODE = True
 except ImportError:
     pass
 
@@ -83,7 +83,7 @@ class UploadObject(object):
 class UpYun:
 
     def __init__(self, bucket, username, password,
-                 timeout=None, endpoint=None, chunksize=None):
+                 timeout=None, endpoint=None, chunksize=None, human=True):
         self.bucket = bucket
         self.username = username
         self.password = hashlib.md5(b(password)).hexdigest()
@@ -91,8 +91,11 @@ class UpYun:
         self.endpoint = endpoint or ED_AUTO
         self.user_agent = None
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
+        self.human_mode = HUMAN_MODE
+        if not human:
+            self.human_mode = False
 
-        if HTTP_EXTEND:
+        if self.human_mode:
             self.session = requests.Session()
 
     # --- public API
@@ -187,9 +190,9 @@ class UpYun:
         else:
             headers['User-Agent'] = self.__make_user_agent()
 
-        if HTTP_EXTEND:
-            return self.__do_http_extend(method, uri, value, headers, of,
-                                         stream, handler, params)
+        if self.human_mode:
+            return self.__do_http_human(method, uri, value, headers, of,
+                                        stream, handler, params)
         else:
             return self.__do_http_basic(method, uri, value, headers, of,
                                         handler, params)
@@ -202,7 +205,7 @@ class UpYun:
     def __make_user_agent(self):
         default = "upyun-python-sdk/" + __version__
 
-        if HTTP_EXTEND:
+        if self.human_mode:
             return "%s %s" % (default, requests.utils.default_user_agent())
         else:
             return default
@@ -287,9 +290,9 @@ class UpYun:
 
     # http://docs.python-requests.org/
 
-    def __do_http_extend(self, method, uri,
-                         value=None, headers=None, of=None, stream=False,
-                         handler=None, params=None):
+    def __do_http_human(self, method, uri,
+                        value=None, headers=None, of=None, stream=False,
+                        handler=None, params=None):
 
         content, msg, err, status = None, None, None, None
         URL = "http://" + self.endpoint + uri
