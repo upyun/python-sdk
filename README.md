@@ -217,15 +217,3 @@ with open('unix.png', 'rb') as f:
 with open('xinu.png', 'wb') as f:
     up.get('xinu.png', f, handler=ProgressBarHandler, params="Downloading ")
 ```
-
-## 其他说明
-
-具体请参考 `demo/try.py` 的代码，建议可在修改以下代码后直接运行该脚本，观察其输出情况，以便对整个 Python SDK 接口有个大致的了解：
-
-```python
-# ------------------ CONFIG ---------------------
-BUCKETNAME = 'bucketname'
-USERNAME = 'username'
-PASSWORD = 'password'
-# -----------------------------------------------
-```
