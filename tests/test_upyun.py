@@ -2,8 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import os
-import upyun
+import sys
 import unittest
+
+curpath = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, curpath)
+
+import upyun
 
 BUCKET = os.getenv('UPYUN_BUCKET')
 USERNAME = os.getenv('UPYUN_USERNAME')

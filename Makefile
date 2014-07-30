@@ -20,7 +20,7 @@ init: uninstall-upyun
 	pip install --upgrade --editable .
 	@echo
 
-test: init
+test:
 	@echo $(TAG)Running tests$(END)
 	py.test --cov ./upyun --cov ./tests --verbose ./tests
 	@echo
