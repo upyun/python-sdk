@@ -30,14 +30,11 @@ class TestUpYun(unittest.TestCase):
         self.up.mkdir(self.root)
 
     def tearDown(self):
-        try:
-            self.up.delete(self.root + 'test.png')
-            if BUCKET_TYPE is 'F':
-                self.up.delete(self.root + 'test.txt')
-            self.up.delete(self.root + 'test/test.png')
-            self.up.delete(self.root + 'test')
-        except upyun.UpYunServiceException:
-            pass
+        for item in ['test.png', 'test.txt', 'test/test.png', 'test']:
+            try:
+                self.up.delete(self.root + item)
+            except upyun.UpYunServiceException:
+                pass
         self.up.delete(self.root)
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root)
