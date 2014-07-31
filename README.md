@@ -14,14 +14,21 @@
 > 可选依赖 [requests](https://github.com/kennethreitz/requests): HTTP for Humans，推荐！
 
 ```
-pip install -r requirements.txt
-```
-
-#### 通过 pip 安装
-
-```
 pip install upyun
 ```
+
+> 运行测试用例
+
+```
+export UPYUN_BUCKET=<bucket>
+export UPYUN_USERNAME=<username>
+export UPYUN_PASSWORD=<password>
+# export UPYUN_BUCKET_TYPE=P
+
+make init test
+```
+
+注：图片空间需特别指定 `UPYUN_BUCKET_TYPE` 环境变量的值为 P。
 
 ## 基本函数接口
 

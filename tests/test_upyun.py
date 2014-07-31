@@ -137,7 +137,7 @@ class TestUpYun(unittest.TestCase):
             self.up.put(self.root + 'test/test.png', f, checksum=False)
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.delete(self.root + 'test')
-        self.assertIn(se.exception.status, [503, 403])
+        self.assertIn(se.exception.status, [503])
         self.up.delete(self.root + 'test/test.png')
         self.up.delete(self.root + 'test')
         with self.assertRaises(upyun.UpYunServiceException) as se:
