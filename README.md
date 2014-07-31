@@ -23,12 +23,17 @@ pip install upyun
 export UPYUN_BUCKET=<bucket>
 export UPYUN_USERNAME=<username>
 export UPYUN_PASSWORD=<password>
-# export UPYUN_BUCKET_TYPE=P
+
+pip install pytest pytest-cov # Python 2.6 also need to install unittest2
 
 make init test
 ```
 
-注：图片空间需特别指定 `UPYUN_BUCKET_TYPE` 环境变量的值为 P。
+特别地，若为图片空间还需在运行前指定如下环境变量：
+
+```
+export UPYUN_BUCKET_TYPE=P
+```
 
 ## 基本函数接口
 
