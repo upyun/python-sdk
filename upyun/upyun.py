@@ -3,7 +3,6 @@
 
 import os
 import socket
-import urllib
 import hashlib
 import datetime
 
@@ -18,7 +17,7 @@ except ImportError:
 from . import __version__
 from .compat import b, str, bytes, quote, httplib, PY3, builtin_str
 
-ED_LIST = ['v%d.api.upyun.com' % ed for ed in range(4)]
+ED_LIST = ("v%d.api.upyun.com" % ed for ed in range(4))
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 
 DEFAULT_CHUNKSIZE = 8192
@@ -33,9 +32,9 @@ def httpdate_rfc1123(dt):
     The supplied date must be in UTC.
 
     """
-    weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday()]
-    month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
-             "Oct", "Nov", "Dec"][dt.month - 1]
+    weekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][dt.weekday()]
+    month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
+             'Oct', 'Nov', 'Dec'][dt.month - 1]
     return "%s, %02d %s %04d %02d:%02d:%02d GMT" % \
         (weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
 
@@ -109,7 +108,7 @@ class UpYun:
         """
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
-        >>>                 headers={"x-gmkerl-rotate": "180"}})
+        >>>                 headers={'x-gmkerl-rotate': '180'}})
         """
         if headers is None:
             headers = {}
@@ -145,7 +144,7 @@ class UpYun:
 
     def getlist(self, key='/'):
         content = self.__do_http_request('GET', key)
-        if content == "":
+        if content == '':
             return []
         items = content.split('\n')
         return [dict(zip(['name', 'type', 'size', 'time'],
@@ -161,11 +160,11 @@ class UpYun:
                           value=None, headers=None, of=None, args='',
                           stream=False, handler=None, params=None):
 
-        uri = '/' + self.bucket + (lambda x: x[0] == '/' and x or '/'+x)(key)
+        uri = "/%s/%s" % (self.bucket, key if key[0] != '/' else key[1:])
         if isinstance(uri, str):
             uri = uri.encode('utf-8')
 
-        uri = quote(uri, safe="~/") + args
+        uri = "%s%s" % (quote(uri, safe='~/'), args)
 
         if headers is None:
             headers = {}
@@ -177,7 +176,7 @@ class UpYun:
             length = len(value)
             headers['Content-Length'] = length
         elif value is not None:
-            raise UpYunClientException("object type error")
+            raise UpYunClientException('object type error')
 
         # Date Format: RFC 1123
         dt = httpdate_rfc1123(datetime.datetime.utcnow())
@@ -200,10 +199,10 @@ class UpYun:
     def __make_signature(self, method, uri, date, length):
         signstr = '&'.join([method, uri, date, str(length), self.password])
         signature = hashlib.md5(b(signstr)).hexdigest()
-        return 'UpYun ' + self.username + ':' + signature
+        return "UpYun %s:%s" % (self.username, signature)
 
     def __make_user_agent(self):
-        default = "upyun-python-sdk/" + __version__
+        default = "upyun-python-sdk/%s" % __version__
 
         if self.human_mode:
             return "%s %s" % (default, requests.utils.default_user_agent())
@@ -221,11 +220,11 @@ class UpYun:
                                           isinstance(value, builtin_str)):
             return hashlib.md5(value).hexdigest()
         else:
-            raise UpYunClientException("object type error")
+            raise UpYunClientException('object type error')
 
     def __get_meta_headers(self, headers):
-        return dict(iter([(k[8:].lower(), v) for k, v in headers
-                    if k[:8].lower() == 'x-upyun-']))
+        return dict((k[8:].lower(), v) for k, v in headers
+                    if k[:8].lower() == 'x-upyun-')
 
     # http://docs.python.org/2/library/httplib.html
 
@@ -243,9 +242,9 @@ class UpYun:
 
             status = response.status
             if status / 100 == 2:
-                if method == "GET" and of:
+                if method == 'GET' and of:
                     readsofar = 0
-                    totalsize = response.getheader("content-length")
+                    totalsize = response.getheader('content-length')
                     totalsize = totalsize and int(totalsize) or 0
 
                     hdr = None
@@ -263,17 +262,17 @@ class UpYun:
                         if not chunk:
                             break
                         of.write(chunk)
-                if method == "GET" and of is None:
+                if method == 'GET' and of is None:
                     content = response.read()
                     if isinstance(content, bytes):
-                        content = content.decode("utf-8")
-                if method == "PUT" or method == "HEAD":
+                        content = content.decode('utf-8')
+                if method == 'PUT' or method == 'HEAD':
                     content = response.getheaders()
             else:
                 msg = response.reason
                 err = response.read()
                 if isinstance(err, bytes):
-                    err = err.decode("utf-8")
+                    err = err.decode('utf-8')
 
         except (httplib.HTTPException, socket.error, socket.timeout) as e:
             raise UpYunClientException(str(e))
@@ -295,7 +294,7 @@ class UpYun:
                         handler=None, params=None):
 
         content, msg, err, status = None, None, None, None
-        URL = "http://" + self.endpoint + uri
+        URL = "http://%s%s" % (self.endpoint, uri)
         requests.adapters.DEFAULT_RETRIES = 5
 
         try:
@@ -305,10 +304,10 @@ class UpYun:
             response.encoding = 'utf-8'
             status = response.status_code
             if status / 100 == 2:
-                if method == "GET" and of:
+                if method == 'GET' and of:
                     readsofar = 0
                     try:
-                        totalsize = int(response.headers["content-length"])
+                        totalsize = int(response.headers['content-length'])
                     except (KeyError, TypeError):
                         totalsize = 0
 
@@ -326,9 +325,9 @@ class UpYun:
                         if not chunk:
                             break
                         of.write(chunk)
-                elif method == "GET" and of is None:
+                elif method == 'GET' and of is None:
                     content = response.text
-                elif method == "PUT" or method == "HEAD":
+                elif method == 'PUT' or method == 'HEAD':
                     content = response.headers.items()
             else:
                 msg = response.reason
