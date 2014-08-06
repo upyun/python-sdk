@@ -10,7 +10,7 @@ if PY3:
     from urllib.parse import quote
 
     def b(s):
-        return s.encode("utf-8")
+        return s.encode('utf-8')
 
     builtin_str = str
     str = str
