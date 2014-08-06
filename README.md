@@ -7,7 +7,7 @@
 ### 更新说明
 
 1. 不再兼容 1.x 的版本，新版接口设计和实现更加 Pythonic ，且代码风格完全符合 [pep8](https://pypi.python.org/pypi/pep8) 规范。
-2. 2.2.0 及以上版本同时兼容了 Python 2.6 / 2.7 / 3.3，但建议其对应修订版本号都升级到最新稳定版。
+2. 2.2.0 及以上版本同时兼容了最新版本的 Python 2.6 / 2.7 / 3.3 / 3.4。
 
 ### 安装说明
 
@@ -79,7 +79,7 @@ up.put('/upyun-python-sdk/ascii.txt', 'abcdefghijklmnopqrstuvwxyz\n')
 #### 数据流方式上传，可降低内存占用
 
 ```python
-headers = { "x-gmkerl-rotate": "180"  }
+headers = { 'x-gmkerl-rotate': '180'  }
 
 with open('unix.png', 'rb') as f:
     res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, headers=headers)
@@ -183,12 +183,12 @@ try:
     # do something else
 
 except upyun.UpYunServiceException as se:
-    print "Except an UpYunServiceException ..."
-    print "HTTP Status Code: " + str(se.status)
-    print "Error Message:    " + se.msg + "\n"
+    print 'Except an UpYunServiceException ...'
+    print 'HTTP Status Code: ' + str(se.status)
+    print 'Error Message:    ' + se.msg + '\n'
 except upyun.UpYunClientException as ce:
-    print "Except an UpYunClientException ..."
-    print "Error Message: " + ce.msg + "\n"
+    print 'Except an UpYunClientException ...'
+    print 'Error Message: ' + ce.msg + '\n'
 ```
 
 其中， `UpYunServiceException` 主要是又拍云存储端返回的错误信息，具体错误代码请参考 [标准 API 错误代码表](http://wiki.upyun.com/index.php?title=%E6%A0%87%E5%87%86API%E9%94%99%E8%AF%AF%E4%BB%A3%E7%A0%81%E8%A1%A8); 而 `UpYunClientException` 则主要是一些客户端环境的异常，例如客户端网络超时等。
@@ -224,8 +224,8 @@ class ProgressBarHandler(object):
         self.pbar.finish()
 
 with open('unix.png', 'rb') as f:
-    res = up.put('xinu.png', f, handler=ProgressBarHandler, params="Uploading ")
+    res = up.put('xinu.png', f, handler=ProgressBarHandler, params='Uploading ')
 
 with open('xinu.png', 'wb') as f:
-    up.get('xinu.png', f, handler=ProgressBarHandler, params="Downloading ")
+    up.get('xinu.png', f, handler=ProgressBarHandler, params='Downloading ')
 ```

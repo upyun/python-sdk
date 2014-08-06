@@ -47,13 +47,13 @@ class TestUpYun(unittest.TestCase):
 
     def test_auth_failed(self):
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            upyun.UpYun("bucket", "username", "password").getinfo('/')
+            upyun.UpYun('bucket', 'username', 'password').getinfo('/')
         self.assertEqual(se.exception.status, 401)
 
     def test_client_exception(self):
         with self.assertRaises(upyun.UpYunClientException):
-            e = upyun.UpYun("bucket", "username", "password", timeout=3)
-            e.endpoint = "e.api.upyun.com"
+            e = upyun.UpYun('bucket', 'username', 'password', timeout=3)
+            e.endpoint = 'e.api.upyun.com'
             e.getinfo('/')
 
     def test_root(self):
@@ -64,7 +64,7 @@ class TestUpYun(unittest.TestCase):
         res = self.up.usage()
         self.assertGreaterEqual(int(res), 0)
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F', "only support file bucket")
+    @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
     def test_put_directly(self):
         self.up.put(self.root + 'test.txt', 'abcdefghijklmnopqrstuvwxyz\n')
         res = self.up.get(self.root + 'test.txt')
@@ -77,7 +77,7 @@ class TestUpYun(unittest.TestCase):
     def test_put(self):
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f, checksum=False)
-        if BUCKET_TYPE is not 'F':
+        if BUCKET_TYPE != 'F':
             self.assertDictEqual(res, {'frames': '1', 'width': '1000',
                                        'file-type': 'PNG', 'height': '410'})
         else:
@@ -95,9 +95,9 @@ class TestUpYun(unittest.TestCase):
         with open('tests/test.png', 'rb') as f:
             before = self.up._UpYun__make_content_md5(f)
             self.up.put(self.root + 'test.png', f, checksum=True)
-        with open('tests/get.png', "wb") as f:
+        with open('tests/get.png', 'wb') as f:
             self.up.get(self.root + 'test.png', f)
-        with open('tests/get.png', "rb") as f:
+        with open('tests/get.png', 'rb') as f:
             after = self.up._UpYun__make_content_md5(f)
         self.assertEqual(before, after)
         os.remove('tests/get.png')
@@ -110,7 +110,7 @@ class TestUpYun(unittest.TestCase):
         self.up.mkdir(self.root + 'test')
         res = self.up.getinfo(self.root + 'test')
         self.assertIsInstance(res, dict)
-        self.assertEqual(res['file-type'], "folder")
+        self.assertEqual(res['file-type'], 'folder')
         self.up.delete(self.root + 'test')
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root + 'test')
@@ -123,7 +123,7 @@ class TestUpYun(unittest.TestCase):
         res = self.up.getlist(self.root)
         self.assertIsInstance(res, list)
         self.assertEqual(len(res), 2)
-        if res[0]['type'] is 'F':
+        if res[0]['type'] == 'F':
             a, b = res[0], res[1]
         else:
             a, b = res[1], res[0]
@@ -150,11 +150,11 @@ class TestUpYun(unittest.TestCase):
         self.assertEqual(se.exception.status, 404)
 
     def test_put_with_gmkerl(self):
-        headers = {"x-gmkerl-rotate": "90"}
+        headers = {'x-gmkerl-rotate': '90'}
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f, checksum=False,
                               headers=headers)
-        if BUCKET_TYPE is not 'F':
+        if BUCKET_TYPE != 'F':
             self.assertDictEqual(res, {'frames': '1', 'width': '410',
                                        'file-type': 'PNG', 'height': '1000'})
         else:
