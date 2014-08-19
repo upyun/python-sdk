@@ -29,7 +29,7 @@ def rootpath():
 class TestUpYun(unittest.TestCase):
 
     def setUp(self):
-        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, timeout=60,
+        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, timeout=100,
                               endpoint=upyun.ED_TELECOM, human=False)
         self.root = rootpath()
         self.up.mkdir(self.root)
@@ -197,7 +197,7 @@ class TestUpYun(unittest.TestCase):
 class TestUpYunHumanMode(TestUpYun):
 
     def setUp(self):
-        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, timeout=60,
+        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, timeout=100,
                               endpoint=upyun.ED_TELECOM)
         self.root = rootpath()
         self.up.mkdir(self.root)
