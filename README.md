@@ -24,8 +24,6 @@ export UPYUN_BUCKET=<bucket>
 export UPYUN_USERNAME=<username>
 export UPYUN_PASSWORD=<password>
 
-pip install pytest pytest-cov # Python 2.6 also need to install unittest2
-
 make init test
 ```
 

@@ -23,5 +23,9 @@ else:
         return s
 
     builtin_str = str
-    str = unicode
+    str = unicode  # noqa
     bytes = str
+
+__all__ = [
+    'httplib', 'quote'
+]

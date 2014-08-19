@@ -9,3 +9,8 @@ __copyright__ = 'Copyright 2014 UPYUN'
 
 from .upyun import UpYun, UpYunServiceException, UpYunClientException
 from .upyun import ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT
+
+__all__ = [
+    'UpYun', 'UpYunServiceException', 'UpYunClientException',
+    'ED_AUTO', 'ED_TELECOM', 'ED_CNC', 'ED_CTT'
+]

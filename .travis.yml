@@ -6,7 +6,6 @@ python:
   - 3.4
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
-  - pip install pytest pytest-cov
 before_script:
   - export UPYUN_BUCKET=pysdk
   - export UPYUN_USERNAME=pysdk

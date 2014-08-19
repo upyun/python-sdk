@@ -21,6 +21,8 @@ init: uninstall-upyun
 
 test:
 	@echo $(TAG)Running tests$(END)
+	pip install pytest pytest-cov flake8
+	flake8 upyun
 	py.test --cov ./upyun --cov ./tests --verbose ./tests
 	@echo
 
