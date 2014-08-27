@@ -193,6 +193,14 @@ class TestUpYun(unittest.TestCase):
             self.up.getinfo(self.root + 'test.png')
         self.assertEqual(se.exception.status, 404)
 
+    def test_purge(self):
+        res = self.up.purge('/test.png')
+        self.assertListEqual(res, [])
+        res = self.up.purge(['/test.png', 'test/test.png'])
+        self.assertListEqual(res, [])
+        res = self.up.purge('/test.png', 'invalid.upyun.com')
+        self.assertListEqual(res, ['/test.png'])
+
 
 class TestUpYunHumanMode(TestUpYun):
 

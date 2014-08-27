@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import json
 import socket
 import hashlib
 import datetime
@@ -15,7 +16,7 @@ except ImportError:
     pass
 
 from . import __version__
-from .compat import b, str, bytes, quote, httplib, PY3, builtin_str
+from .compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
 
 ED_LIST = ("v%d.api.upyun.com" % ed for ed in range(4))
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
@@ -154,17 +155,67 @@ class UpYun:
         h = self.__do_http_request('HEAD', key)
         return self.__get_meta_headers(h)
 
+    def purge(self, keys, domain=None):
+        domain = domain or '%s.b0.upaiyun.com' % (self.bucket)
+        if isinstance(keys, builtin_str):
+            keys = [keys]
+        if isinstance(keys, list):
+            urlfmt = 'http://%s/%s'
+            urlstr = '\n'.join([urlfmt % (domain, k if k[0] != '/' else k[1:])
+                                for k in keys]) + '\n'
+        else:
+            raise UpYunClientException('keys type error')
+
+        api = ['purge.upyun.com', '/purge/']
+        params = urlencode({"purge": urlstr})
+        headers = {'Content-Type': 'application/x-www-form-urlencoded',
+                   'Accept': 'application/json'}
+        self.__set_auth_headers(urlstr, headers=headers)
+
+        content, msg, err, status = None, None, None, None
+
+        try:
+            if self.human_mode:
+                resp = self.session.post('http://' + ''.join(api), data=params,
+                                         timeout=self.timeout, headers=headers)
+                resp.encoding = 'utf-8'
+                status = resp.status_code
+                if status / 100 == 2:
+                    content = resp.json()
+                else:
+                    msg = resp.reason
+                    err = resp.text
+            else:
+                conn = httplib.HTTPConnection(api[0], timeout=self.timeout)
+                conn.request('POST', '/purge/', params, headers=headers)
+                resp = conn.getresponse()
+                status = resp.status
+                if status / 100 == 2:
+                    content = json.loads(self.__decode_msg(resp.read()))
+                else:
+                    msg = resp.reason
+                    err = self.__decode_msg(resp.read())
+
+        except Exception as e:
+            raise UpYunClientException(str(e))
+        finally:
+            if not self.human_mode and conn:
+                conn.close()
+
+        if msg:
+            raise UpYunServiceException(status, msg, err)
+
+        invalid_urls = content['invalid_domain_of_url']
+        return [k[7 + len(domain):] for k in invalid_urls]
+
     # --- private API
 
     def __do_http_request(self, method, key,
                           value=None, headers=None, of=None, args='',
                           stream=False, handler=None, params=None):
 
-        uri = "/%s/%s" % (self.bucket, key if key[0] != '/' else key[1:])
-        if isinstance(uri, str):
-            uri = uri.encode('utf-8')
-
-        uri = "%s%s" % (quote(uri, safe='~/'), args)
+        _uri = "/%s/%s" % (self.bucket, key if key[0] != '/' else key[1:])
+        uri = "%s%s" % (quote(self.__encode_msg(_uri), safe='~/'), args)
 
         if headers is None:
             headers = {}
@@ -178,16 +229,7 @@ class UpYun:
         elif value is not None:
             raise UpYunClientException('object type error')
 
-        # Date Format: RFC 1123
-        dt = httpdate_rfc1123(datetime.datetime.utcnow())
-        signature = self.__make_signature(method, uri, dt, length)
-
-        headers['Date'] = dt
-        headers['Authorization'] = signature
-        if self.user_agent:
-            headers['User-Agent'] = self.user_agent
-        else:
-            headers['User-Agent'] = self.__make_user_agent()
+        self.__set_auth_headers(uri, method, length, headers)
 
         if self.human_mode:
             return self.__do_http_human(method, uri, value, headers, of,
@@ -200,6 +242,11 @@ class UpYun:
         signstr = '&'.join([method, uri, date, str(length), self.password])
         signature = hashlib.md5(b(signstr)).hexdigest()
         return "UpYun %s:%s" % (self.username, signature)
+
+    def __make_purge_signature(self, urlstr, date):
+        signstr = '&'.join([urlstr, self.bucket, date, self.password])
+        signature = hashlib.md5(b(signstr)).hexdigest()
+        return "UpYun %s:%s:%s" % (self.bucket, self.username, signature)
 
     def __make_user_agent(self):
         default = "upyun-python-sdk/%s" % __version__
@@ -226,6 +273,35 @@ class UpYun:
         return dict((k[8:].lower(), v) for k, v in headers
                     if k[:8].lower() == 'x-upyun-')
 
+    def __set_auth_headers(self, playload,
+                           method=None, length=0, headers=None):
+        if headers is None:
+            headers = []
+        # Date Format: RFC 1123
+        dt = httpdate_rfc1123(datetime.datetime.utcnow())
+        if method:
+            signature = self.__make_signature(method, playload, dt, length)
+        else:
+            signature = self.__make_purge_signature(playload, dt)
+
+        headers['Date'] = dt
+        headers['Authorization'] = signature
+        if self.user_agent:
+            headers['User-Agent'] = self.user_agent
+        else:
+            headers['User-Agent'] = self.__make_user_agent()
+        return headers
+
+    def __decode_msg(self, msg):
+        if isinstance(msg, bytes):
+            msg = msg.decode('utf-8')
+        return msg
+
+    def __encode_msg(self, msg):
+        if isinstance(msg, str):
+            msg = msg.encode('utf-8')
+        return msg
+
     # http://docs.python.org/2/library/httplib.html
 
     def __do_http_basic(self, method, uri,
@@ -234,17 +310,16 @@ class UpYun:
 
         content, msg, err, status = None, None, None, None
         try:
-            connection = httplib.HTTPConnection(self.endpoint,
-                                                timeout=self.timeout)
-            # connection.set_debuglevel(1)
-            connection.request(method, uri, value, headers)
-            response = connection.getresponse()
+            conn = httplib.HTTPConnection(self.endpoint, timeout=self.timeout)
+            # conn.set_debuglevel(1)
+            conn.request(method, uri, value, headers)
+            resp = conn.getresponse()
 
-            status = response.status
+            status = resp.status
             if status / 100 == 2:
                 if method == 'GET' and of:
                     readsofar = 0
-                    totalsize = response.getheader('content-length')
+                    totalsize = resp.getheader('content-length')
                     totalsize = totalsize and int(totalsize) or 0
 
                     hdr = None
@@ -252,7 +327,7 @@ class UpYun:
                         hdr = handler(totalsize, params)
 
                     while True:
-                        chunk = response.read(self.chunksize)
+                        chunk = resp.read(self.chunksize)
                         if chunk and hdr:
                             readsofar += len(chunk)
                             if readsofar != totalsize:
@@ -263,24 +338,20 @@ class UpYun:
                             break
                         of.write(chunk)
                 if method == 'GET' and of is None:
-                    content = response.read()
-                    if isinstance(content, bytes):
-                        content = content.decode('utf-8')
+                    content = self.__decode_msg(resp.read())
                 if method == 'PUT' or method == 'HEAD':
-                    content = response.getheaders()
+                    content = resp.getheaders()
             else:
-                msg = response.reason
-                err = response.read()
-                if isinstance(err, bytes):
-                    err = err.decode('utf-8')
+                msg = resp.reason
+                err = self.__decode_msg(resp.read())
 
         except (httplib.HTTPException, socket.error, socket.timeout) as e:
             raise UpYunClientException(str(e))
         except Exception as e:
             raise UpYunClientException(str(e))
         finally:
-            if connection:
-                connection.close()
+            if conn:
+                conn.close()
 
         if msg:
             raise UpYunServiceException(status, msg, err)
@@ -298,16 +369,16 @@ class UpYun:
         requests.adapters.DEFAULT_RETRIES = 5
 
         try:
-            response = self.session.request(method, URL, data=value,
-                                            headers=headers, stream=stream,
-                                            timeout=self.timeout)
-            response.encoding = 'utf-8'
-            status = response.status_code
+            resp = self.session.request(method, URL, data=value,
+                                        headers=headers, stream=stream,
+                                        timeout=self.timeout)
+            resp.encoding = 'utf-8'
+            status = resp.status_code
             if status / 100 == 2:
                 if method == 'GET' and of:
                     readsofar = 0
                     try:
-                        totalsize = int(response.headers['content-length'])
+                        totalsize = int(resp.headers['content-length'])
                     except (KeyError, TypeError):
                         totalsize = 0
 
@@ -315,7 +386,7 @@ class UpYun:
                     if handler and totalsize > 0:
                         hdr = handler(totalsize, params)
 
-                    for chunk in response.iter_content(self.chunksize):
+                    for chunk in resp.iter_content(self.chunksize):
                         if chunk and hdr:
                             readsofar += len(chunk)
                             if readsofar != totalsize:
@@ -326,12 +397,12 @@ class UpYun:
                             break
                         of.write(chunk)
                 elif method == 'GET' and of is None:
-                    content = response.text
+                    content = resp.text
                 elif method == 'PUT' or method == 'HEAD':
-                    content = response.headers.items()
+                    content = resp.headers.items()
             else:
-                msg = response.reason
-                err = response.text
+                msg = resp.reason
+                err = resp.text
 
         except requests.exceptions.ConnectionError as e:
             raise UpYunClientException(str(e))

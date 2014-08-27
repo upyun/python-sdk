@@ -7,7 +7,7 @@ PY3 = sys.version_info[0] == 3
 
 if PY3:
     import http.client as httplib
-    from urllib.parse import quote
+    from urllib.parse import quote, urlencode
 
     def b(s):
         return s.encode('utf-8')
@@ -17,7 +17,7 @@ if PY3:
     bytes = bytes
 else:
     import httplib
-    from urllib import quote
+    from urllib import quote, urlencode
 
     def b(s):
         return s
@@ -27,5 +27,5 @@ else:
     bytes = str
 
 __all__ = [
-    'httplib', 'quote'
+    'httplib', 'quote', 'urlencode'
 ]
