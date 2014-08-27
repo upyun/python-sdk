@@ -230,23 +230,20 @@ with open('xinu.png', 'wb') as f:
 
 ## 缓存刷新
 
-该接口主要方便对 CDN 空间缓存资源进行主动刷新。而云存储空间正常情况下，资源更新则不需要额外提交刷新请求，缓存系统会自动进行处理。
+基于 [又拍云缓存刷新 API 接口](http://wiki.upyun.com/index.php?title=%E7%BC%93%E5%AD%98%E5%88%B7%E6%96%B0API%E6%8E%A5%E5%8F%A3) 开发，方便对 CDN 空间缓存资源进行主动刷新。
 
-> 更多详情及错误代码表请查看 [又拍云缓存刷新 API 接口](http://wiki.upyun.com/index.php?title=%E7%BC%93%E5%AD%98%E5%88%B7%E6%96%B0API%E6%8E%A5%E5%8F%A3) 文档。
+特别地，云存储空间正常情况下，资源更新则不需要额外提交刷新请求，缓存系统会自动进行处理。
 
 ```python
 >>> print up.purge('/upyun-python-sdk/xinu.png')
-
 []
 ```
 
 ```python
 >>> print up.purge(['/unix.png', '/xinu.png'], domain='invalid.upyun.com')
-
 ['/unix.png', '/unix.png']
 ```
 
-支持提交单个或一组 URI 到缓存刷新队列，若提交成功，同时会返回一个 Python List 对象，包含本次提交中无效的 URI 列表；失败则抛出异常。
+支持提交单个或一组 URI 到缓存刷新队列，其中 `domain` 参数可特别指定为该空间对应的绑定域名作为本次刷新的域，默认其值为 `None`，表示始终使用默认域名。
 
-其中 `domain` 参数可特别指定为该空间对应的绑定域名作为本次刷新的域，默认其值为 `None`，表示始终使用默认域名。
-
+提交成功，返回一个 Python List 对象，包含本次提交中无效的 URI 列表；失败则抛出相应异常。
