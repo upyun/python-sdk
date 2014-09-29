@@ -24,6 +24,15 @@ ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 DEFAULT_CHUNKSIZE = 8192
 
 
+def hasfileno(fileobj):
+    try:
+        if hasattr(fileobj, 'fileno'):
+            fileobj.fileno()
+            return True
+    except IOError:
+        pass
+
+
 # wsgiref.handlers.format_date_time
 
 def httpdate_rfc1123(dt):
@@ -120,7 +129,7 @@ class UpYun:
         if checksum is True:
             headers['Content-MD5'] = self.__make_content_md5(value)
 
-        if handler and hasattr(value, 'fileno'):
+        if handler and hasfileno(value):
             value = UploadObject(value, chunksize=self.chunksize,
                                  handler=handler, params=params)
 
@@ -221,8 +230,11 @@ class UpYun:
             headers = {}
 
         length = 0
-        if hasattr(value, 'fileno'):
+        if hasfileno(value):
             length = os.fstat(value.fileno()).st_size
+        elif hasattr(value, 'getvalue'):
+            length = len(value.getvalue())
+            headers['Content-Length'] = length
         elif hasattr(value, '__len__'):
             length = len(value)
             headers['Content-Length'] = length

@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import io
 import os
 import sys
 import uuid
@@ -13,6 +14,14 @@ else:
 curpath = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, curpath)
 
+def b(s):
+    PY3 = sys.version_info[0] == 3
+
+    if PY3:
+        return s.encode('utf-8')
+    else:
+        return s
+
 import upyun
 
 BUCKET = os.getenv('UPYUN_BUCKET')
@@ -21,6 +30,10 @@ PASSWORD = os.getenv('UPYUN_PASSWORD')
 
 BUCKET_TYPE = os.getenv('UPYUN_BUCKET_TYPE') or 'F'
 
+
+class DjangoFile(io.BytesIO):
+    def __len__(self):
+        return len(self.getvalue())
 
 def rootpath():
     return "/pysdk-%s/" % uuid.uuid4().hex
@@ -200,6 +213,20 @@ class TestUpYun(unittest.TestCase):
         self.assertListEqual(res, [])
         res = self.up.purge('/test.png', 'invalid.upyun.com')
         self.assertListEqual(res, ['/test.png'])
+
+    @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
+    def test_filelike_object_flask(self):
+        f = io.BytesIO(b('www.upyun.com'))
+        res = self.up.put(self.root + 'test.txt', f, checksum=False)
+        self.assertDictEqual(res, {})
+        f.close()
+
+    @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
+    def test_filelike_object_django(self):
+        f = DjangoFile(b('www.upyun.com'))
+        res = self.up.put(self.root + 'test.txt', f, checksum=False)
+        self.assertDictEqual(res, {})
+        f.close()
 
 
 class TestUpYunHumanMode(TestUpYun):
