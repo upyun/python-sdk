@@ -216,8 +216,16 @@ class TestUpYun(unittest.TestCase):
 
     @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
     def test_filelike_object_flask(self):
+        class ProgressBarHandler(object):
+            def __init__(self, totalsize, params):
+                params.assertEqual(totalsize, 13)
+
+            def finish(self):
+                pass
+
         f = io.BytesIO(b('www.upyun.com'))
-        res = self.up.put(self.root + 'test.txt', f, checksum=False)
+        res = self.up.put(self.root + 'test.txt', f, checksum=True,
+                          handler=ProgressBarHandler, params=self)
         self.assertDictEqual(res, {})
         f.close()
 

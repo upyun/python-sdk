@@ -24,13 +24,14 @@ ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 DEFAULT_CHUNKSIZE = 8192
 
 
-def hasfileno(fileobj):
+def get_fileobj_size(fileobj):
     try:
         if hasattr(fileobj, 'fileno'):
-            fileobj.fileno()
-            return True
+            return os.fstat(fileobj.fileno()).st_size
     except IOError:
         pass
+
+    return len(fileobj.getvalue())
 
 
 # wsgiref.handlers.format_date_time
@@ -67,7 +68,7 @@ class UploadObject(object):
     def __init__(self, fileobj, chunksize=None, handler=None, params=None):
         self.fileobj = fileobj
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
-        self.totalsize = os.fstat(fileobj.fileno()).st_size
+        self.totalsize = get_fileobj_size(fileobj)
         self.readsofar = 0
         if handler:
             self.hdr = handler(self.totalsize, params)
@@ -129,7 +130,7 @@ class UpYun:
         if checksum is True:
             headers['Content-MD5'] = self.__make_content_md5(value)
 
-        if handler and hasfileno(value):
+        if handler and hasattr(value, 'fileno'):
             value = UploadObject(value, chunksize=self.chunksize,
                                  handler=handler, params=params)
 
@@ -230,13 +231,11 @@ class UpYun:
             headers = {}
 
         length = 0
-        if hasfileno(value):
-            length = os.fstat(value.fileno()).st_size
-        elif hasattr(value, 'getvalue'):
-            length = len(value.getvalue())
-            headers['Content-Length'] = length
-        elif hasattr(value, '__len__'):
+        if hasattr(value, '__len__'):
             length = len(value)
+            headers['Content-Length'] = length
+        elif hasattr(value, 'fileno'):
+            length = get_fileobj_size(value)
             headers['Content-Length'] = length
         elif value is not None:
             raise UpYunClientException('object type error')
