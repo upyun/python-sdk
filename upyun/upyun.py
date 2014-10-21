@@ -51,8 +51,9 @@ def httpdate_rfc1123(dt):
 
 
 class UpYunServiceException(Exception):
-    def __init__(self, status, msg, err):
-        self.args = (status, msg, err)
+    def __init__(self, request_id, status, msg, err):
+        self.args = (request_id, status, msg, err)
+        self.request_id = request_id
         self.status = status
         self.msg = msg
         self.err = err
@@ -90,7 +91,7 @@ class UploadObject(object):
         return self.__next__()
 
 
-class UpYun:
+class UpYun(object):
 
     def __init__(self, bucket, username, password,
                  timeout=None, endpoint=None, chunksize=None, human=True):
@@ -115,7 +116,7 @@ class UpYun:
         return str(int(res))
 
     def put(self, key, value, checksum=False, headers=None,
-            handler=None, params=None):
+            handler=None, params=None, secret=None):
         """
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
@@ -129,6 +130,9 @@ class UpYun:
 
         if checksum is True:
             headers['Content-MD5'] = self.__make_content_md5(value)
+
+        if secret:
+            headers['Content-Secret'] = secret
 
         if handler and hasattr(value, 'fileno'):
             value = UploadObject(value, chunksize=self.chunksize,
@@ -213,7 +217,7 @@ class UpYun:
                 conn.close()
 
         if msg:
-            raise UpYunServiceException(status, msg, err)
+            raise UpYunServiceException(None, status, msg, err)
 
         invalid_urls = content['invalid_domain_of_url']
         return [k[7 + len(domain):] for k in invalid_urls]
@@ -319,12 +323,13 @@ class UpYun:
                         value=None, headers=None, of=None,
                         handler=None, params=None):
 
-        content, msg, err, status = None, None, None, None
+        request_id, content, msg, err, status = None, None, None, None, None
         try:
             conn = httplib.HTTPConnection(self.endpoint, timeout=self.timeout)
             # conn.set_debuglevel(1)
             conn.request(method, uri, value, headers)
             resp = conn.getresponse()
+            request_id = resp.getheader("X-Request-Id", "Unknown")
 
             status = resp.status
             if status / 100 == 2:
@@ -365,7 +370,7 @@ class UpYun:
                 conn.close()
 
         if msg:
-            raise UpYunServiceException(status, msg, err)
+            raise UpYunServiceException(request_id, status, msg, err)
 
         return content
 
@@ -375,7 +380,7 @@ class UpYun:
                         value=None, headers=None, of=None, stream=False,
                         handler=None, params=None):
 
-        content, msg, err, status = None, None, None, None
+        request_id, content, msg, err, status = None, None, None, None, None
         URL = "http://%s%s" % (self.endpoint, uri)
         requests.adapters.DEFAULT_RETRIES = 5
 
@@ -384,6 +389,10 @@ class UpYun:
                                         headers=headers, stream=stream,
                                         timeout=self.timeout)
             resp.encoding = 'utf-8'
+            try:
+                request_id = resp.headers["X-Request-Id"]
+            except KeyError:
+                request_id = "Unknown"
             status = resp.status_code
             if status / 100 == 2:
                 if method == 'GET' and of:
@@ -423,7 +432,7 @@ class UpYun:
             raise UpYunClientException(str(e))
 
         if msg:
-            raise UpYunServiceException(status, msg, err)
+            raise UpYunServiceException(request_id, status, msg, err)
 
         return content
 

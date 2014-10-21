@@ -103,6 +103,7 @@ class TestUpYun(unittest.TestCase):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root + 'test.png')
         self.assertEqual(se.exception.status, 404)
+        self.assertEqual(len(se.exception.request_id), 32)
 
     def test_put_with_checksum(self):
         with open('tests/test.png', 'rb') as f:
