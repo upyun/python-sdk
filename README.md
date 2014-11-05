@@ -182,6 +182,7 @@ try:
 
 except upyun.UpYunServiceException as se:
     print 'Except an UpYunServiceException ...'
+    print 'Request Id: ' + se.request_id
     print 'HTTP Status Code: ' + str(se.status)
     print 'Error Message:    ' + se.msg + '\n'
 except upyun.UpYunClientException as ce:
@@ -227,6 +228,17 @@ with open('unix.png', 'rb') as f:
 with open('xinu.png', 'wb') as f:
     up.get('xinu.png', f, handler=ProgressBarHandler, params='Downloading ')
 ```
+
+### 原图密钥保护
+
+```python
+with open('unix.png', 'rb') as f:
+    res = up.put('xinu.png', f, secret="abc")
+```
+
+其中参数 `secret` 可指定具体密钥内容；默认 `None`，表示不设置密钥。特别地，该功能仅对配置了缩略图版本号的图片空间有效。
+
+详见 [又拍云存储 HTTP REST API 接口](http://wiki.upyun.com/index.php?title=HTTP_REST_API%E6%8E%A5%E5%8F%A3) 中关于原图密钥保护的说明。
 
 ## 缓存刷新
 
