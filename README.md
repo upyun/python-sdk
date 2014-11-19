@@ -2,7 +2,7 @@
 
 [![pypi package](https://badge.fury.io/py/upyun.png)](http://badge.fury.io/py/upyun) [![downloads](https://pypip.in/d/upyun/badge.png)](https://crate.io/packages/upyun/) [![Build Status](https://travis-ci.org/upyun/python-sdk.svg?branch=master)](https://travis-ci.org/upyun/python-sdk)
 
-又拍云存储 Python SDK，基于 [又拍云存储 HTTP REST API 接口](http://wiki.upyun.com/index.php?title=HTTP_REST_API%E6%8E%A5%E5%8F%A3) 开发。
+又拍云存储 Python SDK，基于 [又拍云存储 HTTP REST API 接口](http://docs.upyun.com/api/rest_api/) 开发。
 
 ### 更新说明
 
@@ -83,7 +83,7 @@ with open('unix.png', 'rb') as f:
     res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, headers=headers)
 ```
 
-其中，参数 `checksum` 和 `headers` 可选，前者默认 False，表示不进行 MD5 校验; 后者可根据需求设置自定义 HTTP Header，例如作图参数 x-gmkerl-*, 具体请参考 [标准 API 上传文件](http://wiki.upyun.com/index.php?title=%E6%A0%87%E5%87%86API%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6) 。
+其中，参数 `checksum` 和 `headers` 可选，前者默认 False，表示不进行 MD5 校验; 后者可根据需求设置自定义 HTTP Header，例如作图参数 x-gmkerl-*, 具体请参考 [标准 API 上传文件](http://docs.upyun.com/api/rest_api/#_4) 。
 
 上传成功，如果当前空间是图片空间，那么 `res` 返回的是一个包含图片长、宽、帧数和类型信息的 Python Dict 对象 (文件空间，返回一个空的 Dict)：
 
@@ -190,7 +190,7 @@ except upyun.UpYunClientException as ce:
     print 'Error Message: ' + ce.msg + '\n'
 ```
 
-其中， `UpYunServiceException` 主要是又拍云存储端返回的错误信息，具体错误代码请参考 [标准 API 错误代码表](http://wiki.upyun.com/index.php?title=%E6%A0%87%E5%87%86API%E9%94%99%E8%AF%AF%E4%BB%A3%E7%A0%81%E8%A1%A8); 而 `UpYunClientException` 则主要是一些客户端环境的异常，例如客户端网络超时等。
+其中， `UpYunServiceException` 主要是又拍云存储端返回的错误信息，具体错误代码请参考 [标准 API 错误代码表](http://docs.upyun.com/api/rest_api/#rest-api); 而 `UpYunClientException` 则主要是一些客户端环境的异常，例如客户端网络超时等。
 
 ## 高级特性
 
@@ -238,11 +238,11 @@ with open('unix.png', 'rb') as f:
 
 其中参数 `secret` 可指定具体密钥内容；默认 `None`，表示不设置密钥。特别地，该功能仅对配置了缩略图版本号的图片空间有效。
 
-详见 [又拍云存储 HTTP REST API 接口](http://wiki.upyun.com/index.php?title=HTTP_REST_API%E6%8E%A5%E5%8F%A3) 中关于原图密钥保护的说明。
+详见 [又拍云存储 HTTP REST API 接口](http://docs.upyun.com/api/rest_api/) 中关于原图密钥保护的说明。
 
 ## 缓存刷新
 
-基于 [又拍云缓存刷新 API 接口](http://wiki.upyun.com/index.php?title=%E7%BC%93%E5%AD%98%E5%88%B7%E6%96%B0API%E6%8E%A5%E5%8F%A3) 开发，方便对 CDN 空间缓存资源进行主动刷新。
+基于 [又拍云缓存刷新 API 接口](http://docs.upyun.com/api/purge/) 开发，方便对 CDN 空间缓存资源进行主动刷新。
 
 特别地，云存储空间正常情况下，资源更新则不需要额外提交刷新请求，缓存系统会自动进行处理。
 
