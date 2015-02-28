@@ -7,6 +7,8 @@ import socket
 import hashlib
 import datetime
 
+from .compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
+
 HUMAN_MODE = False
 
 try:
@@ -15,8 +17,7 @@ try:
 except ImportError:
     pass
 
-from . import __version__
-from .compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
+__version__ = '2.2.5'
 
 ED_LIST = ("v%d.api.upyun.com" % ed for ed in range(4))
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
