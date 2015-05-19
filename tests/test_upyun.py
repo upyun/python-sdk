@@ -90,11 +90,9 @@ class TestUpYun(unittest.TestCase):
     def test_put(self):
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f, checksum=False)
-        if BUCKET_TYPE != 'F':
-            self.assertDictEqual(res, {'frames': '1', 'width': '1000',
-                                       'file-type': 'PNG', 'height': '410'})
-        else:
-            self.assertDictEqual(res, {})
+        self.assertDictEqual(res, {'frames': '1', 'width': '1000',
+                                   'file-type': 'PNG', 'height': '410'})
+
         res = self.up.getinfo(self.root + 'test.png')
         self.assertIsInstance(res, dict)
         self.assertEqual(res['file-size'], '13001')
@@ -168,11 +166,9 @@ class TestUpYun(unittest.TestCase):
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f, checksum=False,
                               headers=headers)
-        if BUCKET_TYPE != 'F':
-            self.assertDictEqual(res, {'frames': '1', 'width': '410',
-                                       'file-type': 'PNG', 'height': '1000'})
-        else:
-            self.assertDictEqual(res, {})
+        self.assertDictEqual(res, {'frames': '1', 'width': '410',
+                                   'file-type': 'PNG', 'height': '1000'})
+
         self.up.delete(self.root + 'test.png')
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root + 'test.png')
