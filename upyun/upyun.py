@@ -44,11 +44,7 @@ def httpdate_rfc1123(dt):
     The supplied date must be in UTC.
 
     """
-    weekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][dt.weekday()]
-    month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
-             'Oct', 'Nov', 'Dec'][dt.month - 1]
-    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % \
-        (weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
+    return dt.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
 
 class UpYunServiceException(Exception):
@@ -171,7 +167,7 @@ class UpYun(object):
         return self.__get_meta_headers(h)
 
     def purge(self, keys, domain=None):
-        domain = domain or '%s.b0.upaiyun.com' % (self.bucket)
+        domain = domain or '%s.b0.upaiyun.com' % self.bucket
         if isinstance(keys, builtin_str):
             keys = [keys]
         if isinstance(keys, list):
