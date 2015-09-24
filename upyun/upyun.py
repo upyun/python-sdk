@@ -6,9 +6,10 @@ import json
 import socket
 import hashlib
 import datetime
+import sys
 
-from .compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
-
+from compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
+from multipart import *
 HUMAN_MODE = False
 
 try:
@@ -94,21 +95,38 @@ class UploadObject(object):
 
 class UpYun(object):
 
-    def __init__(self, bucket, username, password,
-                 timeout=None, endpoint=None, chunksize=None, human=True):
+    def __init__(self, bucket, username=None, password=None, timeout=None,
+                 endpoint=None, chunksize=None, human=True, api=None, multipart=False):
+        self.password = None
+        self.check(username, password, api, multipart)
+        self.multipart = multipart
         self.bucket = bucket
         self.username = username
-        self.password = hashlib.md5(b(password)).hexdigest()
         self.timeout = timeout or 60
         self.endpoint = endpoint or ED_AUTO
         self.user_agent = None
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.human_mode = HUMAN_MODE
+        self.api = api
         if not human:
             self.human_mode = False
 
         if self.human_mode:
             self.session = requests.Session()
+
+    def check(self, username, password, api, multipart):
+        try:
+            if multipart:
+                if not api:
+                    raise AssertionError('You have to specify form-api')
+                self.password = b(password)
+            else:
+                if not username or not password:
+                    raise AssertionError('Not enough account information')
+                self.password = hashlib.md5(b(password)).hexdigest()
+        except AssertionError as e:
+            print e.message
+            sys.exit(0)
 
     # --- public API
 
@@ -117,7 +135,7 @@ class UpYun(object):
         return str(int(res))
 
     def put(self, key, value, checksum=False, headers=None,
-            handler=None, params=None, secret=None):
+            handler=None, params=None, secret=None, block_size=(1024 *1024)):
         """
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
@@ -139,9 +157,18 @@ class UpYun(object):
             value = UploadObject(value, chunksize=self.chunksize,
                                  handler=handler, params=params)
 
-        h = self.__do_http_request('PUT', key, value, headers)
-
-        return self.__get_meta_headers(h)
+        if self.multipart and hasattr(value, 'fileno'):
+            mp = Multipart(key, value, self.bucket, self.api, block_size)
+            ret, h = mp.multipart_upload()
+            if (ret / 100000) == 4:
+                raise UpYunClientException(h)
+            elif (ret / 100000) == 5:
+                raise UpYunServiceException(h)
+            else:
+                return self.__get_multi_meta_headers(h)
+        else:
+            h = self.__do_http_request('PUT', key, value, headers)
+            return self.__get_meta_headers(h)
 
     def get(self, key, value=None, handler=None, params=None):
         """
@@ -280,7 +307,7 @@ class UpYun(object):
             value.seek(0)
             return md5.hexdigest()
         elif isinstance(value, bytes) or (not PY3 and
-                                          isinstance(value, builtin_str)):
+                                    isinstance(value, builtin_str)):
             return hashlib.md5(value).hexdigest()
         else:
             raise UpYunClientException('object type error')
@@ -288,6 +315,10 @@ class UpYun(object):
     def __get_meta_headers(self, headers):
         return dict((k[8:].lower(), v) for k, v in headers
                     if k[:8].lower() == 'x-upyun-')
+
+    def __get_multi_meta_headers(self, headers):
+        return dict((k[6:].lower(), v) for k, v in headers.iteritems()
+                    if k[:6].lower() == 'image_')
 
     def __set_auth_headers(self, playload,
                            method=None, length=0, headers=None):
