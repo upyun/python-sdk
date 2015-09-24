@@ -14,14 +14,25 @@ import urllib
 from error import *
 
 class AvPretreatment(object):
-    def __init__(self, operator, password, bucket=None, notify_url=None, source=None, tasks=None):
+    def __init__(self, operator, password, bucket, notify_url=None, tasks=None, source=None, taskids=None):
         super(AvPretreatment, self).__init__()
         self.bucket = bucket
         self.notify_url = notify_url
         self.source = source
         self.process = Pocess(operator, password)
         self.tasks = tasks
-        self.taskids = []
+        self.taskids = taskids
+        self.status_code = None
+        self.x_request_id = None
+
+    def get_status_code(self):
+        return self.status_code
+
+    def get_x_request_id(self):
+        return self.x_request_id
+
+    def set_source(self, source):
+        self.source = source
 
     def add_task(self, task):
         self.tasks = self.tasks.append(task)
@@ -90,13 +101,21 @@ class Pocess(object):
                     r = requests.request(method, url, headers=headers)
                 elif method == 'POST':
                     r = requests.request(method, url, headers=headers, data=data)
+                if r.status_code >= 200 and r.status_code <= 299:
+                    break
+
         except Exception, e:
             return e.message
         return self.parse_result(r)
 
     def parse_result(self, r):
+        self.status_code = r.status_code
         if r.status_code >= 200 and r.status_code <= 299:
             try:
+                if 'X-Request-Id' in r.headers:
+                    self.x_request_id = r.headers['X-Request-Id']
+                else:
+                    self.x_request_id = ''
                 return r.json()
             except Exception, e:
                 return e.message
@@ -109,7 +128,7 @@ class Pocess(object):
             list_meta = sorted(metadata.iteritems(), key=lambda d:d[0])
             for x in list_meta:
                 signature = signature + x[0] + str(x[1])
-            signature = self.operator + signature + self.md5(self.password)
+            signature = self.operator + signature + self.password
             return self.md5(signature)
         else:
             return False
@@ -158,6 +177,8 @@ class CallbackValidation(object):
         if data.has_key('signature'):
             value = data['signature']
             del data['signature']
-            return value == self.av.process.create_signature(data)
+            #return value == self.av.process.create_signature(data)
+            print value
+            print self.av.process.create_signature(data)
 
         return False

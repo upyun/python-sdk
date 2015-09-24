@@ -42,6 +42,14 @@ class Multipart(object):
         if block_size > 50 *1024 * 1024:
             block_size = 50 *1024 * 1024
         self.block_size = block_size
+        self.x_request_id = None
+        self.status_code = None
+
+    def get_x_request_id(self):
+        return self.x_request_id
+
+    def get_status_code(self):
+        return self.status_code
 
     ##
     #分块上传文件的封装函数
@@ -156,12 +164,17 @@ class Multipart(object):
             r_json = r.json()
             if r_json.has_key('error_code'):
                 raise AssertionError(r.text)
-        except AssertionError as e:
-            return (POST_DATA_FAILED, e.message)
         except Exception, e:
             return (POST_DATA_FAILED, e)
         else:
             return (HTTP_OK, r_json)
+        finally:
+            self.status_code = r.status_code
+            if r.headers.has_key('X-Request-Id'):
+                self.x_request_id = r.headers['X-Request-Id']
+            else:
+                self.x_request_id = ''
+
 
     ##
     #@parms list status: 各分块上传情况1

@@ -9,7 +9,8 @@ import datetime
 import sys
 
 from compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
-from multipart import *
+from Multipart import *
+from AvPretreatment import *
 HUMAN_MODE = False
 
 try:
@@ -108,6 +109,7 @@ class UpYun(object):
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.human_mode = HUMAN_MODE
         self.api = api
+        self.av = None
         if not human:
             self.human_mode = False
 
@@ -115,18 +117,14 @@ class UpYun(object):
             self.session = requests.Session()
 
     def check(self, username, password, api, multipart):
-        try:
-            if multipart:
-                if not api:
-                    raise AssertionError('You have to specify form-api')
-                self.password = b(password)
-            else:
-                if not username or not password:
-                    raise AssertionError('Not enough account information')
-                self.password = hashlib.md5(b(password)).hexdigest()
-        except AssertionError as e:
-            print e.message
-            sys.exit(0)
+        if multipart:
+            if not api:
+                UpYunClientException('You have to specify form-api')
+            self.password = b(password)
+        else:
+            if not username or not password:
+                UpYunClientException('Not enough account information')
+            self.password = hashlib.md5(b(password)).hexdigest()
 
     # --- public API
 
@@ -163,7 +161,9 @@ class UpYun(object):
             if (ret / 100000) == 4:
                 raise UpYunClientException(h)
             elif (ret / 100000) == 5:
-                raise UpYunServiceException(h)
+                x_request_id = mp.get_x_request_id()
+                status_code = mp.get_status_code()
+                raise UpYunServiceException(x_request_id, status_code, h, None)
             else:
                 return self.__get_multi_meta_headers(h)
         else:
@@ -249,6 +249,47 @@ class UpYun(object):
 
         invalid_urls = content['invalid_domain_of_url']
         return [k[7 + len(domain):] for k in invalid_urls]
+
+    # --- video pretreatment API
+
+    def pretreat(self, notify_url, tasks, source):
+        self.av = AvPretreatment(self.username, self.password, self.bucket, \
+            notify_url=notify_url, tasks=tasks, source=source)
+        ids = self.av.run()
+        # means something error happend
+        if type(ids) != list:
+            status_code = self.av.get_status_code()
+            x_request_id = self.av.get_x_request_id()
+            raise UpYunServiceException(x_request_id, status_code, ids, None)
+        else:
+            return ids
+
+    def status(self, taskids=None):
+        if self.av:
+            tasks = self.av.get_tasks_status()
+        else:
+            if taskid:
+                av = AvPretreatment(self.username, self.password, self.bucket, \
+                    taskids=taskids)
+                tasks = av.get_tasks_status()
+            else:
+                raise UpYunClientException('You should specify taskid')
+        if type(tasks) == dict:
+            return tasks
+        else:
+            status_code = self.av.get_status_code()
+            x_request_id = self.av.get_x_request_id()
+            raise UpYunServiceException(x_request_id, status_code, tasks, None)
+
+    def verify_sign(self, callback_dict):
+        av = AvPretreatment(self.username, self.password, self.bucket)
+        cv = CallbackValidation(callback_dict, av)
+        if cv.verify_sign():
+            print "signature verify success"
+            return True
+        else:
+            print "signature verify failed"
+            return False
 
     # --- private API
 
