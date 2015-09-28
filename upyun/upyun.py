@@ -1,19 +1,23 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+######### ADD NOT HUMAN METHOD
+
 import os
 import json
 import socket
 import hashlib
 import datetime
+import sys
 
-from .compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
-
+from compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
+from Multipart import *
+from AvPretreatment import *
 HUMAN_MODE = False
 
 try:
     import requests
-    HUMAN_MODE = True
+    HUMAN_MODE = False
 except ImportError:
     pass
 
@@ -93,31 +97,54 @@ class UploadObject(object):
 
 
 class UpYun(object):
-
-    def __init__(self, bucket, username, password,
-                 timeout=None, endpoint=None, chunksize=None, human=True):
+    def __init__(self, bucket, username=None, password=None, timeout=None,
+                 endpoint=None, chunksize=None, human=True, api=None, multipart=False):
+        self.password = None
+        self.check(username, password, api, multipart)
+        self.password = hashlib.md5(b(self.password)).hexdigest()
+        self.multipart = multipart
         self.bucket = bucket
         self.username = username
-        self.password = hashlib.md5(b(password)).hexdigest()
         self.timeout = timeout or 60
         self.endpoint = endpoint or ED_AUTO
         self.user_agent = None
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.human_mode = HUMAN_MODE
+        self.api = api
+        self.av = None
         if not human:
             self.human_mode = False
 
         if self.human_mode:
             self.session = requests.Session()
 
+    def check(self, username, password, api, multipart):
+        if multipart:
+            if not api:
+                raise UpYunClientException('You have to specify form-api')
+        else:
+            if not username or not password:
+                raise UpYunClientException('Not enough account information')
+        if not password:
+            self.password = ''
+        else:
+            self.password = password
+
     # --- public API
+    def open_multipart(self):
+        self.multipart = True
+        if not self.api:
+            raise UpYunClientException('You have to specify form-api')
+
+    def close_multipart(self):
+        self.multipart = False
 
     def usage(self, key='/'):
         res = self.__do_http_request('GET', key, args='?usage')
         return str(int(res))
 
     def put(self, key, value, checksum=False, headers=None,
-            handler=None, params=None, secret=None):
+            handler=None, params=None, secret=None, block_size=(1024 *1024)):
         """
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
@@ -139,9 +166,20 @@ class UpYun(object):
             value = UploadObject(value, chunksize=self.chunksize,
                                  handler=handler, params=params)
 
-        h = self.__do_http_request('PUT', key, value, headers)
-
-        return self.__get_meta_headers(h)
+        if self.multipart and hasattr(value, 'fileno'):
+            mp = Multipart(key, value, self.bucket, self.api, self.timeout, self.human_mode, block_size)
+            ret, h = mp.multipart_upload()
+            if (ret / 100000) == 4:
+                raise UpYunClientException(h)
+            elif (ret / 100000) == 5:
+                x_request_id = mp.get_x_request_id()
+                status_code = mp.get_status_code()
+                raise UpYunServiceException(x_request_id, status_code, h, None)
+            else:
+                return self.__get_multi_meta_headers(h)
+        else:
+            h = self.__do_http_request('PUT', key, value, headers)
+            return self.__get_meta_headers(h)
 
     def get(self, key, value=None, handler=None, params=None):
         """
@@ -223,6 +261,47 @@ class UpYun(object):
         invalid_urls = content['invalid_domain_of_url']
         return [k[7 + len(domain):] for k in invalid_urls]
 
+    # --- video pretreatment API
+
+    def pretreat(self, tasks, source, notify_url=""):
+        self.av = AvPretreatment(self.username, self.password, self.bucket, \
+            self.human_mode, self.timeout, notify_url=notify_url, tasks=tasks, source=source)
+        ids = self.av.run()
+        # means something error happend
+        if type(ids) != list:
+            status_code = self.av.get_status_code()
+            x_request_id = self.av.get_x_request_id()
+            raise UpYunServiceException(x_request_id, status_code, ids, None)
+        return ids
+
+    def status(self, taskids=None):
+        if taskids:
+            self.av = AvPretreatment(self.username, self.password, self.bucket, \
+                self.human_mode, self.timeout, taskids=taskids)
+            tasks = self.av.get_tasks_status()
+        else:
+            if self.av:
+                tasks = self.av.get_tasks_status()
+            else:
+                raise UpYunClientException('You should specify taskid')
+
+        if type(tasks) == dict:
+            return tasks
+        else:
+            status_code = self.av.get_status_code()
+            x_request_id = self.av.get_x_request_id()
+            raise UpYunServiceException(x_request_id, status_code, tasks, None)
+
+    def verify_sign(self, callback_dict):
+        av = AvPretreatment(self.username, self.password, self.bucket)
+        cv = CallbackValidation(callback_dict, av)
+        if cv.verify_sign():
+            print "signature verify success"
+            return True
+        else:
+            print "signature verify failed"
+            return False
+
     # --- private API
 
     def __do_http_request(self, method, key,
@@ -280,7 +359,7 @@ class UpYun(object):
             value.seek(0)
             return md5.hexdigest()
         elif isinstance(value, bytes) or (not PY3 and
-                                          isinstance(value, builtin_str)):
+                                    isinstance(value, builtin_str)):
             return hashlib.md5(value).hexdigest()
         else:
             raise UpYunClientException('object type error')
@@ -288,6 +367,10 @@ class UpYun(object):
     def __get_meta_headers(self, headers):
         return dict((k[8:].lower(), v) for k, v in headers
                     if k[:8].lower() == 'x-upyun-')
+
+    def __get_multi_meta_headers(self, headers):
+        return dict((k[6:].lower(), v) for k, v in headers.iteritems()
+                    if k[:6].lower() == 'image_')
 
     def __set_auth_headers(self, playload,
                            method=None, length=0, headers=None):
