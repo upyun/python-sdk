@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+######### ADD NOT HUMAN METHOD
+
 import os
 import json
 import socket
@@ -15,7 +17,7 @@ HUMAN_MODE = False
 
 try:
     import requests
-    HUMAN_MODE = True
+    HUMAN_MODE = False
 except ImportError:
     pass
 
@@ -95,11 +97,11 @@ class UploadObject(object):
 
 
 class UpYun(object):
-
     def __init__(self, bucket, username=None, password=None, timeout=None,
                  endpoint=None, chunksize=None, human=True, api=None, multipart=False):
         self.password = None
         self.check(username, password, api, multipart)
+        self.password = hashlib.md5(b(self.password)).hexdigest()
         self.multipart = multipart
         self.bucket = bucket
         self.username = username
@@ -119,14 +121,23 @@ class UpYun(object):
     def check(self, username, password, api, multipart):
         if multipart:
             if not api:
-                UpYunClientException('You have to specify form-api')
-            self.password = b(password)
+                raise UpYunClientException('You have to specify form-api')
         else:
             if not username or not password:
-                UpYunClientException('Not enough account information')
-            self.password = hashlib.md5(b(password)).hexdigest()
+                raise UpYunClientException('Not enough account information')
+        if not password:
+            self.password = ''
+        else:
+            self.password = password
 
     # --- public API
+    def open_multipart(self):
+        self.multipart = True
+        if not self.api:
+            raise UpYunClientException('You have to specify form-api')
+
+    def close_multipart(self):
+        self.multipart = False
 
     def usage(self, key='/'):
         res = self.__do_http_request('GET', key, args='?usage')
@@ -156,7 +167,7 @@ class UpYun(object):
                                  handler=handler, params=params)
 
         if self.multipart and hasattr(value, 'fileno'):
-            mp = Multipart(key, value, self.bucket, self.api, block_size)
+            mp = Multipart(key, value, self.bucket, self.api, self.timeout, self.human_mode, block_size)
             ret, h = mp.multipart_upload()
             if (ret / 100000) == 4:
                 raise UpYunClientException(h)
@@ -252,28 +263,28 @@ class UpYun(object):
 
     # --- video pretreatment API
 
-    def pretreat(self, notify_url, tasks, source):
+    def pretreat(self, tasks, source, notify_url=""):
         self.av = AvPretreatment(self.username, self.password, self.bucket, \
-            notify_url=notify_url, tasks=tasks, source=source)
+            self.human_mode, self.timeout, notify_url=notify_url, tasks=tasks, source=source)
         ids = self.av.run()
         # means something error happend
         if type(ids) != list:
             status_code = self.av.get_status_code()
             x_request_id = self.av.get_x_request_id()
             raise UpYunServiceException(x_request_id, status_code, ids, None)
-        else:
-            return ids
+        return ids
 
     def status(self, taskids=None):
-        if self.av:
+        if taskids:
+            self.av = AvPretreatment(self.username, self.password, self.bucket, \
+                self.human_mode, self.timeout, taskids=taskids)
             tasks = self.av.get_tasks_status()
         else:
-            if taskid:
-                av = AvPretreatment(self.username, self.password, self.bucket, \
-                    taskids=taskids)
-                tasks = av.get_tasks_status()
+            if self.av:
+                tasks = self.av.get_tasks_status()
             else:
                 raise UpYunClientException('You should specify taskid')
+
         if type(tasks) == dict:
             return tasks
         else:

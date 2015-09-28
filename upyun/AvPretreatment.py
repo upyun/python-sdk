@@ -1,29 +1,36 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#容错需要补上, 以及回调函数验证
-#明天问一下 info 参数是否需要加入 signature 计算
-
 import requests
 import hashlib
 import json
 import base64
 import sys
 import urllib
+import httplib
 
 from error import *
 
 class AvPretreatment(object):
-    def __init__(self, operator, password, bucket, notify_url=None, tasks=None, source=None, taskids=None):
+    def __init__(self, operator, password, bucket, human_mode, timeout, notify_url=None, 
+                    tasks=None, source=None, taskids=None):
         super(AvPretreatment, self).__init__()
+        self.host = "p0.api.upyun.com"
+        self.func_url = {"pretreatment": "/pretreatment/", "status": "/status/"}
+        self.operator = operator
+        self.password = password
         self.bucket = bucket
         self.notify_url = notify_url
         self.source = source
-        self.process = Pocess(operator, password)
         self.tasks = tasks
         self.taskids = taskids
         self.status_code = None
         self.x_request_id = None
+        self.signature = None
+        self.human_mode = human_mode
+        self.timeout = timeout
+
+    # --- public API
 
     def get_status_code(self):
         return self.status_code
@@ -47,9 +54,9 @@ class AvPretreatment(object):
     def run(self):
         data = {'bucket_name': self.bucket, 'source': self.source,
                 'notify_url': self.notify_url, 'tasks': self.tasks}
-        result = self.process.requests_pretreatment(data)
+        ret, result = self.__requests_pretreatment(data)
 
-        if type(result) == list:
+        if ret == 200 and type(result) == list:
             self.taskids = result
         return result
 
@@ -65,80 +72,104 @@ class AvPretreatment(object):
 
         data['bucket_name'] = self.bucket
         data['task_ids'] = taskids
-        result = self.process.requests_status(data)
-        if type(result)  == dict and result.has_key('tasks'):
+        ret, result = self.__requests_status(data)
+        if ret == 200 and type(result)  == dict and result.has_key('tasks'):
             return result['tasks']
         return result
 
-# the class that actually do things
-class Pocess(object):
-    def __init__(self, operator, password):
-        super(Pocess, self).__init__()
-        self.api_url = {"pretreatment": "http://p0.api.upyun.com/pretreatment/", 
-            "status": "http://p0.api.upyun.com/status/",}
-        self.operator = operator
-        self.password = password
-        self.taskid = None
-        self.signature = None
+    # --- private API
 
-    def requests_pretreatment(self, data):
-        data['tasks'] = self.process_tasksdata(data['tasks'])
-        url = self.api_url["pretreatment"]
-        self.signature = self.create_signature(data)
-        return self.do_requests(data, url, 'POST')
-
-    def requests_status(self, data):
-        self.signature = self.create_signature(data)
-        data = urllib.urlencode(data)
-        url = self.api_url['status'] + '?' + data
-        return self.do_requests(data, url, 'GET')
-
-    def do_requests(self, data, url, method, retry_times = 3):
-        headers = {'Authorization': 'UPYUN ' + self.operator + ":" + self.signature}
-        try:
-            for i in range(retry_times):
-                if method == 'GET':
-                    r = requests.request(method, url, headers=headers)
-                elif method == 'POST':
-                    r = requests.request(method, url, headers=headers, data=data)
-                if r.status_code >= 200 and r.status_code <= 299:
-                    break
-
-        except Exception, e:
-            return e.message
-        return self.parse_result(r)
-
-    def parse_result(self, r):
-        self.status_code = r.status_code
-        if r.status_code >= 200 and r.status_code <= 299:
-            try:
-                if 'X-Request-Id' in r.headers:
-                    self.x_request_id = r.headers['X-Request-Id']
-                else:
-                    self.x_request_id = ''
-                return r.json()
-            except Exception, e:
-                return e.message
+    def __requests_pretreatment(self, data):
+        data['tasks'] = self.__process_tasksdata(data['tasks'])
+        uri = self.func_url['pretreatment']
+        self.signature = self.__create_signature(data)
+        headers = {'Authorization': 'UPYUN ' + self.operator + ":" + self.signature,
+                    'Content-Type': 'application/x-www-form-urlencoded'}
+        if self.human_mode:
+            return self.__do_http_human('POST', uri, headers=headers, value=data)
         else:
-            return 'request failed!HTTP_CODE: ' + str(r.status_code) + ', ' + str(r.text)
+            return self.__do_http_basic('POST', uri, headers=headers, value=data)
 
-    def create_signature(self, metadata):
+    def __requests_status(self, data):
+        self.signature = self.__create_signature(data)
+        data = urllib.urlencode(data)
+        uri = self.func_url['status'] + '?' + data
+        headers = {'Authorization': 'UPYUN ' + self.operator + ":" + self.signature}
+        if self.human_mode:
+            return self.__do_http_human('GET', uri, headers=headers)
+        else:
+            return self.__do_http_basic('GET', uri, headers=headers)
+
+    def __do_http_basic(self, method, uri,
+                        value=None, headers=None, params=None):
+        content, err, status = None, None, None
+        try:
+            conn = httplib.HTTPConnection(self.host, timeout=self.timeout)
+            if 'Content-Type' in headers.keys() and \
+                        headers['Content-Type'] == 'application/x-www-form-urlencoded':
+                value = urllib.urlencode(value)
+            # conn.set_debuglevel(1)
+            conn.request(method, uri, value, headers)
+            resp = conn.getresponse()
+            self.x_request_id = resp.getheader("X-Request-Id", "Unknown")
+
+            status = resp.status
+            if status / 100 == 2:
+                content = self.__decode_msg(resp.read())
+                content = json.loads(content)
+            else:
+                err = self.__decode_msg(resp.read())
+                return (POST_DATA_FAILED, err)
+        except Exception, e:
+            return (POST_DATA_FAILED, e.message)
+        else:
+            return (HTTP_OK, content)
+
+    # http://docs.python-requests.org/
+
+    def __do_http_human(self, method, uri,
+                        value=None, headers=None, params=None):
+        content, err, status = None, None, None
+        requests.adapters.DEFAULT_RETRIES = 5
+
+        url = "http://%s%s" % (self.host , uri)
+        try:
+            resp = requests.request(method, url, headers=headers,
+                                data=value, timeout=self.timeout)
+            resp.encoding = 'utf-8'
+            status = resp.status_code
+            if status / 100 == 2:
+                content = resp.json()
+                self.x_request_id = 'X-Request-Id' in resp.headers \
+                    and resp.headers['X-Request-Id'] or "Unknown"
+            else:
+                err = resp.text
+                return (POST_DATA_FAILED, err)
+        except Exception, e:
+            return (POST_DATA_FAILED, e.message)
+        else:
+            return (HTTP_OK, content)
+
+
+    def __create_signature(self, metadata):
         if type(metadata) == dict:
             signature = ''
             list_meta = sorted(metadata.iteritems(), key=lambda d:d[0])
-            for x in list_meta:
-                signature = signature + x[0] + str(x[1])
+            for k, v in list_meta:
+                if type(v) == list:
+                    v = "".join(v)
+                signature = signature + k + v
             signature = self.operator + signature + self.password
-            return self.md5(signature)
+            return self.__md5(signature)
         else:
             return False
 
-    def process_tasksdata(self, tasks):
+    def __process_tasksdata(self, tasks):
         if (type(tasks) == list):
             return base64.b64encode(json.dumps(tasks))
         return False
 
-    def md5(self, value, chunksize=8192):
+    def __md5(self, value, chunksize=8192):
         try:
             md5 = hashlib.md5()
             md5.update(value)
@@ -146,11 +177,14 @@ class Pocess(object):
         except:
             return None
 
+    def __decode_msg(self, msg):
+        if isinstance(msg, bytes):
+            msg = msg.decode('utf-8')
+        return msg
 
+# --- Signature not correct right now
 class CallbackValidation(object):
     def __init__(self, dict_callback, av):
-        #self.params = self.change_str_to_dict(string)
-        #print self.params
         self.params = dict_callback
         self.av = av
         self.keys = ['bucket_name',
@@ -167,7 +201,7 @@ class CallbackValidation(object):
             if dict_callback.has_key(key):
                 value = dict_callback[key]
                 if type(value) == list:
-                    value = "".join(value)
+                    value = " ".join(value)
                 data[key] = value
         return data
 
@@ -177,8 +211,6 @@ class CallbackValidation(object):
         if data.has_key('signature'):
             value = data['signature']
             del data['signature']
-            #return value == self.av.process.create_signature(data)
-            print value
-            print self.av.process.create_signature(data)
+            return value == self.av.create_signature(data)
 
         return False

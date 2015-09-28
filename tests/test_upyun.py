@@ -27,7 +27,8 @@ import upyun
 BUCKET = os.getenv('UPYUN_BUCKET')
 USERNAME = os.getenv('UPYUN_USERNAME')
 PASSWORD = os.getenv('UPYUN_PASSWORD')
-
+API = os.getenv('UPYUN_API')
+SOURCE = os.getenv('UPYUN_SOURCE') or 'F'
 BUCKET_TYPE = os.getenv('UPYUN_BUCKET_TYPE') or 'F'
 
 
@@ -42,13 +43,13 @@ def rootpath():
 class TestUpYun(unittest.TestCase):
 
     def setUp(self):
-        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, timeout=100,
-                              endpoint=upyun.ED_TELECOM, human=False)
+        self.up = upyun.UpYun(BUCKET, username=USERNAME, password=PASSWORD, timeout=100,
+                              endpoint=upyun.ED_TELECOM, human=False, api=API, multipart=False)
         self.root = rootpath()
         self.up.mkdir(self.root)
 
     def tearDown(self):
-        for item in ['test.png', 'test.txt', 'test/test.png', 'test']:
+        for item in ['test.png', 'test.txt', 'test/test.png', 'test', 'test_m.png', 'test/test_m.png']:
             try:
                 self.up.delete(self.root + item)
             except upyun.UpYunServiceException:
@@ -101,7 +102,7 @@ class TestUpYun(unittest.TestCase):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root + 'test.png')
         self.assertEqual(se.exception.status, 404)
-        self.assertEqual(len(se.exception.request_id), 32)
+        self.assertEqual(len(se.exception.request_id), 66)
 
     def test_put_with_checksum(self):
         with open('tests/test.png', 'rb') as f:
@@ -233,11 +234,42 @@ class TestUpYun(unittest.TestCase):
         self.assertDictEqual(res, {})
         f.close()
 
+    @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
+    def test_put_multipart(self):
+        self.up.open_multipart()
+        with open('tests/test_m.png', 'rb') as f:
+            res = self.up.put(self.root + 'test_m.png', f, checksum=False)
+        self.assertDictEqual(res, {'frames': 1, 'width': 140, 'height': 25})
+
+        res = self.up.getinfo(self.root + 'test_m.png')
+        self.assertIsInstance(res, dict)
+        self.assertEqual(res['file-size'], '2745')
+        self.assertEqual(res['file-type'], 'file')
+        self.up.delete(self.root + 'test_m.png')
+        with self.assertRaises(upyun.UpYunServiceException) as se:
+            self.up.getinfo(self.root + 'test_m.png')
+        self.assertEqual(se.exception.status, 404)
+        self.assertEqual(len(se.exception.request_id), 66)
+        self.up.close_multipart()
+
+    @unittest.skipUnless(BUCKET_TYPE == 'F' or SOURCE == 'F', 'only support file bucket \
+                        and you have to specify video source')
+    def test_pretreat(self):
+        tasks = [{'type': 'hls', 'hls_time': 6, 'bitrate': '500',}]
+        source = SOURCE
+        notify_url = ""
+        ids = self.up.pretreat(tasks, source, notify_url)
+        self.assertIsInstance(ids, list)
+        tasks = self.up.status(ids)
+        for taskid in ids:
+            self.assertIn(taskid, tasks.keys())
+
 
 class TestUpYunHumanMode(TestUpYun):
 
     def setUp(self):
-        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, timeout=100,
-                              endpoint=upyun.ED_TELECOM)
+        self.up = upyun.UpYun(BUCKET, username=USERNAME, password=PASSWORD, timeout=100,
+                              endpoint=upyun.ED_TELECOM, human=True, api=API, multipart=False)
         self.root = rootpath()
         self.up.mkdir(self.root)
+
