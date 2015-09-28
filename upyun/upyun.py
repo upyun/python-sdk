@@ -17,7 +17,7 @@ HUMAN_MODE = False
 
 try:
     import requests
-    HUMAN_MODE = False
+    HUMAN_MODE = True
 except ImportError:
     pass
 
