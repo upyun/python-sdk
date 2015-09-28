@@ -156,8 +156,8 @@ class Multipart(object):
         if type(metadata) == dict:
             signature = ''
             list_meta = sorted(metadata.iteritems(), key=lambda d:d[0])
-            for x in list_meta:
-                signature = signature + x[0] + str(x[1])
+            for k, v in list_meta:
+                signature = signature + k + str(v)
             if not from_api:
                 signature += self.token_secret
             else:
