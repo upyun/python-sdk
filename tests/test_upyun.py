@@ -27,7 +27,7 @@ import upyun
 BUCKET = os.getenv('UPYUN_BUCKET')
 USERNAME = os.getenv('UPYUN_USERNAME')
 PASSWORD = os.getenv('UPYUN_PASSWORD')
-API = os.getenv('UPYUN_API')
+API = os.getenv('UPYUN_API') or None
 SOURCE = os.getenv('UPYUN_SOURCE') or 'F'
 BUCKET_TYPE = os.getenv('UPYUN_BUCKET_TYPE') or 'F'
 
@@ -234,7 +234,8 @@ class TestUpYun(unittest.TestCase):
         self.assertDictEqual(res, {})
         f.close()
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
+    @unittest.skipUnless(BUCKET_TYPE == 'F' or not API, 'only support file bucket \
+                        and you have to specify form api')
     def test_put_multipart(self):
         self.up.open_multipart()
         with open('tests/test_m.png', 'rb') as f:
