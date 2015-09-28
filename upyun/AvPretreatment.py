@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import requests
 import hashlib
 import json
 import base64
 import sys
 import urllib
 import httplib
+
+try:
+    import requests
+except ImportError:
+    pass
 
 from error import *
 
@@ -158,7 +162,7 @@ class AvPretreatment(object):
             for k, v in list_meta:
                 if type(v) == list:
                     v = "".join(v)
-                signature = signature + k + v
+                signature = signature + k + str(v)
             signature = self.operator + signature + self.password
             return self.__md5(signature)
         else:

@@ -369,8 +369,11 @@ class UpYun(object):
                     if k[:8].lower() == 'x-upyun-')
 
     def __get_multi_meta_headers(self, headers):
-        return dict((k[6:].lower(), v) for k, v in headers.iteritems()
-                    if k[:6].lower() == 'image_')
+        sys_headers = ['last_modified', 'signature', 'bucket_name', 'path']
+        for item in sys_headers:
+            if item in headers.keys():
+                del headers[item]
+        return headers
 
     def __set_auth_headers(self, playload,
                            method=None, length=0, headers=None):
