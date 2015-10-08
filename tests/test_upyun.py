@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import io
@@ -23,13 +22,18 @@ def b(s):
         return s
 
 import upyun
+#from exception import upyun.UpYunServiceException, UpYunClientException
 
 BUCKET = os.getenv('UPYUN_BUCKET')
 USERNAME = os.getenv('UPYUN_USERNAME')
 PASSWORD = os.getenv('UPYUN_PASSWORD')
-API = os.getenv('UPYUN_API') or None
+SECRET = os.getenv('UPYUN_SECRET') or None
 SOURCE = os.getenv('UPYUN_SOURCE') or 'F'
 BUCKET_TYPE = os.getenv('UPYUN_BUCKET_TYPE') or 'F'
+BUCKET = "zj-files"
+USERNAME = "adm"
+PASSWORD = "aaaaaaaa"
+SECRET = "nW2KBSDEQ93CYoRQSbgBvredqvc="
 
 
 class DjangoFile(io.BytesIO):
@@ -44,7 +48,7 @@ class TestUpYun(unittest.TestCase):
 
     def setUp(self):
         self.up = upyun.UpYun(BUCKET, username=USERNAME, password=PASSWORD, timeout=100,
-                              endpoint=upyun.ED_TELECOM, human=False, api=API, multipart=False)
+                              endpoint=upyun.ED_TELECOM, human=False, secret=SECRET, multipart=False)
         self.root = rootpath()
         self.up.mkdir(self.root)
 
@@ -191,6 +195,7 @@ class TestUpYun(unittest.TestCase):
                 self.params.assertEqual(self.readtimes, 3)
 
         self.up.chunksize = 4096
+        self.up.hp.chunksize = 4096
 
         with open('tests/test.png', 'rb') as f:
             self.up.put(self.root + 'test.png', f, handler=ProgressBarHandler,
@@ -234,8 +239,8 @@ class TestUpYun(unittest.TestCase):
         self.assertDictEqual(res, {})
         f.close()
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F' or not API, 'only support file bucket \
-                        and you have to specify form api')
+    @unittest.skipUnless(BUCKET_TYPE == 'F' or not secret, 'only support file bucket \
+                        and you have to specify bucket secret')
     def test_put_multipart(self):
         self.up.open_multipart()
         with open('tests/test_m.png', 'rb') as f:
@@ -270,7 +275,7 @@ class TestUpYunHumanMode(TestUpYun):
 
     def setUp(self):
         self.up = upyun.UpYun(BUCKET, username=USERNAME, password=PASSWORD, timeout=100,
-                              endpoint=upyun.ED_TELECOM, human=True, api=API, multipart=False)
+                              endpoint=upyun.ED_TELECOM, human=True, secret=SECRET, multipart=False)
         self.root = rootpath()
         self.up.mkdir(self.root)
 

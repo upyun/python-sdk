@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import httplib
@@ -20,9 +19,8 @@ except ImportError:
 from error import *
 
 class Multipart(object):
-    def __init__(self, key, value, bucket, bucket_api, timeout,
+    def __init__(self, key, value, bucket, secret, timeout,
                         human_mode, block_size=(1024 *1024)):
-        super(Multipart, self).__init__()
         self.file = value
         #size: 文件大小
         self.size = self.__getsize(value)
@@ -40,8 +38,8 @@ class Multipart(object):
         self.status = []
         #bucket: 表单名称
         self.bucket = bucket
-        #bucket: 表单api值
-        self.bucket_api = bucket_api
+        #secret: 表单api值
+        self.secret = secret
         #remote_path: 远端上传地址,必须包换文件夹名及文件名，如/upload/a.jpg
         self.remote_path = key
         #block_size: 分块大小
@@ -161,7 +159,7 @@ class Multipart(object):
             if not from_api:
                 signature += self.token_secret
             else:
-                signature += self.bucket_api
+                signature += self.secret
             return self.__md5(signature)
         else:
             return False

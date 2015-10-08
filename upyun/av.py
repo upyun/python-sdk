@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import hashlib
@@ -14,19 +13,17 @@ except ImportError:
     pass
 
 from error import *
+from exception import UpYunServiceException, UpYunClientException
 
 class AvPretreatment(object):
-    def __init__(self, operator, password, bucket, human_mode, timeout, notify_url=None, 
-                    tasks=None, source=None, taskids=None):
-        super(AvPretreatment, self).__init__()
+    def __init__(self, operator, password, bucket, human_mode, timeout,
+                    taskids=None):
         self.host = "p0.api.upyun.com"
         self.func_url = {"pretreatment": "/pretreatment/", "status": "/status/"}
         self.operator = operator
         self.password = password
         self.bucket = bucket
-        self.notify_url = notify_url
-        self.source = source
-        self.tasks = tasks
+        self.tasks = []
         self.taskids = taskids
         self.status_code = None
         self.x_request_id = None
@@ -42,22 +39,21 @@ class AvPretreatment(object):
     def get_x_request_id(self):
         return self.x_request_id
 
-    def set_source(self, source):
-        self.source = source
-
     def add_task(self, task):
         self.tasks = self.tasks.append(task)
 
     def add_tasks(self, tasks):
+        if type(tasks) != list:
+            print "You should give a list of params"
         self.tasks += tasks
 
     def reset_tasks(self):
         self.tasks = []
         self.taskids = []
 
-    def run(self):
-        data = {'bucket_name': self.bucket, 'source': self.source,
-                'notify_url': self.notify_url, 'tasks': self.tasks}
+    def run(self, source, notify_url=None):
+        data = {'bucket_name': self.bucket, 'source': source,
+                'notify_url': notify_url, 'tasks': self.tasks}
         ret, result = self.__requests_pretreatment(data)
 
         if ret == 200 and type(result) == list:
@@ -182,7 +178,7 @@ class AvPretreatment(object):
             return None
 
     def __decode_msg(self, msg):
-        if isinstance(msg, bytes):
+        if isinstance(msg, str):
             msg = msg.decode('utf-8')
         return msg
 

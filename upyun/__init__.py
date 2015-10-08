@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from .upyun import UpYun, UpYunServiceException, UpYunClientException
-from .upyun import ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT, __version__
+from .exception import UpYunServiceException, UpYunClientException
+from .upyun import UpYun, ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT, __version__
 
 __title__ = 'upyun'
 __author__ = 'Monkey Zhang (timebug)'

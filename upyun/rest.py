@@ -16,7 +16,7 @@ from httpipe import httpPipe
 from Multipart import *
 from AvPretreatment import *
 
-__version__ = '2.3.0'
+__version__ = '2.2.5'
 
 ED_LIST = ("v%d.api.upyun.com" % ed for ed in range(4))
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
