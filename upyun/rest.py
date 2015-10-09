@@ -10,7 +10,7 @@ from sign import make_rest_signature, make_content_md5, encode_msg
 from exception import UpYunServiceException, UpYunClientException
 from compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
 from httpipe import UpYunHttp
-from Multipart import *
+from multi import *
 from AvPretreatment import *
 
 __version__ = '2.3.0'
@@ -207,16 +207,12 @@ class UpYunRest(object):
                     if k[:8].lower() == 'x-upyun-')
 
     def __get_multi_meta_headers(self, headers):
-        if type(headers[1]) == dict:
-            s = headers[1]
-            r = {}
-            for k in s.keys():
-                if k in ['mimetype', 'image_width', 'image_height',
+        r = {}
+        for k in headers.keys():
+            if k in ['mimetype', 'image_width', 'image_height',
                             'file_size', 'image_frames']:
-                    r[k] = s[k]
-            return r
-        else:
-            return None
+                r[k] = headers[k]
+        return r
 
     def __set_auth_headers(self, playload,
                            method=None, length=0, headers=None):

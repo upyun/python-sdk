@@ -68,6 +68,13 @@ class TestUpYun(unittest.TestCase):
             upyun.UpYun('bucket', 'username', 'password').getinfo('/')
         self.assertEqual(se.exception.status, 401)
 
+    def test_secret_failed(self):
+        with self.assertRaises(upyun.UpYunServiceException) as se:
+            with open('tests/test_m.png', 'rb') as f:
+                res = self.up.put(self.root + 'test_m.png', f,
+                            checksum=False, secret='secret', multipart=True)
+        self.assertEqual(se.exception.status, 401)
+
     def test_client_exception(self):
         with self.assertRaises(upyun.UpYunClientException):
             e = upyun.UpYun('bucket', 'username', 'password', timeout=3)
@@ -110,12 +117,12 @@ class TestUpYun(unittest.TestCase):
 
     def test_put_with_checksum(self):
         with open('tests/test.png', 'rb') as f:
-            before = self.up._UpYun__make_content_md5(f)
+            before = upyun.make_content_md5(f)
             self.up.put(self.root + 'test.png', f, checksum=True)
         with open('tests/get.png', 'wb') as f:
             self.up.get(self.root + 'test.png', f)
         with open('tests/get.png', 'rb') as f:
-            after = self.up._UpYun__make_content_md5(f)
+            after = upyun.make_content_md5(f)
         self.assertEqual(before, after)
         os.remove('tests/get.png')
         self.up.delete(self.root + 'test.png')

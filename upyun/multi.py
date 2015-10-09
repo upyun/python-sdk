@@ -18,6 +18,7 @@ except ImportError:
 
 from compat import urlencode
 from exception import UpYunServiceException, UpYunClientException
+from sign import make_content_md5
 
 class Multipart(object):
     def __init__(self, key, value, bucket, secret, block_size, hp):
@@ -49,15 +50,7 @@ class Multipart(object):
         #hp: 带有 session 值的 http 接口
         self.hp = hp
 
-        self.x_request_id = None
-        self.status_code = None
-
     # --- public API
-    def get_x_request_id(self):
-        return self.x_request_id
-
-    def get_status_code(self):
-        return self.status_code
 
     ##
     #分块上传文件的封装函数
@@ -96,7 +89,7 @@ class Multipart(object):
     #@return mixed result: 第一步接口返回数据
     ##
     def __init_upload(self):
-        self.expiration = (int)(time.time()) + 2600000
+        self.expiration = (int)(time.time()) + 3600
 
         self.metadata = {'expiration': self.expiration, 'file_blocks': self.blocks, 
                 'file_hash': make_content_md5(self.file), 'file_size': self.size, 
@@ -104,7 +97,14 @@ class Multipart(object):
         self.policy = self.__create_policy(self.metadata)
         self.signature = self.__create_signature(self.metadata, True)
         postdata = {'policy': self.policy, 'signature': self.signature}
-        return content = self.__do_http_request(postdata)
+        content = self.__do_http_request(postdata)
+        if 'save_token' in content.keys() and 'token_secret' in content.keys():    
+            self.save_token = content['save_token']
+            self.token_secret = content['token_secret']
+        else:
+            raise UpYunServiceException(None, 503, 'Service unavailable',
+                                            'Not enough response from api')
+        return content
 
     ##
     #返回base64编码的metadata值，生成policy
@@ -146,15 +146,6 @@ class Multipart(object):
         uri = "/%s/" % self.bucket
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
-        if hasattr(value, '__len__'):
-            length = len(value)
-            headers['Content-Length'] = length
-        elif hasattr(value, 'fileno'):
-            length = get_fileobj_size(value)
-            headers['Content-Length'] = length
-        elif value is not None:
-            raise UpYunClientException('object type error')
-
         value = urlencode(value)
         return self.hp.do_http_pipe('POST', self.host, uri, headers=headers, value=value)
 
@@ -163,8 +154,8 @@ class Multipart(object):
     #将status更新到实例中
     ##
     def __update_status(self, content):
-        if 'status' in content  and type(content['status']) == list:
-            self.status = status
+        if 'status' in content and type(content['status']) == list:
+            self.status = content['status']
         else:
             raise UpYunServiceException(None, 503, 'Service unavailable',
                                             'Update status failed')
@@ -218,7 +209,7 @@ class Multipart(object):
         headers = {'Content-Type': 'multipart/form-data; boundary=' + delimiter,
                             'Content-Length': len(data)}
 
-        return self.__do_http_human('POST', self.host, uri, headers=headers, value=data)
+        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers, value=data)
 
     ##
     #检测所有分块是否上传成功

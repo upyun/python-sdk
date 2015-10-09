@@ -101,7 +101,6 @@ class UpYunHttp(object):
                 conn.request(method, uri, value, headers)
                 resp = conn.getresponse()
                 request_id = resp.getheader("X-Request-Id", "Unknown")
-
                 status = resp.status
                 if status / 100 == 2:
                     if method == 'GET' and of:
@@ -128,7 +127,9 @@ class UpYunHttp(object):
                         content = decode_msg(resp.read())
                     elif method == 'PUT' or method == 'HEAD':
                         content = resp.getheaders()
-                    elif method == 'POST'and uri == '/purge/':
+                    elif method == 'POST' and uri == '/purge/':
+                        content = json.loads(decode_msg(resp.read()))
+                    elif method == 'POST' and host == 'm0.api.upyun.com':
                         content = json.loads(decode_msg(resp.read()))
                 else:
                     msg = resp.reason

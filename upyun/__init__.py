@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from .sign import make_content_md5
 from .exception import UpYunServiceException, UpYunClientException
 from .upyun import UpYun,ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT, __version__
 
