@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import httplib
-import hashlib
 import json
 import socket
 
 from compat import b
 from exception import UpYunServiceException, UpYunClientException
-from coding import decode_msg
+from sign import decode_msg
 
 HUMAN_MODE = False
 
@@ -17,7 +16,7 @@ try:
 except ImportError:
     pass
 
-class httpPipe(object):
+class UpYunHttp(object):
     def __init__(self, human, timeout, chunksize):
         self.human_mode = HUMAN_MODE
         self.timeout = timeout
@@ -74,6 +73,7 @@ class httpPipe(object):
                         content = resp.headers.items()
                     elif method == 'POST' and uri == '/purge/':
                         content = resp.json()
+                    elif method == 'POST' and host == 'm0.api.upyun.com'
                 else:
                     msg = resp.reason
                     err = resp.text
@@ -151,16 +151,4 @@ class httpPipe(object):
             return (default, requests.utils.default_user_agent())
         else:
             return default
-
-    def make_signature(self, bucket, username, password, method, uri, date, length):
-        if method:
-            signstr = '&'.join([method, uri, date, str(length), password])
-            signature = hashlib.md5(b(signstr)).hexdigest()
-            return "UpYun %s:%s" % (username, signature)
-
-        else:
-            signstr = '&'.join([uri, bucket, date, password])
-            signature = hashlib.md5(b(signstr)).hexdigest()
-            return "UpYun %s:%s:%s" % (bucket, username, signature)
-
 

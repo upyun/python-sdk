@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from .exception import UpYunServiceException, UpYunClientException
-from .upyun import UpYun, ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT, __version__
+from .upyun import UpYun,ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT, __version__
 
 __title__ = 'upyun'
 __author__ = 'Monkey Zhang (timebug)'

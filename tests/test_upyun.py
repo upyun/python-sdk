@@ -47,8 +47,8 @@ def rootpath():
 class TestUpYun(unittest.TestCase):
 
     def setUp(self):
-        self.up = upyun.UpYun(BUCKET, username=USERNAME, password=PASSWORD, timeout=100,
-                              endpoint=upyun.ED_TELECOM, human=False, secret=SECRET, multipart=False)
+        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, timeout=100,
+                              endpoint=upyun.ED_TELECOM, human=False)
         self.root = rootpath()
         self.up.mkdir(self.root)
 
@@ -71,7 +71,7 @@ class TestUpYun(unittest.TestCase):
     def test_client_exception(self):
         with self.assertRaises(upyun.UpYunClientException):
             e = upyun.UpYun('bucket', 'username', 'password', timeout=3)
-            e.endpoint = 'e.api.upyun.com'
+            e.up_rest.endpoint = 'e.api.upyun.com'
             e.getinfo('/')
 
     def test_root(self):
@@ -194,8 +194,8 @@ class TestUpYun(unittest.TestCase):
             def finish(self):
                 self.params.assertEqual(self.readtimes, 3)
 
-        self.up.chunksize = 4096
-        self.up.hp.chunksize = 4096
+        self.up.up_rest.chunksize = 4096
+        self.up.up_rest.hp.chunksize = 4096
 
         with open('tests/test.png', 'rb') as f:
             self.up.put(self.root + 'test.png', f, handler=ProgressBarHandler,
@@ -242,9 +242,9 @@ class TestUpYun(unittest.TestCase):
     @unittest.skipUnless(BUCKET_TYPE == 'F' or not secret, 'only support file bucket \
                         and you have to specify bucket secret')
     def test_put_multipart(self):
-        self.up.open_multipart()
         with open('tests/test_m.png', 'rb') as f:
-            res = self.up.put(self.root + 'test_m.png', f, checksum=False)
+            res = self.up.put(self.root + 'test_m.png', f,
+                                checksum=False, secret=SECRET, multipart=True)
         self.assertDictEqual(res, {'frames': 1, 'width': 140, 'height': 25})
 
         res = self.up.getinfo(self.root + 'test_m.png')
@@ -256,7 +256,6 @@ class TestUpYun(unittest.TestCase):
             self.up.getinfo(self.root + 'test_m.png')
         self.assertEqual(se.exception.status, 404)
         self.assertEqual(len(se.exception.request_id), 66)
-        self.up.close_multipart()
 
     @unittest.skipUnless(BUCKET_TYPE == 'F' or SOURCE == 'F', 'only support file bucket \
                         and you have to specify video source')
@@ -274,8 +273,8 @@ class TestUpYun(unittest.TestCase):
 class TestUpYunHumanMode(TestUpYun):
 
     def setUp(self):
-        self.up = upyun.UpYun(BUCKET, username=USERNAME, password=PASSWORD, timeout=100,
-                              endpoint=upyun.ED_TELECOM, human=True, secret=SECRET, multipart=False)
+        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, timeout=100,
+                              endpoint=upyun.ED_TELECOM, human=True)
         self.root = rootpath()
         self.up.mkdir(self.root)
 

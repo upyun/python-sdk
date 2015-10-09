@@ -17,6 +17,7 @@ except ImportError:
     pass
 
 from error import *
+from exception import UpYunServiceException, UpYunClientException
 
 class Multipart(object):
     def __init__(self, key, value, bucket, secret, timeout,
@@ -116,7 +117,7 @@ class Multipart(object):
         self.expiration = (int)(time.time()) + 2600000
 
         self.metadata = {'expiration': self.expiration, 'file_blocks': self.blocks, 
-                'file_hash': self.__md5(self.file), 'file_size': self.size, 
+                'file_hash': make_content_md5(self.file), 'file_size': self.size, 
                 'path': self.remote_path}
         self.policy = self.__create_policy(self.metadata)
         self.signature = self.__create_signature(self.metadata, True)
@@ -160,7 +161,7 @@ class Multipart(object):
                 signature += self.token_secret
             else:
                 signature += self.secret
-            return self.__md5(signature)
+            return make_content_md5(signature)
         else:
             return False
 
@@ -255,7 +256,7 @@ class Multipart(object):
         else:
             end_position = int(start_position + self.block_size)
         file_block = self.__read_block(f, start_position, end_position)
-        block_hash = self.__md5(file_block)
+        block_hash = make_content_md5(file_block)
 
         self.metadata = {'expiration': self.expiration, 'block_index': index, 
                     'block_hash': block_hash, 'save_token': self.save_token}
@@ -349,34 +350,3 @@ class Multipart(object):
             data += f.read(length)
             current_position += length
         return data
-
-
-    def __decode_msg(self, msg):
-        if isinstance(msg, bytes):
-            msg = msg.decode('utf-8')
-        return msg
-
-    def __encode_msg(self, msg):
-        if isinstance(msg, str):
-            msg = msg.encode('utf-8')
-        return msg
-
-    ##
-    #@parms string/file
-    #@return 返回字符串md5值
-    ##
-    def __md5(self, value, chunksize=8192):
-        if hasattr(value, "fileno"):
-            md5 = hashlib.md5()
-            for chunk in iter(lambda: value.read(chunksize), b''):
-                md5.update(chunk)
-            value.seek(0)
-            return md5.hexdigest()
-        else:
-            try:
-                md5 = hashlib.md5()
-                md5.update(value)
-                return md5.hexdigest()
-            except:
-                return False
-
