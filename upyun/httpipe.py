@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import httplib
 import json
 import socket
 
-from compat import b
+from compat import b, httplib
 from exception import UpYunServiceException, UpYunClientException
 from sign import decode_msg
 

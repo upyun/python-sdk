@@ -2,17 +2,11 @@
 
 #######NOTICE AV CLASS
 
-import os
-import json
 import hashlib
-import datetime
-import sys
 
 from exception import UpYunServiceException, UpYunClientException
-from compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
-from Multipart import *
 from AvPretreatment import *
-import rest
+from rest import UpYunRest
 
 __version__ = '2.3.0'
 
@@ -33,7 +27,7 @@ class UpYun(object):
         self.endpoint = endpoint or ED_AUTO
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.human = human
-        self.up_rest = rest.UpYunRest(self.bucket, self.username, self.password,
+        self.up_rest = UpYunRest(self.bucket, self.username, self.password,
                                             self.timeout, self.endpoint, 
                                             self.chunksize, self.human)
 

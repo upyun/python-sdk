@@ -1,20 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import os
-import json
-import hashlib
 import datetime
-import sys
 
 from sign import make_rest_signature, make_content_md5, encode_msg
 from exception import UpYunServiceException, UpYunClientException
-from compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
+from compat import b, str, quote, urlencode, builtin_str
 from httpipe import UpYunHttp
-from multi import *
-from AvPretreatment import *
+from multi import Multipart
 
 __version__ = '2.3.0'
-
 
 def get_fileobj_size(fileobj):
     try:
