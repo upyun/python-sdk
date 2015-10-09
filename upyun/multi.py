@@ -16,12 +16,11 @@ try:
 except ImportError:
     pass
 
-from error import *
+from compat import urlencode
 from exception import UpYunServiceException, UpYunClientException
 
 class Multipart(object):
-    def __init__(self, key, value, bucket, secret, timeout,
-                        human_mode, block_size=(1024 *1024)):
+    def __init__(self, key, value, bucket, secret, block_size, hp):
         self.file = value
         #size: 文件大小
         self.size = self.__getsize(value)
@@ -39,7 +38,7 @@ class Multipart(object):
         self.status = []
         #bucket: 表单名称
         self.bucket = bucket
-        #secret: 表单api值
+        #secret: 表单秘钥值
         self.secret = secret
         #remote_path: 远端上传地址,必须包换文件夹名及文件名，如/upload/a.jpg
         self.remote_path = key
@@ -47,10 +46,11 @@ class Multipart(object):
         if block_size > 50 *1024 * 1024:
             block_size = 50 *1024 * 1024
         self.block_size = block_size
+        #hp: 带有 session 值的 http 接口
+        self.hp = hp
+
         self.x_request_id = None
         self.status_code = None
-        self.human_mode = human_mode
-        self.timeout = timeout
 
     # --- public API
     def get_x_request_id(self):
@@ -65,38 +65,21 @@ class Multipart(object):
     #@return 1: 表明上传失败
     ##
     def multipart_upload(self):
-        ret, result = self.__check_size()
-        if ret > 0:
-            return(ret, result)
+        self.__check_size()
         self.blocks = int(self.size / self.block_size) + 1
 
-        ret, result = self.__init_upload()
-        if ret != 200:
-            result = "Init upload failed: " + str(result)
-            return (ret, result)
+        #init upload
+        content = self.__init_upload()
+        self.__update_status(content)
 
-        ret, result = self.__update_status(result['status'])
-        if ret != 0:
-            return (ret,result)
+        #block item upload
+        for block_index in range(self.blocks):
+            if not self.status[block_index]:
+                content  = self.__block_upload(block_index, self.file)
+                self.__update_status(content)
 
-        times = 0
-        while (not self.__upload_success()) and (times < 3):
-            for block_index in range(self.blocks):
-                if not self.status[block_index]:
-                    ret, result  = self.__block_upload(block_index, self.file)
-                    if ret != 200:
-                        continue
-                    if self.__update_status(result['status']) < 0:
-                        return UPDATE_STATUS_FAILED
-            times += 1
         if self.__upload_success:
-            ret, result = self.__end_upload()
-            if ret != 200:
-                return (ret, result)
-            else:
-                return (OK, result)
-        else:
-            return CHUNK_UPLOAD_FAILED
+            return self.__end_upload()
 
 
     # --- private API
@@ -106,8 +89,7 @@ class Multipart(object):
     ##
     def __check_size(self):
         if int(self.size) > 1024*1024*1024:
-            return FILESIZE_TOO_LARGE
-        return (OK, None)
+            raise UpYunClientException("File size is too large(larger than 1G)")
 
     ##
     #初始化上传
@@ -122,17 +104,7 @@ class Multipart(object):
         self.policy = self.__create_policy(self.metadata)
         self.signature = self.__create_signature(self.metadata, True)
         postdata = {'policy': self.policy, 'signature': self.signature}
-        ret, result = self.__do_http_request(postdata)
-        if ret == 200:
-            try:
-                self.save_token = result['save_token']
-                self.token_secret = result['token_secret']
-            except:
-                return INCORRECT_INIT_UPLOAD_RESULT
-            else:
-                return (ret, result)
-        else:
-            return (ret, result)
+        return content = self.__do_http_request(postdata)
 
     ##
     #返回base64编码的metadata值，生成policy
@@ -144,7 +116,7 @@ class Multipart(object):
             policy = json.dumps(metadata)
             return base64.b64encode(policy)
         else:
-            return False
+            return None
 
     ##
     #将metadata排序后，生成算法所要求的md5格式值
@@ -163,86 +135,39 @@ class Multipart(object):
                 signature += self.secret
             return make_content_md5(signature)
         else:
-            return False
-
+            return None
 
     ##
-    #@parms dict postdata: post包中的data参数
+    #@parms dict value: post包中的data参数
     #@return json r_json: 接口返回的json格式的值
     ##
-    def __do_http_request(self, postdata):
+    def __do_http_request(self, value):
+        length = 0
         uri = "/%s/" % self.bucket
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        if self.human_mode:
-            return self.__do_http_human('POST', uri, headers=headers, value=postdata)
-        else:
-            return self.__do_http_basic('POST', uri, headers=headers, value=postdata)
 
-    # http://docs.python.org/2/library/httplib.html
+        if hasattr(value, '__len__'):
+            length = len(value)
+            headers['Content-Length'] = length
+        elif hasattr(value, 'fileno'):
+            length = get_fileobj_size(value)
+            headers['Content-Length'] = length
+        elif value is not None:
+            raise UpYunClientException('object type error')
 
-    def __do_http_basic(self, method, uri,
-                        value=None, headers=None, params=None):
-        content, err, status = None, None, None
-        try:
-            conn = httplib.HTTPConnection(self.host, timeout=self.timeout)
-            # conn.set_debuglevel(1)
-            if headers['Content-Type'] == 'application/x-www-form-urlencoded':
-                value = urllib.urlencode(value)
-
-            conn.request(method, uri, value, headers)
-            resp = conn.getresponse()
-            self.x_request_id = resp.getheader("X-Request-Id", "Unknown")
-
-            status = resp.status
-            if status / 100 == 2:
-                if method == 'POST':
-                    content = self.__decode_msg(resp.read())
-                    content = json.loads(content)
-            else:
-                err = self.__decode_msg(resp.read())
-                return (POST_DATA_FAILED, err)
-        except Exception, e:
-            return (POST_DATA_FAILED, e.message)
-        else:
-            return (HTTP_OK, content)
-
-    # http://docs.python-requests.org/
-
-    def __do_http_human(self, method, uri,
-                        value=None, headers=None, params=None):
-        content, err, status = None, None, None
-        requests.adapters.DEFAULT_RETRIES = 5
-
-        url = "http://%s%s" % (self.host , uri)
-        try:
-            resp = requests.request(method, url, headers=headers,
-                                data=value, timeout=self.timeout)
-            resp.encoding = 'utf-8'
-            status = resp.status_code
-            if status / 100 == 2:
-                if method == 'POST':
-                    content = resp.json()
-                self.x_request_id = 'X-Request-Id' in resp.headers \
-                    and resp.headers['X-Request-Id'] or "Unknown"
-            else:
-                err = resp.text
-                return (POST_DATA_FAILED, err)
-        except Exception, e:
-            return (POST_DATA_FAILED, e.message)
-        else:
-            return (HTTP_OK, content)
-
+        value = urlencode(value)
+        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers, value=value)
 
     ##
-    #@parms list status: 各分块上传情况1
+    #@parms list status: 各分块上传情况
     #将status更新到实例中
     ##
-    def __update_status(self, status):
-        if type(status) == list:
+    def __update_status(self, content):
+        if 'status' in content  and type(content['status']) == list:
             self.status = status
-            return (OK, None)
         else:
-            return UPDATE_STATUS_FAILED
+            raise UpYunServiceException(None, 503, 'Service unavailable',
+                                            'Update status failed')
 
     ##
     #@parms int index: 分块在文件中的序号, 0为第一块
@@ -263,8 +188,7 @@ class Multipart(object):
         policy = self.__create_policy(self.metadata)
         signature = self.__create_signature(self.metadata, False)
         postdata = {'policy': policy, 'signature': signature, 'file': {'data': file_block}}
-        ret, result = self.__multipart_post(postdata)
-        return (ret, result)
+        return self.__multipart_post(postdata)
 
     ##
     #构造multipart/form-data格式的post包，并发送
@@ -291,13 +215,10 @@ class Multipart(object):
                 data += "\r\n\r\n" + content + "\r\n"
 
         data += "--" + delimiter + "--"
-        headers = {'Content-Type': 'multipart/form-data; boundary=' \
-            + delimiter, 'Content-Length': len(data)}
+        headers = {'Content-Type': 'multipart/form-data; boundary=' + delimiter,
+                            'Content-Length': len(data)}
 
-        if self.human_mode:
-            return self.__do_http_human('POST', uri, headers=headers, value=data)
-        else:
-            return self.__do_http_basic('POST', uri, headers=headers, value=data)
+        return self.__do_http_human('POST', self.host, uri, headers=headers, value=data)
 
     ##
     #检测所有分块是否上传成功
@@ -318,8 +239,8 @@ class Multipart(object):
         policy = self.__create_policy(self.metadata)
         signature = self.__create_signature(self.metadata, False)
         postdata = {'policy': policy, 'signature': signature}
-        ret, result = self.__do_http_request(postdata)
-        return (ret, result)
+        content = self.__do_http_request(postdata)
+        return content
 
     ##
     #@parms handler fileobj

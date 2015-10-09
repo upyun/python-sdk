@@ -73,7 +73,8 @@ class UpYunHttp(object):
                         content = resp.headers.items()
                     elif method == 'POST' and uri == '/purge/':
                         content = resp.json()
-                    elif method == 'POST' and host == 'm0.api.upyun.com'
+                    elif method == 'POST' and host == 'm0.api.upyun.com':
+                        content = resp.json()
                 else:
                     msg = resp.reason
                     err = resp.text

@@ -5,9 +5,8 @@ import json
 import hashlib
 import datetime
 import sys
-from coding import encode_msg
 
-from sign import make_rest_signature, make_content_md5
+from sign import make_rest_signature, make_content_md5, encode_msg
 from exception import UpYunServiceException, UpYunClientException
 from compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
 from httpipe import UpYunHttp
@@ -111,16 +110,10 @@ class UpYunRest(object):
                                  handler=handler, params=params)
 
         if multipart and hasattr(value, 'fileno'):
-            mp = Multipart(key, value, self.bucket, secret, self.timeout, block_size)
-            ret, h = mp.multipart_upload()
-            if (ret / 100000) == 4:
-                raise UpYunClientException(h)
-            elif (ret / 100000) == 5:
-                x_request_id = mp.get_x_request_id()
-                status_code = mp.get_status_code()
-                raise UpYunServiceException(x_request_id, status_code, h, None)
-            else:
-                return self.__get_multi_meta_headers(h)
+            mp = Multipart(key, value, self.bucket, secret,
+                                    block_size, self.hp)
+            h = mp.multipart_upload()
+            return self.__get_multi_meta_headers(h)
         else:
             h = self.__do_http_request('PUT', key, value, headers)
             return self.__get_meta_headers(h)
@@ -214,11 +207,16 @@ class UpYunRest(object):
                     if k[:8].lower() == 'x-upyun-')
 
     def __get_multi_meta_headers(self, headers):
-        sys_headers = ['last_modified', 'signature', 'bucket_name', 'path']
-        for item in sys_headers:
-            if item in headers.keys():
-                del headers[item]
-        return headers
+        if type(headers[1]) == dict:
+            s = headers[1]
+            r = {}
+            for k in s.keys():
+                if k in ['mimetype', 'image_width', 'image_height',
+                            'file_size', 'image_frames']:
+                    r[k] = s[k]
+            return r
+        else:
+            return None
 
     def __set_auth_headers(self, playload,
                            method=None, length=0, headers=None):

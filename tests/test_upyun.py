@@ -245,7 +245,8 @@ class TestUpYun(unittest.TestCase):
         with open('tests/test_m.png', 'rb') as f:
             res = self.up.put(self.root + 'test_m.png', f,
                                 checksum=False, secret=SECRET, multipart=True)
-        self.assertDictEqual(res, {'frames': 1, 'width': 140, 'height': 25})
+        self.assertDictEqual(res, {u'mimetype': u'image/png', u'image_width': 140,
+                            u'image_height': 25, u'file_size': u'2745', u'image_frames': 1})
 
         res = self.up.getinfo(self.root + 'test_m.png')
         self.assertIsInstance(res, dict)

@@ -7,7 +7,8 @@ from exception import UpYunServiceException, UpYunClientException
 
 DEFAULT_CHUNKSIZE = 8192
 
-def make_rest_signature(bucket, username, password, method, uri, date, length):
+def make_rest_signature(bucket, username, password,
+                                method, uri, date, length):
     if method:
         signstr = '&'.join([method, uri, date, str(length), password])
         signature = hashlib.md5(b(signstr)).hexdigest()

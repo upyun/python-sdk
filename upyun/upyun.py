@@ -7,7 +7,6 @@ import json
 import hashlib
 import datetime
 import sys
-from coding import encode_msg
 
 from exception import UpYunServiceException, UpYunClientException
 from compat import b, str, bytes, quote, urlencode, httplib, PY3, builtin_str
