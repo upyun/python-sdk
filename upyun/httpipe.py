@@ -66,7 +66,11 @@ class UpYunHttp(object):
                             if not chunk:
                                 break
                             of.write(chunk)
+                    elif method == 'GET' and host == 'p0.api.upyun.com':
+                        content = resp.json()
                     elif method == 'GET' and of is None:
+                        content = resp.text
+                    elif method == 'POST' and host == 'p0.api.upyun.com':
                         content = resp.text
                     elif method == 'PUT' or method == 'HEAD':
                         content = resp.headers.items()

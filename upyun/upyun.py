@@ -5,8 +5,10 @@
 import hashlib
 
 from exception import UpYunServiceException, UpYunClientException
-from AvPretreatment import *
+from compat import b
+from av import *
 from rest import UpYunRest
+from av import AvPretreatment, CallbackValidation
 
 __version__ = '2.3.0'
 
@@ -67,43 +69,21 @@ class UpYun(object):
     # --- video pretreatment API
 
     def pretreat(self, tasks, source, notify_url=""):
-        self.av = AvPretreatment(self.username, self.password, self.bucket, self.timeout, 
-                                    notify_url=notify_url, tasks=tasks, source=source)
-        ids = self.av.run()
-        # means something error happend
-        if type(ids) != list:
-            status_code = self.av.get_status_code()
-            x_request_id = self.av.get_x_request_id()
-            raise UpYunServiceException(x_request_id, status_code, ids, None)
-        return ids
+        av = AvPretreatment(self.username, self.password, self.bucket, 
+                                    self.chunksize, self.human, self.timeout)
 
-    def status(self, taskids=None):
-        if taskids:
-            self.av = AvPretreatment(self.username, self.password, self.bucket,
-                                        self.timeout, taskids=taskids)
-            tasks = self.av.get_tasks_status()
-        else:
-            if self.av:
-                tasks = self.av.get_tasks_status()
-            else:
-                raise UpYunClientException('You should specify taskid')
+        return av.pretreat(tasks, source, notify_url)
 
-        if type(tasks) == dict:
-            return tasks
-        else:
-            status_code = self.av.get_status_code()
-            x_request_id = self.av.get_x_request_id()
-            raise UpYunServiceException(x_request_id, status_code, tasks, None)
+    def status(self, taskids):
+        av = AvPretreatment(self.username, self.password, self.bucket, 
+                                    self.chunksize, self.human, self.timeout)
+        return av.status(taskids)
 
     def verify_sign(self, callback_dict):
-        av = AvPretreatment(self.username, self.password, self.bucket)
+        av = AvPretreatment(self.username, self.password, self.bucket, 
+                                    self.chunksize, self.human, self.timeout)
         cv = CallbackValidation(callback_dict, av)
-        if cv.verify_sign():
-            print "signature verify success"
-            return True
-        else:
-            print "signature verify failed"
-            return False
+        return cv.verify_sign()
 
 if __name__ == '__main__':
     pass

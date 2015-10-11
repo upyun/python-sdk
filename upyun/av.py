@@ -6,150 +6,83 @@ import base64
 import sys
 import urllib
 import httplib
+from httpipe import UpYunHttp
 
 try:
     import requests
 except ImportError:
     pass
 
-from error import *
-from exception import UpYunServiceException, UpYunClientException
+from exception import UpYunClientException
+from sign import make_content_md5
+from httpipe import UpYunHttp
 
 class AvPretreatment(object):
-    def __init__(self, operator, password, bucket, human_mode, timeout,
-                    taskids=None):
+    def __init__(self, operator, password, bucket, chunksize, human, timeout):
         self.host = "p0.api.upyun.com"
-        self.func_url = {"pretreatment": "/pretreatment/", "status": "/status/"}
+        self.api = {"pretreatment": "/pretreatment/", "status": "/status/"}
         self.operator = operator
         self.password = password
         self.bucket = bucket
-        self.tasks = []
-        self.taskids = taskids
-        self.status_code = None
-        self.x_request_id = None
-        self.signature = None
-        self.human_mode = human_mode
+        self.chunksize = chunksize
+        self.human = human
         self.timeout = timeout
+        self.tasks = []
+        self.taskids = None
+        self.signature = None
+        self.hp = UpYunHttp(self.human, self.timeout, self.chunksize)
 
     # --- public API
 
-    def get_status_code(self):
-        return self.status_code
+    def pretreat(self, tasks, source, notify_url):
+        data = {'bucket_name': self.bucket, 'source': source,
+                'notify_url': notify_url, 'tasks': tasks}
+        return self.__requests_pretreatment(data)
 
-    def get_x_request_id(self):
-        return self.x_request_id
+    def status(self, taskids):
+        data = {}
+        if type(taskids) == str:
+            taskids = taskids.split(',')
+        if type(taskids) == list and len(taskids) <= 20:
+            taskids = ','.join(taskids)
+        else:
+            raise UpYunClientException("length of taskids should less than 20")
+
+        data['bucket_name'] = self.bucket
+        data['task_ids'] = taskids
+        content = self.__requests_status(data)
+        if type(content)  == dict and 'tasks' in content:
+            return content['tasks']
 
     def add_task(self, task):
         self.tasks = self.tasks.append(task)
 
     def add_tasks(self, tasks):
         if type(tasks) != list:
-            print "You should give a list of params"
+            raise UpYunClientException("You should give a list of params")
         self.tasks += tasks
 
     def reset_tasks(self):
         self.tasks = []
         self.taskids = []
 
-    def run(self, source, notify_url=None):
-        data = {'bucket_name': self.bucket, 'source': source,
-                'notify_url': notify_url, 'tasks': self.tasks}
-        ret, result = self.__requests_pretreatment(data)
-
-        if ret == 200 and type(result) == list:
-            self.taskids = result
-        return result
-
-    def get_tasks_status(self):
-        #change taskid list to string
-        data = {}
-        if type(self.taskids) == str:
-            self.taskids = self.taskids.split(',')
-        if type(self.taskids) == list and len(self.taskids) <= 20:
-            taskids = ','.join(self.taskids)
-        else:
-            return "length of taskids should less than 20"
-
-        data['bucket_name'] = self.bucket
-        data['task_ids'] = taskids
-        ret, result = self.__requests_status(data)
-        if ret == 200 and type(result)  == dict and result.has_key('tasks'):
-            return result['tasks']
-        return result
-
     # --- private API
 
     def __requests_pretreatment(self, data):
         data['tasks'] = self.__process_tasksdata(data['tasks'])
-        uri = self.func_url['pretreatment']
+        uri = self.api['pretreatment']
         self.signature = self.__create_signature(data)
         headers = {'Authorization': 'UPYUN ' + self.operator + ":" + self.signature,
                     'Content-Type': 'application/x-www-form-urlencoded'}
-        if self.human_mode:
-            return self.__do_http_human('POST', uri, headers=headers, value=data)
-        else:
-            return self.__do_http_basic('POST', uri, headers=headers, value=data)
+
+        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers, value=data)
 
     def __requests_status(self, data):
         self.signature = self.__create_signature(data)
         data = urllib.urlencode(data)
-        uri = self.func_url['status'] + '?' + data
+        uri = self.api['status'] + '?' + data
         headers = {'Authorization': 'UPYUN ' + self.operator + ":" + self.signature}
-        if self.human_mode:
-            return self.__do_http_human('GET', uri, headers=headers)
-        else:
-            return self.__do_http_basic('GET', uri, headers=headers)
-
-    def __do_http_basic(self, method, uri,
-                        value=None, headers=None, params=None):
-        content, err, status = None, None, None
-        try:
-            conn = httplib.HTTPConnection(self.host, timeout=self.timeout)
-            if 'Content-Type' in headers.keys() and \
-                        headers['Content-Type'] == 'application/x-www-form-urlencoded':
-                value = urllib.urlencode(value)
-            # conn.set_debuglevel(1)
-            conn.request(method, uri, value, headers)
-            resp = conn.getresponse()
-            self.x_request_id = resp.getheader("X-Request-Id", "Unknown")
-
-            status = resp.status
-            if status / 100 == 2:
-                content = self.__decode_msg(resp.read())
-                content = json.loads(content)
-            else:
-                err = self.__decode_msg(resp.read())
-                return (POST_DATA_FAILED, err)
-        except Exception, e:
-            return (POST_DATA_FAILED, e.message)
-        else:
-            return (HTTP_OK, content)
-
-    # http://docs.python-requests.org/
-
-    def __do_http_human(self, method, uri,
-                        value=None, headers=None, params=None):
-        content, err, status = None, None, None
-        requests.adapters.DEFAULT_RETRIES = 5
-
-        url = "http://%s%s" % (self.host , uri)
-        try:
-            resp = requests.request(method, url, headers=headers,
-                                data=value, timeout=self.timeout)
-            resp.encoding = 'utf-8'
-            status = resp.status_code
-            if status / 100 == 2:
-                content = resp.json()
-                self.x_request_id = 'X-Request-Id' in resp.headers \
-                    and resp.headers['X-Request-Id'] or "Unknown"
-            else:
-                err = resp.text
-                return (POST_DATA_FAILED, err)
-        except Exception, e:
-            return (POST_DATA_FAILED, e.message)
-        else:
-            return (HTTP_OK, content)
-
+        return self.hp.do_http_pipe('GET', self.host, uri, headers=headers)
 
     def __create_signature(self, metadata):
         if type(metadata) == dict:
@@ -160,27 +93,14 @@ class AvPretreatment(object):
                     v = "".join(v)
                 signature = signature + k + str(v)
             signature = self.operator + signature + self.password
-            return self.__md5(signature)
+            return make_content_md5(signature)
         else:
-            return False
+            return None
 
     def __process_tasksdata(self, tasks):
         if (type(tasks) == list):
             return base64.b64encode(json.dumps(tasks))
-        return False
-
-    def __md5(self, value, chunksize=8192):
-        try:
-            md5 = hashlib.md5()
-            md5.update(value)
-            return md5.hexdigest()
-        except:
-            return None
-
-    def __decode_msg(self, msg):
-        if isinstance(msg, str):
-            msg = msg.decode('utf-8')
-        return msg
+        return None
 
 # --- Signature not correct right now
 class CallbackValidation(object):
@@ -211,6 +131,8 @@ class CallbackValidation(object):
         if data.has_key('signature'):
             value = data['signature']
             del data['signature']
-            return value == self.av.create_signature(data)
-
+            if value == self.av.create_signature(data):
+                print "signature verify success"
+                return True
+        print "signature verify failed"
         return False
