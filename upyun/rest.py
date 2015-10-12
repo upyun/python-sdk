@@ -9,6 +9,7 @@ from modules.sign import make_rest_signature, make_content_md5, encode_msg
 from modules.exception import UpYunServiceException, UpYunClientException
 from modules.compat import b, str, quote, urlencode, builtin_str
 from modules.httpipe import UpYunHttp
+from form import FormUpload
 
 __version__ = '2.3.0'
 
@@ -83,7 +84,7 @@ class UpYunRest(object):
 
     def put(self, key, value, checksum, headers,
                 handler, params, multipart,
-                secret, block_size):
+                secret, block_size, form):
         """
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
@@ -104,6 +105,10 @@ class UpYunRest(object):
         if handler and hasattr(value, 'fileno'):
             value = UploadObject(value, chunksize=self.chunksize,
                                  handler=handler, params=params)
+        if form:
+            fp = FormUpload(key, value, self.bucket, secret, self.hp)
+            h = fp.upload()
+            return self.__get_form_headers(h)
 
         if multipart and hasattr(value, 'fileno'):
             mp = Multipart(key, value, self.bucket, secret,
@@ -207,6 +212,14 @@ class UpYunRest(object):
         for k in headers.keys():
             if k in ['mimetype', 'image_width', 'image_height',
                             'file_size', 'image_frames']:
+                r[k] = headers[k]
+        return r
+
+    def __get_form_headers(self, headers):
+        r = {}
+        for k in headers.keys():
+            if k in ['code', 'image-height', 'image-width',
+                            'image-frames', 'image-type']:
                 r[k] = headers[k]
         return r
 

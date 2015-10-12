@@ -2,6 +2,7 @@
 
 import json
 import socket
+import uuid
 
 from compat import b, httplib
 from exception import UpYunServiceException, UpYunClientException
@@ -27,7 +28,7 @@ class UpYunHttp(object):
 
     def do_http_pipe(self, method, host, uri,
                             value=None, headers=None, of=None, stream=False,
-                            handler=None, params=None):
+                            handler=None, params=None, multi=False):
         # http://docs.python-requests.org/
         if self.human_mode:
             request_id, content, msg, err, status = None, None, None, None, None
@@ -44,6 +45,7 @@ class UpYunHttp(object):
                 except KeyError:
                     request_id = "Unknown"
                 status = resp.status_code
+
                 if status / 100 == 2:
                     if method == 'GET' and of:
                         readsofar = 0
@@ -66,17 +68,22 @@ class UpYunHttp(object):
                             if not chunk:
                                 break
                             of.write(chunk)
+                    #for av.status
                     elif method == 'GET' and host == 'p0.api.upyun.com':
                         content = resp.json()
+                    #for rest
                     elif method == 'GET' and of is None:
                         content = resp.text
+                    #for av.pretreat
                     elif method == 'POST' and host == 'p0.api.upyun.com':
                         content = resp.text
+                    #for rest
                     elif method == 'PUT' or method == 'HEAD':
                         content = resp.headers.items()
                     elif method == 'POST' and uri == '/purge/':
                         content = resp.json()
-                    elif method == 'POST' and host == 'm0.api.upyun.com':
+                    #for multipart/form-data request
+                    elif multi:
                         content = resp.json()
                 else:
                     msg = resp.reason
@@ -138,6 +145,8 @@ class UpYunHttp(object):
                         content = json.loads(decode_msg(resp.read()))
                     elif method == 'POST' and host == 'm0.api.upyun.com':
                         content = json.loads(decode_msg(resp.read()))
+                    elif multi:
+                        content = json.loads(decode_msg(resp.read()))
                 else:
                     msg = resp.reason
                     err = decode_msg(resp.read())
@@ -161,3 +170,28 @@ class UpYunHttp(object):
         else:
             return default
 
+    def do_http_multipart(self, host, uri, value):
+        #start construct multipart request
+        delimiter = '-------------' + str(uuid.uuid1())
+        data = []
+        for k, v in value.iteritems():
+            data.append("--{0}".format(delimiter))
+            if type(v) == dict:
+                s = 'Content-Disposition: form-data; name={0}; filename={1}'\
+                                .format(k, k)
+                data.append(s)
+                data.append('Content-Type: application/octet-stream\r\n')
+                data.append(v['data'])
+            else:
+                s = 'Content-Disposition: form-data; name={0}\r\n'.format(k)
+                data.append(s)
+                data.append(v)
+
+        data.append("--{0}--".format(delimiter))
+        value = "\r\n".join(data)
+        #end construct multipart request
+
+        headers = {'Content-Type': 'multipart/form-data; boundary={0}'.format(delimiter),
+                            'Content-Length': len(value)}
+
+        return self.do_http_pipe('POST', host, uri, headers=headers, value=value, multi=True)

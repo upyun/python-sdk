@@ -12,6 +12,8 @@ from modules.sign import make_content_md5
 
 class Multipart(object):
     def __init__(self, key, value, bucket, secret, block_size, hp):
+        #remote_path: 远端上传地址,必须包换文件夹名及文件名，如/upload/a.jpg
+        self.remote_path = key
         self.file = value
         #size: 文件大小
         self.size = self.__getsize(value)
@@ -31,8 +33,6 @@ class Multipart(object):
         self.bucket = bucket
         #secret: 表单秘钥值
         self.secret = secret
-        #remote_path: 远端上传地址,必须包换文件夹名及文件名，如/upload/a.jpg
-        self.remote_path = key
         #block_size: 分块大小
         if block_size > 50 *1024 * 1024:
             block_size = 50 *1024 * 1024
@@ -137,7 +137,8 @@ class Multipart(object):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
         value = urlencode(value)
-        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers, value=value)
+        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers,
+                                            value=value, multi=True)
 
     ##
     #@parms list status: 各分块上传情况
@@ -176,30 +177,10 @@ class Multipart(object):
     #@parms dict postdate
     #@return json r_json: json格式接口返回值
     ##
-    def __multipart_post(self, postdata):
-        delimiter = '-------------' + str(uuid.uuid1())
-        data = ''
+    def __multipart_post(self, value):
         uri = "/%s/" % self.bucket
 
-        for name, content in postdata.iteritems():
-            if type(content) == dict:
-                data += "--" + delimiter + "\r\n"
-                filename = name
-                data += 'Content-Disposition: form-data; name="' \
-                    + name + '"; filename="' + filename + "\" \r\n"
-                b_type = 'application/octet-stream'
-                data += 'Content-Type: ' + b_type + "\r\n\r\n"
-                data += content['data'] + "\r\n"
-            else:
-                data += "--" + delimiter + "\r\n"
-                data += 'Content-Disposition: form-data; name="' + name + '"'
-                data += "\r\n\r\n" + content + "\r\n"
-
-        data += "--" + delimiter + "--"
-        headers = {'Content-Type': 'multipart/form-data; boundary=' + delimiter,
-                            'Content-Length': len(data)}
-
-        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers, value=data)
+        return self.hp.do_http_multipart(self.host, uri, value)
 
     ##
     #检测所有分块是否上传成功
