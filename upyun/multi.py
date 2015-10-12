@@ -1,24 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import httplib
-import requests
 import os
-import hashlib
 import time
 import json
 import base64
-import sys
 import uuid
-import urllib
 
-try:
-    import requests
-except ImportError:
-    pass
-
-from compat import urlencode
-from exception import UpYunServiceException, UpYunClientException
-from sign import make_content_md5
+from modules.compat import urlencode
+from modules.exception import UpYunServiceException, UpYunClientException
+from modules.sign import make_content_md5
 
 class Multipart(object):
     def __init__(self, key, value, bucket, secret, block_size, hp):
@@ -91,14 +81,14 @@ class Multipart(object):
     def __init_upload(self):
         self.expiration = (int)(time.time()) + 3600
 
-        self.metadata = {'expiration': self.expiration, 'file_blocks': self.blocks, 
-                'file_hash': make_content_md5(self.file), 'file_size': self.size, 
+        self.metadata = {'expiration':self.expiration, 'file_blocks': self.blocks,
+                'file_hash':  make_content_md5(self.file), 'file_size': self.size,
                 'path': self.remote_path}
         self.policy = self.__create_policy(self.metadata)
         self.signature = self.__create_signature(self.metadata, True)
         postdata = {'policy': self.policy, 'signature': self.signature}
         content = self.__do_http_request(postdata)
-        if 'save_token' in content.keys() and 'token_secret' in content.keys():    
+        if 'save_token' in content.keys() and 'token_secret' in content.keys():
             self.save_token = content['save_token']
             self.token_secret = content['token_secret']
         else:
@@ -174,7 +164,7 @@ class Multipart(object):
         file_block = self.__read_block(f, start_position, end_position)
         block_hash = make_content_md5(file_block)
 
-        self.metadata = {'expiration': self.expiration, 'block_index': index, 
+        self.metadata = {'expiration': self.expiration, 'block_index': index,
                     'block_hash': block_hash, 'save_token': self.save_token}
         policy = self.__create_policy(self.metadata)
         signature = self.__create_signature(self.metadata, False)

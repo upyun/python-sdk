@@ -3,11 +3,12 @@
 import os
 import datetime
 
-from sign import make_rest_signature, make_content_md5, encode_msg
-from exception import UpYunServiceException, UpYunClientException
-from compat import b, str, quote, urlencode, builtin_str
-from httpipe import UpYunHttp
 from multi import Multipart
+
+from modules.sign import make_rest_signature, make_content_md5, encode_msg
+from modules.exception import UpYunServiceException, UpYunClientException
+from modules.compat import b, str, quote, urlencode, builtin_str
+from modules.httpipe import UpYunHttp
 
 __version__ = '2.3.0'
 
@@ -159,7 +160,7 @@ class UpYunRest(object):
                    'Accept': 'application/json'}
         self.__set_auth_headers(urlstr, headers=headers)
 
-        content = self.hp.do_http_pipe(method, host, uri, 
+        content = self.hp.do_http_pipe(method, host, uri,
                                         value=params, headers=headers)
 
         invalid_urls = content['invalid_domain_of_url']

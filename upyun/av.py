@@ -1,21 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import hashlib
 import json
 import base64
-import sys
 import urllib
-import httplib
-from httpipe import UpYunHttp
+import ast
 
-try:
-    import requests
-except ImportError:
-    pass
-
-from exception import UpYunClientException
-from sign import make_content_md5
-from httpipe import UpYunHttp
+from modules.httpipe import UpYunHttp
+from modules.compat import urlencode
+from modules.exception import UpYunClientException
+from modules.sign import make_content_md5
 
 class AvPretreatment(object):
     def __init__(self, operator, password, bucket, chunksize, human, timeout):
@@ -37,7 +30,12 @@ class AvPretreatment(object):
     def pretreat(self, tasks, source, notify_url):
         data = {'bucket_name': self.bucket, 'source': source,
                 'notify_url': notify_url, 'tasks': tasks}
-        return self.__requests_pretreatment(data)
+        content = self.__requests_pretreatment(data)
+        try:
+            content = ast.literal_eval(content)
+        except Exception as e:
+            raise UpYunClientException(str(e))
+        return content
 
     def status(self, taskids):
         data = {}
@@ -53,6 +51,7 @@ class AvPretreatment(object):
         content = self.__requests_status(data)
         if type(content)  == dict and 'tasks' in content:
             return content['tasks']
+        return None
 
     def add_task(self, task):
         self.tasks = self.tasks.append(task)
@@ -74,8 +73,8 @@ class AvPretreatment(object):
         self.signature = self.__create_signature(data)
         headers = {'Authorization': 'UPYUN ' + self.operator + ":" + self.signature,
                     'Content-Type': 'application/x-www-form-urlencoded'}
-
-        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers, value=data)
+        value = urlencode(data)
+        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers, value=value)
 
     def __requests_status(self, data):
         self.signature = self.__create_signature(data)

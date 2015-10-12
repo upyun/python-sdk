@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
-#######NOTICE AV CLASS
-
 import hashlib
 
-from exception import UpYunServiceException, UpYunClientException
-from compat import b
-from av import *
 from rest import UpYunRest
 from av import AvPretreatment, CallbackValidation
+
+from modules.exception import UpYunServiceException, UpYunClientException
+from modules.compat import b
 
 __version__ = '2.3.0'
 
@@ -30,7 +28,7 @@ class UpYun(object):
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.human = human
         self.up_rest = UpYunRest(self.bucket, self.username, self.password,
-                                            self.timeout, self.endpoint, 
+                                            self.timeout, self.endpoint,
                                             self.chunksize, self.human)
 
     # --- public rest API
@@ -38,7 +36,7 @@ class UpYun(object):
         return self.up_rest.usage(key)
 
     def put(self, key, value, checksum=False, headers=None,
-                handler=None, params=None, multipart=False, 
+                handler=None, params=None, multipart=False,
                 secret=None, block_size=DEFAULT_BLOCKSIZE):
         if multipart and not secret:
             raise UpYunClientException("You have to specify form secret with\
@@ -69,18 +67,18 @@ class UpYun(object):
     # --- video pretreatment API
 
     def pretreat(self, tasks, source, notify_url=""):
-        av = AvPretreatment(self.username, self.password, self.bucket, 
+        av = AvPretreatment(self.username, self.password, self.bucket,
                                     self.chunksize, self.human, self.timeout)
 
         return av.pretreat(tasks, source, notify_url)
 
     def status(self, taskids):
-        av = AvPretreatment(self.username, self.password, self.bucket, 
+        av = AvPretreatment(self.username, self.password, self.bucket,
                                     self.chunksize, self.human, self.timeout)
         return av.status(taskids)
 
     def verify_sign(self, callback_dict):
-        av = AvPretreatment(self.username, self.password, self.bucket, 
+        av = AvPretreatment(self.username, self.password, self.bucket,
                                     self.chunksize, self.human, self.timeout)
         cv = CallbackValidation(callback_dict, av)
         return cv.verify_sign()

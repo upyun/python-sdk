@@ -126,10 +126,14 @@ class UpYunHttp(object):
                             if not chunk:
                                 break
                             of.write(chunk)
+                    elif method == 'GET' and host == 'p0.api.upyun.com':
+                        content = json.loads(decode_msg(resp.read()))
                     elif method == 'GET' and of is None:
                         content = decode_msg(resp.read())
                     elif method == 'PUT' or method == 'HEAD':
                         content = resp.getheaders()
+                    elif method == 'POST' and host == 'p0.api.upyun.com':
+                        content = decode_msg(resp.read())
                     elif method == 'POST' and uri == '/purge/':
                         content = json.loads(decode_msg(resp.read()))
                     elif method == 'POST' and host == 'm0.api.upyun.com':
