@@ -18,7 +18,8 @@ DEFAULT_BLOCKSIZE = 1024*1024
 
 class UpYun(object):
     def __init__(self, bucket, username, password,
-                    timeout=None, endpoint=None, chunksize=None, human=True):
+                    secret=None, timeout=None, endpoint=None,
+                    chunksize=None, human=True):
         super(UpYun, self).__init__()
         self.bucket = bucket
         self.username = username
@@ -27,9 +28,12 @@ class UpYun(object):
         self.endpoint = endpoint or ED_AUTO
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.human = human
+        self.secret = secret
         self.up_rest = UpYunRest(self.bucket, self.username, self.password,
-                                            self.timeout, self.endpoint,
-                                            self.chunksize, self.human)
+                                        self.secret, self.timeout, self.endpoint,
+                                        self.chunksize, self.human)
+        self.av = AvPretreatment(self.bucket, self.username, self.password,
+                                    self.chunksize, self.human, self.timeout)
 
     # --- public rest API
     def usage(self, key='/'):
@@ -37,9 +41,10 @@ class UpYun(object):
 
     def put(self, key, value, checksum=False, headers=None,
                 handler=None, params=None, multipart=False,
-                secret=None, block_size=DEFAULT_BLOCKSIZE,
-                form=False, expiration=1800):
-        if (multipart or form) and not secret:
+                block_size=DEFAULT_BLOCKSIZE, form=False,
+                expiration=1800, secret=None):
+
+        if (multipart or form) and not self.secret:
             raise UpYunClientException("You have to specify form secret with\
                                         multipart upload method")
 
@@ -49,7 +54,8 @@ class UpYun(object):
 
         return self.up_rest.put(key, value, checksum, headers,
                                     handler, params, multipart,
-                                    secret, block_size, form, expiration)
+                                    secret, block_size, form,
+                                    expiration)
 
     def get(self, key, value=None, handler=None, params=None):
         return self.up_rest.get(key, value, handler, params)
@@ -72,20 +78,13 @@ class UpYun(object):
     # --- video pretreatment API
 
     def pretreat(self, tasks, source, notify_url=""):
-        av = AvPretreatment(self.username, self.password, self.bucket,
-                                    self.chunksize, self.human, self.timeout)
-
-        return av.pretreat(tasks, source, notify_url)
+        return self.av.pretreat(tasks, source, notify_url)
 
     def status(self, taskids):
-        av = AvPretreatment(self.username, self.password, self.bucket,
-                                    self.chunksize, self.human, self.timeout)
-        return av.status(taskids)
+        return self.av.status(taskids)
 
     def verify_sign(self, callback_dict):
-        av = AvPretreatment(self.username, self.password, self.bucket,
-                                    self.chunksize, self.human, self.timeout)
-        cv = CallbackValidation(callback_dict, av)
+        cv = CallbackValidation(callback_dict, self.av)
         return cv.verify_sign()
 
 if __name__ == '__main__':

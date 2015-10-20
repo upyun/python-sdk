@@ -39,8 +39,9 @@ def rootpath():
 class TestUpYun(unittest.TestCase):
 
     def setUp(self):
-        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, timeout=100,
-                              endpoint=upyun.ED_TELECOM, human=False)
+        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, SECRET,
+                                timeout=100, endpoint=upyun.ED_TELECOM,
+                                human=False)
         self.root = rootpath()
         self.up.mkdir(self.root)
 
@@ -60,11 +61,22 @@ class TestUpYun(unittest.TestCase):
             upyun.UpYun('bucket', 'username', 'password').getinfo('/')
         self.assertEqual(se.exception.status, 401)
 
-    def test_secret_failed(self):
+    def test_multipart_secret_failed(self):
         with self.assertRaises(upyun.UpYunServiceException) as se:
+            e = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
+                                secret='secret', timeout=3)
             with open('tests/test.png', 'rb') as f:
-                res = self.up.put(self.root + 'test.png', f,
-                            checksum=False, secret='secret', multipart=True)
+                res = e.put(self.root + 'test.png', f,
+                            checksum=False, multipart=True)
+        self.assertEqual(se.exception.status, 401)
+
+    def test_form_secret_failed(self):
+        with self.assertRaises(upyun.UpYunServiceException) as se:
+            e = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
+                                secret='secret', timeout=3)
+            with open('tests/test.png', 'rb') as f:
+                res = e.put(self.root + 'test.png', f,
+                            checksum=False, form=True)
         self.assertEqual(se.exception.status, 401)
 
     def test_client_exception(self):
@@ -210,11 +222,11 @@ class TestUpYun(unittest.TestCase):
 
     def test_purge(self):
         res = self.up.purge('/test.png')
-        self.assertListEqual(res, [])
+        self.assertListEqual(res, [u''])
         res = self.up.purge(['/test.png', 'test/test.png'])
-        self.assertListEqual(res, [])
+        self.assertListEqual(res, [u''])
         res = self.up.purge('/test.png', 'invalid.upyun.com')
-        self.assertListEqual(res, ['/test.png'])
+        self.assertListEqual(res, [u'/test.png', u''])
 
     @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
     def test_filelike_object_flask(self):
@@ -238,12 +250,12 @@ class TestUpYun(unittest.TestCase):
         self.assertDictEqual(res, {})
         f.close()
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F' or not secret, 'only support file bucket \
+    @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support file bucket \
                         and you have to specify bucket secret')
     def test_put_form(self):
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f,
-                                checksum=False, secret=SECRET, form=True)
+                                checksum=False, form=True)
         self.assertDictEqual(res, {u'image-type': u'PNG', u'image-frames': 1,
                             u'code': 200, u'image-height': 410, u'image-width': 1000})
 
@@ -260,7 +272,7 @@ class TestUpYun(unittest.TestCase):
     def test_put_multipart(self):
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f,
-                                checksum=False, secret=SECRET, multipart=True)
+                                checksum=False, multipart=True)
         self.assertDictEqual(res, {u'mimetype': u'image/png', u'image_width': 1000,
                             u'image_height': 410, u'file_size': u'13001', u'image_frames': 1})
 
@@ -297,8 +309,9 @@ class TestUpYun(unittest.TestCase):
 
 class TestUpYunHumanMode(TestUpYun):
     def setUp(self):
-        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, timeout=100,
-                              endpoint=upyun.ED_TELECOM, human=True)
+        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, SECRET,
+                                timeout=100, endpoint=upyun.ED_TELECOM,
+                                human=True)
         self.root = rootpath()
         self.up.mkdir(self.root)
 

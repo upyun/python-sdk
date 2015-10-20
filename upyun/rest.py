@@ -64,18 +64,26 @@ def httpdate_rfc1123(dt):
 
 
 class UpYunRest(object):
-    def __init__(self, bucket, username, password,
+    def __init__(self, bucket, username, password, secret,
                     timeout, endpoint, chunksize, human):
         self.bucket = bucket
         self.username = username
         self.password = password
+        self.secret = secret
         self.timeout = timeout
         self.endpoint = endpoint
         self.chunksize = chunksize
         self.human = human
+        self.kind = 'rest'
 
         self.user_agent = None
         self.hp = UpYunHttp(self.human, self.timeout, self.chunksize)
+        if self.secret:
+            self.mp = Multipart(self.bucket, self.secret, self.hp)
+            self.fp = FormUpload(self.bucket, self.secret, self.hp, self.endpoint)
+        else:
+            self.mp = None
+            self.fp = None
 
     # --- public API
     def usage(self, key):
@@ -106,17 +114,15 @@ class UpYunRest(object):
             value = UploadObject(value, chunksize=self.chunksize,
                                  handler=handler, params=params)
         if form:
-            fp = FormUpload(self.bucket, secret, self.hp, self.endpoint)
-            h = fp.upload(key, value, expiration)
+            h = self.fp.upload(key, value, expiration)
             return self.__get_form_headers(h)
 
         if multipart and hasattr(value, 'fileno'):
-            mp = Multipart(self.bucket, secret, block_size, self.hp)
-            h = mp.upload(key, value, expiration)
+            h = self.mp.upload(key, value, expiration, block_size)
             return self.__get_multi_meta_headers(h)
-        else:
-            h = self.__do_http_request('PUT', key, value, headers)
-            return self.__get_meta_headers(h)
+
+        h = self.__do_http_request('PUT', key, value, headers)
+        return self.__get_meta_headers(h)
 
     def get(self, key, value, handler, params):
         """
@@ -165,7 +171,7 @@ class UpYunRest(object):
         self.__set_auth_headers(urlstr, headers=headers)
 
         content = self.hp.do_http_pipe(method, host, uri,
-                                        value=params, headers=headers)
+                                        value=params, headers=headers, kind=self.kind)
 
         invalid_urls = content['invalid_domain_of_url']
         return [k[7 + len(domain):] for k in invalid_urls]
@@ -195,7 +201,7 @@ class UpYunRest(object):
         self.__set_auth_headers(uri, method, length, headers)
 
         return self.hp.do_http_pipe(method, self.endpoint, uri, value, headers, of,
-                                stream, handler, params)
+                                stream, handler, params, self.kind)
 
     def __make_user_agent(self):
         default = "upyun-python-sdk/%s" % __version__

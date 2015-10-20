@@ -11,7 +11,7 @@ from modules.exception import UpYunServiceException, UpYunClientException
 from modules.sign import make_content_md5
 
 class Multipart(object):
-    def __init__(self, bucket, secret, block_size, hp):
+    def __init__(self, bucket, secret, hp):
         #size: 文件大小
         self.size = 0
         #api: 分块上传接口url地址
@@ -30,14 +30,13 @@ class Multipart(object):
         self.bucket = bucket
         #secret: 表单秘钥值
         self.secret = secret
-        #block_size: 分块大小
-        if block_size > 50 *1024 * 1024:
-            block_size = 50 *1024 * 1024
-        self.block_size = block_size
         #hp: 带有 session 值的 http 接口
         self.hp = hp
         #filename: 原始文件名
         self.filename = None
+        #block_size: 分块大小
+        self.block_size = None
+        self.kind = 'multi'
 
     # --- public API
 
@@ -46,15 +45,15 @@ class Multipart(object):
     #@return mix result: 表明上传成功，具体返回数据参考http://docs.upyun.com/api/multipart_upload/#signature
     #@return 1: 表明上传失败
     ##
-    def upload(self, key, value, expiration):
+    def upload(self, key, value, expiration, block_size):
         self.remote_path = key
         self.file = value
         self.size = self.__getsize(value)
         self.filename = os.path.basename(value.name).encode('utf-8')
         self.expiration = expiration
-        self.blocks = int(self.size / self.block_size) + 1
 
-        self.__check_size()
+        self.__check_size(block_size)
+        self.blocks = int(self.size / self.block_size) + 1
 
         #init upload
         content = self.__init_upload()
@@ -75,9 +74,15 @@ class Multipart(object):
     ##
     #检查文件大小，若文件过大则直接返回
     ##
-    def __check_size(self):
-        if int(self.size) > 1024*1024*1024:
+    def __check_size(self, block_size):
+        if int(self.size) > 1024 * 1024 * 1024:
             raise UpYunClientException("File size is too large(larger than 1G)")
+
+        if block_size > 50 * 1024 * 1024:
+            block_size = 50 * 1024 * 1024
+        if block_size < 5 * 1024 * 1024:
+            block_size = 5 * 1024 * 1024
+        self.block_size = block_size
 
     ##
     #初始化上传
@@ -143,7 +148,7 @@ class Multipart(object):
 
         value = urlencode(value)
         return self.hp.do_http_pipe('POST', self.host, uri, headers=headers,
-                                            value=value, multi=True)
+                                            value=value, kind=self.kind)
 
     ##
     #@parms list status: 各分块上传情况

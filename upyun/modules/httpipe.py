@@ -29,7 +29,7 @@ class UpYunHttp(object):
 
     def do_http_pipe(self, method, host, uri,
                             value=None, headers=None, of=None, stream=False,
-                            handler=None, params=None, multi=False):
+                            handler=None, params=None, kind=None):
         # http://docs.python-requests.org/
         if self.human_mode:
             request_id, content, msg, err, status = None, None, None, None, None
@@ -69,23 +69,23 @@ class UpYunHttp(object):
                             if not chunk:
                                 break
                             of.write(chunk)
-                    #for av.status
-                    elif method == 'GET' and host == 'p0.api.upyun.com':
+                    elif kind == 'rest':
+                        if method == 'GET':
+                            content = resp.text
+                        elif method == 'PUT' or method == 'HEAD':
+                            content = resp.headers.items()
+                        elif method == 'POST' and uri == '/purge/':
+                            content = resp.json()
+
+                    elif kind == 'av':
+                        if method == 'GET':
+                            content = resp.json()
+                        elif method == 'POST':
+                            content = resp.text
+
+                    elif kind == 'multi':
                         content = resp.json()
-                    #for rest
-                    elif method == 'GET' and of is None:
-                        content = resp.text
-                    #for av.pretreat
-                    elif method == 'POST' and host == 'p0.api.upyun.com':
-                        content = resp.text
-                    #for rest
-                    elif method == 'PUT' or method == 'HEAD':
-                        content = resp.headers.items()
-                    elif method == 'POST' and uri == '/purge/':
-                        content = resp.json()
-                    #for multipart/form-data request
-                    elif multi:
-                        content = resp.json()
+
                 else:
                     msg = resp.reason
                     err = resp.text
@@ -104,7 +104,6 @@ class UpYunHttp(object):
 
         else:
         # http://docs.python.org/2/library/httplib.html
-
             request_id, content, msg, err, status = None, None, None, None, None
             try:
                 conn = httplib.HTTPConnection(host, timeout=self.timeout)
@@ -134,19 +133,21 @@ class UpYunHttp(object):
                             if not chunk:
                                 break
                             of.write(chunk)
-                    elif method == 'GET' and host == 'p0.api.upyun.com':
-                        content = json.loads(decode_msg(resp.read()))
-                    elif method == 'GET' and of is None:
-                        content = decode_msg(resp.read())
-                    elif method == 'PUT' or method == 'HEAD':
-                        content = resp.getheaders()
-                    elif method == 'POST' and host == 'p0.api.upyun.com':
-                        content = decode_msg(resp.read())
-                    elif method == 'POST' and uri == '/purge/':
-                        content = json.loads(decode_msg(resp.read()))
-                    elif method == 'POST' and host == 'm0.api.upyun.com':
-                        content = json.loads(decode_msg(resp.read()))
-                    elif multi:
+                    elif kind == 'rest':
+                        if method == 'GET':
+                            content = decode_msg(resp.read())
+                        elif method == 'PUT' or method == 'HEAD':
+                            content = resp.getheaders()
+                        elif method == 'POST' and uri == '/purge/':
+                            content = json.loads(decode_msg(resp.read()))
+
+                    elif kind == 'av':
+                        if method == 'GET':
+                            content = json.loads(decode_msg(resp.read()))
+                        elif method == 'POST':
+                            content = decode_msg(resp.read())
+
+                    elif kind == 'multi':
                         content = json.loads(decode_msg(resp.read()))
                 else:
                     msg = resp.reason
@@ -172,6 +173,7 @@ class UpYunHttp(object):
             return default
 
     def do_http_multipart(self, host, uri, value, filename):
+        kind = 'multi'
         file_type = mimetypes.guess_type(filename)[0]
         if not file_type:
             file_type = "text/plain; charset=utf-8"
@@ -199,4 +201,4 @@ class UpYunHttp(object):
         headers = {'Content-Type': 'multipart/form-data; boundary={0}'.format(delimiter),
                             'Content-Length': len(value)}
 
-        return self.do_http_pipe('POST', host, uri, headers=headers, value=value, multi=True)
+        return self.do_http_pipe('POST', host, uri, headers=headers, value=value, kind=kind)

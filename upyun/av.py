@@ -11,7 +11,7 @@ from modules.exception import UpYunClientException
 from modules.sign import make_content_md5
 
 class AvPretreatment(object):
-    def __init__(self, operator, password, bucket, chunksize, human, timeout):
+    def __init__(self, bucket, operator, password, chunksize, human, timeout):
         self.host = "p0.api.upyun.com"
         self.api = {"pretreatment": "/pretreatment/", "status": "/status/"}
         self.operator = operator
@@ -22,6 +22,7 @@ class AvPretreatment(object):
         self.timeout = timeout
         self.signature = None
         self.hp = UpYunHttp(self.human, self.timeout, self.chunksize)
+        self.kind = 'av'
 
     # --- public API
 
@@ -60,14 +61,16 @@ class AvPretreatment(object):
         headers = {'Authorization': 'UPYUN ' + self.operator + ":" + self.signature,
                     'Content-Type': 'application/x-www-form-urlencoded'}
         value = urlencode(data)
-        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers, value=value)
+        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers,
+                                        value=value, kind=self.kind)
 
     def __requests_status(self, data):
         self.signature = self.__create_signature(data)
         data = urllib.urlencode(data)
         uri = self.api['status'] + '?' + data
         headers = {'Authorization': 'UPYUN ' + self.operator + ":" + self.signature}
-        return self.hp.do_http_pipe('GET', self.host, uri, headers=headers)
+        return self.hp.do_http_pipe('GET', self.host, uri, headers=headers,
+                                        kind=self.kind)
 
     def __create_signature(self, metadata):
         if type(metadata) == dict:
