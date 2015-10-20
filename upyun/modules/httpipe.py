@@ -3,8 +3,9 @@
 import json
 import socket
 import uuid
+import mimetypes
 
-from compat import b, httplib
+from compat import httplib
 from exception import UpYunServiceException, UpYunClientException
 from sign import decode_msg
 
@@ -170,20 +171,24 @@ class UpYunHttp(object):
         else:
             return default
 
-    def do_http_multipart(self, host, uri, value):
+    def do_http_multipart(self, host, uri, value, filename):
+        file_type = mimetypes.guess_type(filename)[0]
+        if not file_type:
+            file_type = "text/plain; charset=utf-8"
         #start construct multipart request
         delimiter = '-------------' + str(uuid.uuid1())
         data = []
         for k, v in value.iteritems():
             data.append("--{0}".format(delimiter))
             if type(v) == dict:
-                s = 'Content-Disposition: form-data; name={0}; filename={1}'\
-                                .format(k, k)
+                s = 'Content-Disposition: form-data; name="{0}"; filename="{1}"'\
+                                .format(k, filename)
                 data.append(s)
-                data.append('Content-Type: application/octet-stream\r\n')
+                s = 'Content-Type: {0}\r\n'.format(file_type)
+                data.append(s)
                 data.append(v['data'])
             else:
-                s = 'Content-Disposition: form-data; name={0}\r\n'.format(k)
+                s = 'Content-Disposition: form-data; name="{0}"\r\n'.format(k)
                 data.append(s)
                 data.append(v)
 

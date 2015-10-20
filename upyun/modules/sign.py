@@ -3,7 +3,7 @@
 import hashlib
 
 from compat import b, PY3, builtin_str, bytes
-from exception import UpYunServiceException, UpYunClientException
+from exception import UpYunClientException
 
 DEFAULT_CHUNKSIZE = 8192
 

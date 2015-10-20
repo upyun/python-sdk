@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 
-from cStringIO import StringIO
 import json
 import time
 import base64
+import os
 
-from modules.exception import UpYunServiceException, UpYunClientException
+from modules.exception import UpYunClientException
 from modules.sign import make_content_md5
 
 class FormUpload(object):
-    def __init__(self, key, value, bucket, secret, hp):
-        self.remote_path = key
-        self.value = value
+    def __init__(self, bucket, secret, hp, endpoint):
         self.bucket = bucket
         self.secret = secret
         self.hp = hp
-        self.host = "v0.api.upyun.com"
-        self.expiration = (int)(time.time()) + 3600
+        self.host = endpoint
+        self.filename = None
 
-    def upload(self):
-        value = self.__check_value(self.value)
-        data = {"bucket": self.bucket, "expiration": self.expiration, 
-                            "save-key": self.remote_path}
+    def upload(self, key, value, expiration):
+        self.filename = os.path.basename(value.name).encode('utf-8')
+        expiration += (int)(time.time())
+        value = self.__check_value(value)
+        data = {"bucket": self.bucket, "expiration": expiration,
+                            "save-key": key}
         policy = self.__create_policy(data)
         signature = self.__create_signature(policy)
         postdata = {'policy': policy, 'signature': signature,
@@ -49,4 +49,4 @@ class FormUpload(object):
 
     def __do_http_request(self, value):
         uri = "/%s/" % self.bucket
-        return self.hp.do_http_multipart(self.host, uri, value)
+        return self.hp.do_http_multipart(self.host, uri, value, self.filename)

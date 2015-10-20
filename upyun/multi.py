@@ -11,12 +11,9 @@ from modules.exception import UpYunServiceException, UpYunClientException
 from modules.sign import make_content_md5
 
 class Multipart(object):
-    def __init__(self, key, value, bucket, secret, block_size, hp):
-        #remote_path: 远端上传地址,必须包换文件夹名及文件名，如/upload/a.jpg
-        self.remote_path = key
-        self.file = value
+    def __init__(self, bucket, secret, block_size, hp):
         #size: 文件大小
-        self.size = self.__getsize(value)
+        self.size = 0
         #api: 分块上传接口url地址
         self.host = "m0.api.upyun.com"
         #expiration: 文件存储时间
@@ -39,6 +36,8 @@ class Multipart(object):
         self.block_size = block_size
         #hp: 带有 session 值的 http 接口
         self.hp = hp
+        #filename: 原始文件名
+        self.filename = None
 
     # --- public API
 
@@ -47,9 +46,15 @@ class Multipart(object):
     #@return mix result: 表明上传成功，具体返回数据参考http://docs.upyun.com/api/multipart_upload/#signature
     #@return 1: 表明上传失败
     ##
-    def multipart_upload(self):
-        self.__check_size()
+    def upload(self, key, value, expiration):
+        self.remote_path = key
+        self.file = value
+        self.size = self.__getsize(value)
+        self.filename = os.path.basename(value.name).encode('utf-8')
+        self.expiration = expiration
         self.blocks = int(self.size / self.block_size) + 1
+
+        self.__check_size()
 
         #init upload
         content = self.__init_upload()
@@ -58,7 +63,7 @@ class Multipart(object):
         #block item upload
         for block_index in range(self.blocks):
             if not self.status[block_index]:
-                content  = self.__block_upload(block_index, self.file)
+                content  = self.__block_upload(block_index, value)
                 self.__update_status(content)
 
         if self.__upload_success:
@@ -180,7 +185,7 @@ class Multipart(object):
     def __multipart_post(self, value):
         uri = "/%s/" % self.bucket
 
-        return self.hp.do_http_multipart(self.host, uri, value)
+        return self.hp.do_http_multipart(self.host, uri, value, self.filename)
 
     ##
     #检测所有分块是否上传成功

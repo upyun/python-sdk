@@ -84,7 +84,7 @@ class UpYunRest(object):
 
     def put(self, key, value, checksum, headers,
                 handler, params, multipart,
-                secret, block_size, form):
+                secret, block_size, form, expiration):
         """
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
@@ -106,14 +106,13 @@ class UpYunRest(object):
             value = UploadObject(value, chunksize=self.chunksize,
                                  handler=handler, params=params)
         if form:
-            fp = FormUpload(key, value, self.bucket, secret, self.hp)
-            h = fp.upload()
+            fp = FormUpload(self.bucket, secret, self.hp, self.endpoint)
+            h = fp.upload(key, value, expiration)
             return self.__get_form_headers(h)
 
         if multipart and hasattr(value, 'fileno'):
-            mp = Multipart(key, value, self.bucket, secret,
-                                    block_size, self.hp)
-            h = mp.multipart_upload()
+            mp = Multipart(self.bucket, secret, block_size, self.hp)
+            h = mp.upload(key, value, expiration)
             return self.__get_multi_meta_headers(h)
         else:
             h = self.__do_http_request('PUT', key, value, headers)

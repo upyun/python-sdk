@@ -20,8 +20,6 @@ class AvPretreatment(object):
         self.chunksize = chunksize
         self.human = human
         self.timeout = timeout
-        self.tasks = []
-        self.taskids = None
         self.signature = None
         self.hp = UpYunHttp(self.human, self.timeout, self.chunksize)
 
@@ -52,18 +50,6 @@ class AvPretreatment(object):
         if type(content)  == dict and 'tasks' in content:
             return content['tasks']
         return None
-
-    def add_task(self, task):
-        self.tasks = self.tasks.append(task)
-
-    def add_tasks(self, tasks):
-        if type(tasks) != list:
-            raise UpYunClientException("You should give a list of params")
-        self.tasks += tasks
-
-    def reset_tasks(self):
-        self.tasks = []
-        self.taskids = []
 
     # --- private API
 
