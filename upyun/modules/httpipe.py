@@ -30,141 +30,154 @@ class UpYunHttp(object):
     def do_http_pipe(self, method, host, uri,
                             value=None, headers=None, of=None, stream=False,
                             handler=None, params=None, kind=None):
-        # http://docs.python-requests.org/
         if self.human_mode:
-            request_id, content, msg, err, status = None, None, None, None, None
-            URL = "http://%s%s" % (host, uri)
-            requests.adapters.DEFAULT_RETRIES = 5
+            return self.do_http_human(method, host, uri, value, headers, 
+                                            of, stream,handler, params, kind)
+        else:
+            return self.do_http_basic(method, host, uri, value, headers, 
+                                            of, stream,handler, params, kind)
 
+
+    # http://docs.python-requests.org/
+    def do_http_human(self, method, host, uri,
+                            value, headers, of, stream,
+                            handler, params, kind):
+        request_id, content, msg, err, status = None, None, None, None, None
+        URL = "http://%s%s" % (host, uri)
+        requests.adapters.DEFAULT_RETRIES = 5
+
+        try:
+            resp = self.session.request(method, URL, data=value,
+                                        headers=headers, stream=stream,
+                                        timeout=self.timeout)
+            resp.encoding = 'utf-8'
             try:
-                resp = self.session.request(method, URL, data=value,
-                                            headers=headers, stream=stream,
-                                            timeout=self.timeout)
-                resp.encoding = 'utf-8'
-                try:
-                    request_id = resp.headers["X-Request-Id"]
-                except KeyError:
-                    request_id = "Unknown"
-                status = resp.status_code
+                request_id = resp.headers["X-Request-Id"]
+            except KeyError:
+                request_id = "Unknown"
+            status = resp.status_code
 
-                if status / 100 == 2:
-                    if method == 'GET' and of:
-                        readsofar = 0
-                        try:
-                            totalsize = int(resp.headers['content-length'])
-                        except (KeyError, TypeError):
-                            totalsize = 0
+            if status / 100 == 2:
+                if method == 'GET' and of:
+                    readsofar = 0
+                    try:
+                        totalsize = int(resp.headers['content-length'])
+                    except (KeyError, TypeError):
+                        totalsize = 0
 
-                        hdr = None
-                        if handler and totalsize > 0:
-                            hdr = handler(totalsize, params)
+                    hdr = None
+                    if handler and totalsize > 0:
+                        hdr = handler(totalsize, params)
 
-                        for chunk in resp.iter_content(self.chunksize):
-                            if chunk and hdr:
-                                readsofar += len(chunk)
-                                if readsofar != totalsize:
-                                    hdr.update(readsofar)
-                                else:
-                                    hdr.finish()
-                            if not chunk:
-                                break
-                            of.write(chunk)
-                    elif kind == 'rest':
-                        if method == 'GET':
-                            content = resp.text
-                        elif method == 'PUT' or method == 'HEAD':
-                            content = resp.headers.items()
-                        elif method == 'POST' and uri == '/purge/':
-                            content = resp.json()
-
-                    elif kind == 'av':
-                        if method == 'GET':
-                            content = resp.json()
-                        elif method == 'POST':
-                            content = resp.text
-
-                    elif kind == 'multi':
+                    for chunk in resp.iter_content(self.chunksize):
+                        if chunk and hdr:
+                            readsofar += len(chunk)
+                            if readsofar != totalsize:
+                                hdr.update(readsofar)
+                            else:
+                                hdr.finish()
+                        if not chunk:
+                            break
+                        of.write(chunk)
+                elif kind == 'rest':
+                    if method == 'GET':
+                        content = resp.text
+                    elif method == 'PUT' or method == 'HEAD':
+                        content = resp.headers.items()
+                    elif method == 'POST' and uri == '/purge/':
                         content = resp.json()
 
-                else:
-                    msg = resp.reason
-                    err = resp.text
+                elif kind == 'av':
+                    if method == 'GET':
+                        content = resp.json()
+                    elif method == 'POST':
+                        content = resp.text
 
-            except requests.exceptions.ConnectionError as e:
-                raise UpYunClientException(str(e))
-            except requests.exceptions.RequestException as e:
-                raise UpYunClientException(str(e))
-            except Exception as e:
-                raise UpYunClientException(str(e))
+                elif kind == 'multi':
+                    content = resp.json()
 
-            if msg:
-                raise UpYunServiceException(request_id, status, msg, err)
+            else:
+                msg = resp.reason
+                err = resp.text
 
-            return content
+        except requests.exceptions.ConnectionError as e:
+            raise UpYunClientException(str(e))
+        except requests.exceptions.RequestException as e:
+            raise UpYunClientException(str(e))
+        except Exception as e:
+            raise UpYunClientException(str(e))
 
-        else:
-        # http://docs.python.org/2/library/httplib.html
-            request_id, content, msg, err, status = None, None, None, None, None
-            try:
-                conn = httplib.HTTPConnection(host, timeout=self.timeout)
-                # conn.set_debuglevel(1)
-                conn.request(method, uri, value, headers)
-                resp = conn.getresponse()
-                request_id = resp.getheader("X-Request-Id", "Unknown")
-                status = resp.status
-                if status / 100 == 2:
-                    if method == 'GET' and of:
-                        readsofar = 0
-                        totalsize = resp.getheader('content-length')
-                        totalsize = totalsize and int(totalsize) or 0
+        if msg:
+            raise UpYunServiceException(request_id, status, msg, err)
 
-                        hdr = None
-                        if handler and totalsize > 0:
-                            hdr = handler(totalsize, params)
+        return content
 
-                        while True:
-                            chunk = resp.read(self.chunksize)
-                            if chunk and hdr:
-                                readsofar += len(chunk)
-                                if readsofar != totalsize:
-                                    hdr.update(readsofar)
-                                else:
-                                    hdr.finish()
-                            if not chunk:
-                                break
-                            of.write(chunk)
-                    elif kind == 'rest':
-                        if method == 'GET':
-                            content = decode_msg(resp.read())
-                        elif method == 'PUT' or method == 'HEAD':
-                            content = resp.getheaders()
-                        elif method == 'POST' and uri == '/purge/':
-                            content = json.loads(decode_msg(resp.read()))
+    # http://docs.python.org/2/library/httplib.html
+    def do_http_basic(self, method, host, uri,
+                            value, headers, of, stream,
+                            handler, params, kind):
+        request_id, content, msg, err, status = None, None, None, None, None
+        
+        try:
+            conn = httplib.HTTPConnection(host, timeout=self.timeout)
+            # conn.set_debuglevel(1)
+            conn.request(method, uri, value, headers)
+            resp = conn.getresponse()
+            request_id = resp.getheader("X-Request-Id", "Unknown")
+            status = resp.status
+            if status / 100 == 2:
+                if method == 'GET' and of:
+                    readsofar = 0
+                    totalsize = resp.getheader('content-length')
+                    totalsize = totalsize and int(totalsize) or 0
 
-                    elif kind == 'av':
-                        if method == 'GET':
-                            content = json.loads(decode_msg(resp.read()))
-                        elif method == 'POST':
-                            content = decode_msg(resp.read())
+                    hdr = None
+                    if handler and totalsize > 0:
+                        hdr = handler(totalsize, params)
 
-                    elif kind == 'multi':
+                    while True:
+                        chunk = resp.read(self.chunksize)
+                        if chunk and hdr:
+                            readsofar += len(chunk)
+                            if readsofar != totalsize:
+                                hdr.update(readsofar)
+                            else:
+                                hdr.finish()
+                        if not chunk:
+                            break
+                        of.write(chunk)
+                elif kind == 'rest':
+                    if method == 'GET':
+                        content = decode_msg(resp.read())
+                    elif method == 'PUT' or method == 'HEAD':
+                        content = resp.getheaders()
+                    elif method == 'POST' and uri == '/purge/':
                         content = json.loads(decode_msg(resp.read()))
-                else:
-                    msg = resp.reason
-                    err = decode_msg(resp.read())
 
-            except (httplib.HTTPException, socket.error, socket.timeout) as e:
-                raise UpYunClientException(str(e))
-            except Exception as e:
-                raise UpYunClientException(str(e))
-            finally:
-                if conn:
-                    conn.close()
+                elif kind == 'av':
+                    if method == 'GET':
+                        content = json.loads(decode_msg(resp.read()))
+                    elif method == 'POST':
+                        content = decode_msg(resp.read())
 
-            if msg:
-                raise UpYunServiceException(request_id, status, msg, err)
+                elif kind == 'multi':
+                    content = json.loads(decode_msg(resp.read()))
+            else:
+                msg = resp.reason
+                err = decode_msg(resp.read())
 
-            return content
+        except (httplib.HTTPException, socket.error, socket.timeout) as e:
+            raise UpYunClientException(str(e))
+        except Exception as e:
+            raise UpYunClientException(str(e))
+        finally:
+            if conn:
+                conn.close()
+
+        if msg:
+            raise UpYunServiceException(request_id, status, msg, err)
+
+        return content
 
     def do_user_agent(self, default):
         if self.human_mode:
