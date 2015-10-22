@@ -5,7 +5,7 @@ import hashlib
 from rest import UpYunRest
 from av import AvPretreatment, CallbackValidation
 
-from modules.exception import UpYunServiceException, UpYunClientException
+from modules.exception import UpYunClientException
 from modules.compat import b
 
 __version__ = '2.3.0'
@@ -82,6 +82,8 @@ class UpYun(object):
 
     def status(self, taskids):
         return self.av.status(taskids)
+
+    # --- no use yet, need developing
 
     def verify_sign(self, callback_dict):
         cv = CallbackValidation(callback_dict, self.av)

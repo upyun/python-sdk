@@ -27,6 +27,7 @@ BUCKET = os.getenv('UPYUN_BUCKET')
 USERNAME = os.getenv('UPYUN_USERNAME')
 PASSWORD = os.getenv('UPYUN_PASSWORD')
 BUCKET_TYPE = os.getenv('UPYUN_BUCKET_TYPE') or 'F'
+SECRET = os.getenv('UPYUN_SECRET')
 
 class DjangoFile(io.BytesIO):
     def __len__(self):

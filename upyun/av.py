@@ -57,18 +57,20 @@ class AvPretreatment(object):
     def __requests_pretreatment(self, data):
         data['tasks'] = self.__process_tasksdata(data['tasks'])
         uri = self.api['pretreatment']
-        self.signature = self.__create_signature(data)
-        headers = {'Authorization': 'UPYUN ' + self.operator + ":" + self.signature,
+        signature = self.__create_signature(data)
+        auth = 'UPYUN %s:%s' % (self.operator, signature)
+        headers = {'Authorization': auth,
                     'Content-Type': 'application/x-www-form-urlencoded'}
         value = urlencode(data)
         return self.hp.do_http_pipe('POST', self.host, uri, headers=headers,
                                         value=value, kind=self.kind)
 
     def __requests_status(self, data):
-        self.signature = self.__create_signature(data)
+        signature = self.__create_signature(data)
         data = urllib.urlencode(data)
         uri = self.api['status'] + '?' + data
-        headers = {'Authorization': 'UPYUN ' + self.operator + ":" + self.signature}
+        auth = 'UPYUN %s:%s' % (self.operator, signature)
+        headers = {'Authorization': auth}
         return self.hp.do_http_pipe('GET', self.host, uri, headers=headers,
                                         kind=self.kind)
 

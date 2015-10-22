@@ -2,13 +2,10 @@
 
 import os
 import time
-import json
-import base64
-import uuid
 
 from modules.compat import urlencode
 from modules.exception import UpYunServiceException, UpYunClientException
-from modules.sign import make_content_md5
+from modules.sign import make_policy, make_signature, make_content_md5
 
 class Multipart(object):
     def __init__(self, bucket, secret, hp):
@@ -48,9 +45,9 @@ class Multipart(object):
     def upload(self, key, value, expiration, block_size):
         self.remote_path = key
         self.file = value
-        self.size = self.__getsize(value)
+        self.size = self.__get_size(value)
         self.filename = os.path.basename(value.name).encode('utf-8')
-        self.expiration = expiration
+        self.expiration = (int)(time.time()) + expiration
 
         self.__check_size(block_size)
         self.blocks = int(self.size / self.block_size) + 1
@@ -89,13 +86,11 @@ class Multipart(object):
     #@return mixed result: 第一步接口返回数据
     ##
     def __init_upload(self):
-        self.expiration = (int)(time.time()) + 3600
-
-        self.metadata = {'expiration':self.expiration, 'file_blocks': self.blocks,
+        data = {'expiration':self.expiration, 'file_blocks': self.blocks,
                 'file_hash':  make_content_md5(self.file), 'file_size': self.size,
                 'path': self.remote_path}
-        self.policy = self.__create_policy(self.metadata)
-        self.signature = self.__create_signature(self.metadata, True)
+        self.policy = make_policy(data)
+        self.signature = make_signature(data, self.secret)
         postdata = {'policy': self.policy, 'signature': self.signature}
         content = self.__do_http_request(postdata)
         if 'save_token' in content.keys() and 'token_secret' in content.keys():
@@ -107,42 +102,10 @@ class Multipart(object):
         return content
 
     ##
-    #返回base64编码的metadata值，生成policy
-    #@parms dict metadata: 包含expiration, file_hash等值的字典
-    #@return mixed policy(encode in base64)
-    ##
-    def __create_policy(self, metadata):
-        if type(metadata) == dict:
-            policy = json.dumps(metadata)
-            return base64.b64encode(policy)
-        else:
-            return None
-
-    ##
-    #将metadata排序后，生成算法所要求的md5格式值
-    #@parms dict metadata: 包含expiration, file_hash等值的字典
-    #@return mixed signature(encode in md5)
-    ##
-    def __create_signature(self, metadata, from_api=True):
-        if type(metadata) == dict:
-            signature = ''
-            list_meta = sorted(metadata.iteritems(), key=lambda d:d[0])
-            for k, v in list_meta:
-                signature = signature + k + str(v)
-            if not from_api:
-                signature += self.token_secret
-            else:
-                signature += self.secret
-            return make_content_md5(signature)
-        else:
-            return None
-
-    ##
     #@parms dict value: post包中的data参数
     #@return json r_json: 接口返回的json格式的值
     ##
     def __do_http_request(self, value):
-        length = 0
         uri = "/%s/" % self.bucket
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
@@ -175,10 +138,10 @@ class Multipart(object):
         file_block = self.__read_block(f, start_position, end_position)
         block_hash = make_content_md5(file_block)
 
-        self.metadata = {'expiration': self.expiration, 'block_index': index,
+        data = {'expiration': self.expiration, 'block_index': index,
                     'block_hash': block_hash, 'save_token': self.save_token}
-        policy = self.__create_policy(self.metadata)
-        signature = self.__create_signature(self.metadata, False)
+        policy = make_policy(data)
+        signature = make_signature(data, self.token_secret)
         postdata = {'policy': policy, 'signature': signature, 'file': {'data': file_block}}
         return self.__multipart_post(postdata)
 
@@ -197,19 +160,16 @@ class Multipart(object):
     #@return int True成功 False失败
     ##
     def __upload_success(self):
-        sum_status = 0
-        for i in self.status:
-            sum_status += i
-        return len(self.status) == sum_status
+        return len(self.status) == sum(self.status)
 
     ##
     #将所有分块合并
     #@return json result: 第三步接口返回值
     ##
     def __end_upload(self):
-        self.metadata = {'expiration': self.expiration, 'save_token': self.save_token}
-        policy = self.__create_policy(self.metadata)
-        signature = self.__create_signature(self.metadata, False)
+        data = {'expiration': self.expiration, 'save_token': self.save_token}
+        policy = make_policy(data)
+        signature = make_signature(data, self.token_secret)
         postdata = {'policy': policy, 'signature': signature}
         content = self.__do_http_request(postdata)
         return content
@@ -218,7 +178,7 @@ class Multipart(object):
     #@parms handler fileobj
     #@return string 文件大小
     ##
-    def __getsize(self, fileobj):
+    def __get_size(self, fileobj):
         try:
             if hasattr(fileobj, 'fileno'):
                return os.fstat(fileobj.fileno()).st_size

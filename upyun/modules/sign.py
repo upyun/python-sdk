@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
+import base64
+import json
 
-from compat import b, PY3, builtin_str, bytes
+from compat import b, PY3, builtin_str, bytes, str
 from exception import UpYunClientException
 
 DEFAULT_CHUNKSIZE = 8192
@@ -41,3 +43,21 @@ def encode_msg(msg):
     if isinstance(msg, str):
         msg = msg.encode('utf-8')
     return msg
+
+def make_policy(data):
+    if type(data) == dict:
+        policy = json.dumps(data)
+        return base64.b64encode(policy)
+    else:
+        return None
+
+def make_signature(data, secret):
+    if type(data) == dict:
+        signature = ''
+        list_meta = sorted(data.iteritems(), key=lambda d:d[0])
+        for k, v in list_meta:
+            signature = signature + k + str(v)
+        signature += secret
+        return make_content_md5(signature)
+    else:
+        return None
