@@ -3,9 +3,10 @@
 import os
 import time
 
-from modules.compat import urlencode
-from modules.exception import UpYunServiceException, UpYunClientException
-from modules.sign import make_policy, make_signature, make_content_md5
+from .modules.compat import urlencode, str, b
+from .modules.exception import UpYunServiceException, UpYunClientException
+from .modules.sign import make_policy, make_signature, \
+                            make_content_md5, decode_msg, encode_msg
 
 class Multipart(object):
     def __init__(self, bucket, secret, hp):
@@ -195,7 +196,7 @@ class Multipart(object):
     #@return string data: 读取的二进制数据
     ##
     def __read_block(self, f, current_position, end_position, length = 3*8192):
-        data = ''
+        data = b('')
         while current_position < end_position:
             if (current_position + length) > end_position:
                 length = end_position - current_position

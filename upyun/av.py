@@ -5,10 +5,10 @@ import base64
 import urllib
 import ast
 
-from modules.httpipe import UpYunHttp
-from modules.compat import urlencode
-from modules.exception import UpYunClientException
-from modules.sign import make_content_md5
+from .modules.httpipe import UpYunHttp
+from .modules.compat import urlencode
+from .modules.exception import UpYunClientException
+from .modules.sign import make_content_md5
 
 class AvPretreatment(object):
     def __init__(self, bucket, operator, password, chunksize, human, timeout):
@@ -122,7 +122,7 @@ class CallbackValidation(object):
             value = data['signature']
             del data['signature']
             if value == self.av.create_signature(data):
-                print "signature verify success"
+                print("signature verify success")
                 return True
-        print "signature verify failed"
+        print("signature verify failed")
         return False

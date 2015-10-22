@@ -3,13 +3,13 @@
 import os
 import datetime
 
-from modules.sign import make_rest_signature, make_content_md5, encode_msg
-from modules.exception import UpYunClientException
-from modules.compat import b, str, quote, urlencode, builtin_str
-from modules.httpipe import UpYunHttp
+from .modules.sign import make_rest_signature, make_content_md5, encode_msg
+from .modules.exception import UpYunClientException
+from .modules.compat import b, str, quote, urlencode, builtin_str
+from .modules.httpipe import UpYunHttp
 
-from form import FormUpload
-from multi import Multipart
+from .form import FormUpload
+from .multi import Multipart
 
 __version__ = '2.3.0'
 

@@ -2,11 +2,11 @@
 
 import hashlib
 
-from rest import UpYunRest
-from av import AvPretreatment, CallbackValidation
+from .rest import UpYunRest
+from .av import AvPretreatment, CallbackValidation
 
-from modules.exception import UpYunClientException
-from modules.compat import b
+from .modules.exception import UpYunClientException
+from .modules.compat import b
 
 __version__ = '2.3.0'
 

@@ -5,8 +5,9 @@ import time
 import base64
 import os
 
-from modules.exception import UpYunClientException
-from modules.sign import make_content_md5, make_policy
+from .modules.exception import UpYunClientException
+from .modules.sign import make_content_md5, make_policy
+from .modules.compat import b
 
 class FormUpload(object):
     def __init__(self, bucket, secret, hp, endpoint):
@@ -37,7 +38,7 @@ class FormUpload(object):
             raise UpYunClientException("Unrecognize type of value to be uploaded")
 
     def __create_signature(self, policy):
-        signature = policy + "&" + self.secret
+        signature = b("&").join([policy, b(self.secret)])
         return make_content_md5(signature)
 
     def __do_http_request(self, value):
