@@ -6,7 +6,7 @@ import urllib
 import ast
 
 from .modules.httpipe import UpYunHttp
-from .modules.compat import urlencode
+from .modules.compat import urlencode, b
 from .modules.exception import UpYunClientException
 from .modules.sign import make_content_md5
 
@@ -59,6 +59,8 @@ class AvPretreatment(object):
         uri = self.api['pretreatment']
         signature = self.__create_signature(data)
         auth = 'UPYUN %s:%s' % (self.operator, signature)
+        print(signature)
+        print(auth)
         headers = {'Authorization': auth,
                     'Content-Type': 'application/x-www-form-urlencoded'}
         value = urlencode(data)
@@ -67,7 +69,7 @@ class AvPretreatment(object):
 
     def __requests_status(self, data):
         signature = self.__create_signature(data)
-        data = urllib.urlencode(data)
+        data = urlencode(data)
         uri = self.api['status'] + '?' + data
         auth = 'UPYUN %s:%s' % (self.operator, signature)
         headers = {'Authorization': auth}
@@ -76,20 +78,22 @@ class AvPretreatment(object):
 
     def __create_signature(self, metadata):
         if type(metadata) == dict:
-            signature = ''
-            list_meta = sorted(metadata.iteritems(), key=lambda d:d[0])
+            signature = b('')
+            list_meta = sorted(metadata.items(), key=lambda d:d[0])
             for k, v in list_meta:
+                k = b(k)
+                v = b(v)
                 if type(v) == list:
-                    v = "".join(v)
-                signature = signature + k + str(v)
-            signature = self.operator + signature + self.password
+                    v = b("").join(v)
+                signature = signature + k + v
+            signature = b(self.operator) + signature + b(self.password)
             return make_content_md5(signature)
         else:
             return None
 
     def __process_tasksdata(self, tasks):
         if (type(tasks) == list):
-            return base64.b64encode(json.dumps(tasks))
+            return base64.b64encode(b(json.dumps(tasks)))
         return None
 
 # --- Signature not correct right now

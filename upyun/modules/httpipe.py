@@ -5,9 +5,9 @@ import socket
 import uuid
 import mimetypes
 
-from compat import httplib
-from exception import UpYunServiceException, UpYunClientException
-from sign import decode_msg
+from .compat import httplib, b
+from .exception import UpYunServiceException, UpYunClientException
+from .sign import decode_msg
 
 HUMAN_MODE = False
 
@@ -187,13 +187,13 @@ class UpYunHttp(object):
 
     def do_http_multipart(self, host, uri, value, filename):
         kind = 'multi'
-        file_type = mimetypes.guess_type(filename)[0]
+        file_type = mimetypes.guess_type(decode_msg(filename))[0]
         if not file_type:
             file_type = "text/plain; charset=utf-8"
         #start construct multipart request
         delimiter = '-------------' + str(uuid.uuid1())
         data = []
-        for k, v in value.iteritems():
+        for k, v in value.items():
             data.append("--{0}".format(delimiter))
             if type(v) == dict:
                 s = 'Content-Disposition: form-data; name="{0}"; filename="{1}"'\
@@ -206,9 +206,12 @@ class UpYunHttp(object):
                 s = 'Content-Disposition: form-data; name="{0}"\r\n'.format(k)
                 data.append(s)
                 data.append(v)
-
         data.append("--{0}--".format(delimiter))
-        value = "\r\n".join(data)
+
+        #change data item from str to bytes
+        data = [b(k) for k in data]
+
+        value = b("\r\n").join(data)
         #end construct multipart request
 
         headers = {'Content-Type': 'multipart/form-data; boundary={0}'.format(delimiter),

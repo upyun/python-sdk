@@ -47,8 +47,7 @@ def encode_msg(msg):
 def make_policy(data):
     if type(data) == dict:
         policy = json.dumps(data)
-        policy = base64.b64encode(b(policy))
-        return decode_msg(policy)
+        return base64.b64encode(b(policy))
     else:
         return None
 
@@ -59,6 +58,6 @@ def make_signature(data, secret):
         for k, v in list_meta:
             signature = signature + k + str(v)
         signature += secret
-        return make_content_md5(signature)
+        return make_content_md5(b(signature))
     else:
         return None
