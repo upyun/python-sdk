@@ -2,8 +2,10 @@
 
 import os
 import datetime
+import json
 
-from .modules.sign import make_rest_signature, make_content_md5, encode_msg
+from .modules.sign import make_rest_signature, make_content_md5, \
+                                                encode_msg, decode_msg
 from .modules.exception import UpYunClientException
 from .modules.compat import b, str, quote, urlencode, builtin_str
 from .modules.httpipe import UpYunHttp
@@ -65,7 +67,7 @@ def httpdate_rfc1123(dt):
 
 class UpYunRest(object):
     def __init__(self, bucket, username, password, secret,
-                    timeout, endpoint, chunksize, human):
+                    timeout, endpoint, chunksize, human, mp_endpoint):
         self.bucket = bucket
         self.username = username
         self.password = password
@@ -74,12 +76,11 @@ class UpYunRest(object):
         self.endpoint = endpoint
         self.chunksize = chunksize
         self.human = human
-        self.kind = 'rest'
 
         self.user_agent = None
-        self.hp = UpYunHttp(self.human, self.timeout, self.chunksize)
+        self.hp = UpYunHttp(self.human, self.timeout)
         if self.secret:
-            self.mp = Multipart(self.bucket, self.secret, self.hp)
+            self.mp = Multipart(self.bucket, self.secret, self.hp, mp_endpoint)
             self.fp = FormUpload(self.bucket, self.secret, self.hp, self.endpoint)
         else:
             self.mp = None
@@ -91,8 +92,8 @@ class UpYunRest(object):
         return str(int(res))
 
     def put(self, key, value, checksum, headers,
-                handler, params, multipart,
-                secret, block_size, form, expiration):
+                                handler, params, multipart,
+                                secret, block_size, form, expiration):
         """
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
@@ -118,7 +119,7 @@ class UpYunRest(object):
             return self.__get_form_headers(h)
 
         if multipart and hasattr(value, 'fileno'):
-            h = self.mp.upload(key, value, expiration, block_size)
+            h = self.mp.upload(key, value, block_size, expiration)
             return self.__get_multi_meta_headers(h)
 
         h = self.__do_http_request('PUT', key, value, headers)
@@ -152,6 +153,8 @@ class UpYunRest(object):
         return self.__get_meta_headers(h)
 
     def purge(self, keys, domain):
+        resp, human, conn = None, None, None
+
         domain = domain or '%s.b0.upaiyun.com' % (self.bucket)
         if isinstance(keys, builtin_str):
             keys = [keys]
@@ -170,9 +173,9 @@ class UpYunRest(object):
                    'Accept': 'application/json'}
         self.__set_auth_headers(urlstr, headers=headers)
 
-        content = self.hp.do_http_pipe(method, host, uri,
-                                        value=params, headers=headers, kind=self.kind)
-
+        resp, human, conn = self.hp.do_http_pipe(method, host, uri,
+                                        value=params, headers=headers)
+        content = self.__handle_resp(resp, conn, human, method, uri=uri)
         invalid_urls = content['invalid_domain_of_url']
         return [k[7 + len(domain):] for k in invalid_urls]
 
@@ -181,6 +184,7 @@ class UpYunRest(object):
     def __do_http_request(self, method, key,
                           value=None, headers=None, of=None, args='',
                           stream=False, handler=None, params=None):
+        resp, human, conn = None, None, None
 
         _uri = "/%s/%s" % (self.bucket, key if key[0] != '/' else key[1:])
         uri = "%s%s" % (quote(encode_msg(_uri), safe='~/'), args)
@@ -200,8 +204,75 @@ class UpYunRest(object):
 
         self.__set_auth_headers(uri, method, length, headers)
 
-        return self.hp.do_http_pipe(method, self.endpoint, uri, value, headers, of,
-                                stream, handler, params, self.kind)
+        resp, human, conn = self.hp.do_http_pipe(method, self.endpoint, uri, 
+                                        value, headers, stream)
+        return self.__handle_resp(resp, conn, human, method, of, handler, params)
+
+    def __handle_resp(self, resp, conn, human, method=None,
+                            of=None, handler=None, params=None, uri=None):
+        content = None
+        try:
+            if human:
+                if method == 'GET' and of:
+                    readsofar = 0
+                    try:
+                        totalsize = int(resp.headers['content-length'])
+                    except (KeyError, TypeError):
+                        totalsize = 0
+
+                    hdr = None
+                    if handler and totalsize > 0:
+                        hdr = handler(totalsize, params)
+
+                    for chunk in resp.iter_content(self.chunksize):
+                        if chunk and hdr:
+                            readsofar += len(chunk)
+                            if readsofar != totalsize:
+                                hdr.update(readsofar)
+                            else:
+                                hdr.finish()
+                        if not chunk:
+                            break
+                        of.write(chunk)
+                elif method == 'GET':
+                    content = resp.text
+                elif method == 'PUT' or method == 'HEAD':
+                    content = resp.headers.items()
+                elif method == 'POST' and uri == '/purge/':
+                    content = resp.json()
+            else:
+                if method == 'GET' and of:
+                    readsofar = 0
+                    totalsize = resp.getheader('content-length')
+                    totalsize = totalsize and int(totalsize) or 0
+
+                    hdr = None
+                    if handler and totalsize > 0:
+                        hdr = handler(totalsize, params)
+
+                    while True:
+                        chunk = resp.read(self.chunksize)
+                        if chunk and hdr:
+                            readsofar += len(chunk)
+                            if readsofar != totalsize:
+                                hdr.update(readsofar)
+                            else:
+                                hdr.finish()
+                        if not chunk:
+                            break
+                        of.write(chunk)
+                elif method == 'GET':
+                    content = decode_msg(resp.read())
+                elif method == 'PUT' or method == 'HEAD':
+                    content = resp.getheaders()
+                elif method == 'POST' and uri == '/purge/':
+                    content = json.loads(decode_msg(resp.read()))
+        except Exception as e:
+            raise UpYunClientException(str(e))
+        finally:
+            if conn:
+                conn.close()
+        return content
 
     def __make_user_agent(self):
         default = "upyun-python-sdk/%s" % __version__

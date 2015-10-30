@@ -18,31 +18,25 @@ except ImportError:
     pass
 
 class UpYunHttp(object):
-    def __init__(self, human, timeout, chunksize):
+    def __init__(self, human, timeout):
         self.human_mode = HUMAN_MODE
         self.timeout = timeout
         if not human:
             self.human_mode = False
         if self.human_mode:
             self.session = requests.Session()
-        self.chunksize = chunksize
 
-    def do_http_pipe(self, method, host, uri,
-                            value=None, headers=None, of=None, stream=False,
-                            handler=None, params=None, kind=None):
+    def do_http_pipe(self, *args, **kwargs):
         if self.human_mode:
-            return self.do_http_human(method, host, uri, value, headers, 
-                                            of, stream,handler, params, kind)
+            return self.do_http_human(*args, **kwargs)
         else:
-            return self.do_http_basic(method, host, uri, value, headers, 
-                                            of, stream,handler, params, kind)
+            return self.do_http_basic(*args, **kwargs)
 
 
     # http://docs.python-requests.org/
     def do_http_human(self, method, host, uri,
-                            value, headers, of, stream,
-                            handler, params, kind):
-        request_id, content, msg, err, status = None, None, None, None, None
+                            value=None, headers=None, stream=False):
+        request_id, msg, err, status = None, None, None, None
         URL = "http://%s%s" % (host, uri)
         requests.adapters.DEFAULT_RETRIES = 5
 
@@ -57,46 +51,7 @@ class UpYunHttp(object):
                 request_id = "Unknown"
             status = resp.status_code
 
-            if status / 100 == 2:
-                if method == 'GET' and of:
-                    readsofar = 0
-                    try:
-                        totalsize = int(resp.headers['content-length'])
-                    except (KeyError, TypeError):
-                        totalsize = 0
-
-                    hdr = None
-                    if handler and totalsize > 0:
-                        hdr = handler(totalsize, params)
-
-                    for chunk in resp.iter_content(self.chunksize):
-                        if chunk and hdr:
-                            readsofar += len(chunk)
-                            if readsofar != totalsize:
-                                hdr.update(readsofar)
-                            else:
-                                hdr.finish()
-                        if not chunk:
-                            break
-                        of.write(chunk)
-                elif kind == 'rest':
-                    if method == 'GET':
-                        content = resp.text
-                    elif method == 'PUT' or method == 'HEAD':
-                        content = resp.headers.items()
-                    elif method == 'POST' and uri == '/purge/':
-                        content = resp.json()
-
-                elif kind == 'av':
-                    if method == 'GET':
-                        content = resp.json()
-                    elif method == 'POST':
-                        content = resp.text
-
-                elif kind == 'multi':
-                    content = resp.json()
-
-            else:
+            if status / 100 != 2:
                 msg = resp.reason
                 err = resp.text
 
@@ -110,14 +65,13 @@ class UpYunHttp(object):
         if msg:
             raise UpYunServiceException(request_id, status, msg, err)
 
-        return content
+        return resp, self.human_mode, None
 
     # http://docs.python.org/2/library/httplib.html
     def do_http_basic(self, method, host, uri,
-                            value, headers, of, stream,
-                            handler, params, kind):
-        request_id, content, msg, err, status = None, None, None, None, None
-        
+                            value=None, headers=None, stream=False):
+        request_id, msg, err, status = None, None, None, None
+
         try:
             conn = httplib.HTTPConnection(host, timeout=self.timeout)
             # conn.set_debuglevel(1)
@@ -125,44 +79,7 @@ class UpYunHttp(object):
             resp = conn.getresponse()
             request_id = resp.getheader("X-Request-Id", "Unknown")
             status = resp.status
-            if status / 100 == 2:
-                if method == 'GET' and of:
-                    readsofar = 0
-                    totalsize = resp.getheader('content-length')
-                    totalsize = totalsize and int(totalsize) or 0
-
-                    hdr = None
-                    if handler and totalsize > 0:
-                        hdr = handler(totalsize, params)
-
-                    while True:
-                        chunk = resp.read(self.chunksize)
-                        if chunk and hdr:
-                            readsofar += len(chunk)
-                            if readsofar != totalsize:
-                                hdr.update(readsofar)
-                            else:
-                                hdr.finish()
-                        if not chunk:
-                            break
-                        of.write(chunk)
-                elif kind == 'rest':
-                    if method == 'GET':
-                        content = decode_msg(resp.read())
-                    elif method == 'PUT' or method == 'HEAD':
-                        content = resp.getheaders()
-                    elif method == 'POST' and uri == '/purge/':
-                        content = json.loads(decode_msg(resp.read()))
-
-                elif kind == 'av':
-                    if method == 'GET':
-                        content = json.loads(decode_msg(resp.read()))
-                    elif method == 'POST':
-                        content = decode_msg(resp.read())
-
-                elif kind == 'multi':
-                    content = json.loads(decode_msg(resp.read()))
-            else:
+            if status / 100 != 2:
                 msg = resp.reason
                 err = decode_msg(resp.read())
 
@@ -170,14 +87,11 @@ class UpYunHttp(object):
             raise UpYunClientException(str(e))
         except Exception as e:
             raise UpYunClientException(str(e))
-        finally:
-            if conn:
-                conn.close()
 
         if msg:
             raise UpYunServiceException(request_id, status, msg, err)
 
-        return content
+        return resp, self.human_mode, conn
 
     def do_user_agent(self, default):
         if self.human_mode:
@@ -186,7 +100,6 @@ class UpYunHttp(object):
             return default
 
     def do_http_multipart(self, host, uri, value, filename):
-        kind = 'multi'
         file_type = mimetypes.guess_type(decode_msg(filename))[0]
         if not file_type:
             file_type = "text/plain; charset=utf-8"
@@ -217,4 +130,4 @@ class UpYunHttp(object):
         headers = {'Content-Type': 'multipart/form-data; boundary={0}'.format(delimiter),
                             'Content-Length': len(value)}
 
-        return self.do_http_pipe('POST', host, uri, headers=headers, value=value, kind=kind)
+        return self.do_http_pipe('POST', host, uri, headers=headers, value=value)

@@ -207,7 +207,6 @@ class TestUpYun(unittest.TestCase):
                 self.params.assertEqual(self.readtimes, 3)
 
         self.up.up_rest.chunksize = 4096
-        self.up.up_rest.hp.chunksize = 4096
 
         with open('tests/test.png', 'rb') as f:
             self.up.put(self.root + 'test.png', f, handler=ProgressBarHandler,
@@ -306,7 +305,6 @@ class TestUpYun(unittest.TestCase):
             self.up.getinfo(self.root + 'test.mp4')
         self.assertEqual(se.exception.status, 404)
         self.assertEqual(len(se.exception.request_id), 66)
-
 
 class TestUpYunHumanMode(TestUpYun):
     def setUp(self):

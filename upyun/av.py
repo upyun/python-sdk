@@ -7,26 +7,26 @@ import ast
 
 from .modules.httpipe import UpYunHttp
 from .modules.compat import urlencode, b
-from .modules.exception import UpYunClientException
-from .modules.sign import make_content_md5
+from .modules.exception import UpYunClientException, UpYunServiceException
+from .modules.sign import make_content_md5, decode_msg
 
 class AvPretreatment(object):
+    HOST = "p0.api.upyun.com"
+    PRETREAT = "/pretreatment/"
+    STATUS = "/status/"
+
     def __init__(self, bucket, operator, password, chunksize, human, timeout):
-        self.host = "p0.api.upyun.com"
-        self.api = {"pretreatment": "/pretreatment/", "status": "/status/"}
         self.operator = operator
         self.password = password
         self.bucket = bucket
         self.chunksize = chunksize
         self.human = human
         self.timeout = timeout
-        self.signature = None
-        self.hp = UpYunHttp(self.human, self.timeout, self.chunksize)
-        self.kind = 'av'
+        self.hp = UpYunHttp(self.human, self.timeout)
 
     # --- public API
 
-    def pretreat(self, tasks, source, notify_url):
+    def pretreat(self, tasks, source, notify_url=""):
         data = {'bucket_name': self.bucket, 'source': source,
                 'notify_url': notify_url, 'tasks': tasks}
         content = self.__requests_pretreatment(data)
@@ -50,73 +50,90 @@ class AvPretreatment(object):
         content = self.__requests_status(data)
         if type(content)  == dict and 'tasks' in content:
             return content['tasks']
-        return None
+        UpYunServiceException(None, 500, "Servers except respond tasks list",
+                                                "Service Error")
 
     # --- private API
 
     def __requests_pretreatment(self, data):
+        resp, human, conn = None, None, None
+        method = 'POST'
         data['tasks'] = self.__process_tasksdata(data['tasks'])
-        uri = self.api['pretreatment']
+        uri = self.PRETREAT
         signature = self.__create_signature(data)
         auth = 'UPYUN %s:%s' % (self.operator, signature)
-        print(signature)
-        print(auth)
         headers = {'Authorization': auth,
                     'Content-Type': 'application/x-www-form-urlencoded'}
         value = urlencode(data)
-        return self.hp.do_http_pipe('POST', self.host, uri, headers=headers,
-                                        value=value, kind=self.kind)
+        resp, human, conn = self.hp.do_http_pipe(method, self.HOST, uri, headers=headers,
+                                        value=value)
+        return self.__handle_resp(resp, conn, human, method)
 
     def __requests_status(self, data):
+        resp, human, conn = None, None, None
+        method = 'GET'
         signature = self.__create_signature(data)
         data = urlencode(data)
-        uri = self.api['status'] + '?' + data
+        uri = "%s?%s" % (self.STATUS, data)
         auth = 'UPYUN %s:%s' % (self.operator, signature)
         headers = {'Authorization': auth}
-        return self.hp.do_http_pipe('GET', self.host, uri, headers=headers,
-                                        kind=self.kind)
+        resp, human, conn = self.hp.do_http_pipe(method, self.HOST, uri, headers=headers)
+        return self.__handle_resp(resp, conn, human, method)
+
+    def __handle_resp(self, resp, conn, human, method):
+        content = None
+        try:
+            if human:
+                if method == 'GET':
+                    content = resp.json()
+                elif method == 'POST':
+                    content = resp.text
+            else:
+                if method == 'GET':
+                    content = json.loads(decode_msg(resp.read()))
+                elif method == 'POST':
+                    content = decode_msg(resp.read())
+        except Exception as e:
+            raise UpYunClientException(str(e))
+        finally:
+            if conn:
+                conn.close()
+        return content
 
     def __create_signature(self, metadata):
-        if type(metadata) == dict:
-            signature = b('')
-            list_meta = sorted(metadata.items(), key=lambda d:d[0])
-            for k, v in list_meta:
-                k = b(k)
-                v = b(v)
-                if type(v) == list:
-                    v = b("").join(v)
-                signature = signature + k + v
-            signature = b(self.operator) + signature + b(self.password)
-            return make_content_md5(signature)
-        else:
-            return None
+        assert isinstance(metadata, dict)
+        signature = ''.join(map(lambda (k, v): '%s%s' %
+                (k, v if type(v) != list else ''.join(v)), sorted(metadata.items())))
+        signature = "%s%s%s" % (self.operator, signature, self.password)
+        return make_content_md5(b(signature))
+
 
     def __process_tasksdata(self, tasks):
-        if (type(tasks) == list):
-            return base64.b64encode(b(json.dumps(tasks)))
-        return None
+        assert isinstance(tasks, list)
+        return base64.b64encode(b(json.dumps(tasks)))
 
 # --- Signature not correct right now
 class CallbackValidation(object):
+    KEYS = ['bucket_name',
+            'status_code',
+            'path',
+            'description',
+            'task_id',
+            'info',
+            'signature',]
+
     def __init__(self, dict_callback, av):
         self.params = dict_callback
         self.av = av
-        self.keys = ['bucket_name',
-                    'status_code',
-                    'path',
-                    'description',
-                    'task_id',
-                    'info',
-                    'signature',]
 
     def set_params_by_post(self, dict_callback):
         data = {}
-        for key in self.keys:
-            if dict_callback.has_key(key):
-                value = dict_callback[key]
-                if type(value) == list:
-                    value = " ".join(value)
-                data[key] = value
+        for k in KEYS:
+            if k in dict_callback:
+                v = dict_callback[k]
+                if isinstance(v, list):
+                    v = " ".join(value)
+                data[k] = v
         return data
 
     def verify_sign(self):
@@ -126,7 +143,5 @@ class CallbackValidation(object):
             value = data['signature']
             del data['signature']
             if value == self.av.create_signature(data):
-                print("signature verify success")
                 return True
-        print("signature verify failed")
         return False
