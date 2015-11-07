@@ -7,7 +7,7 @@ import os
 
 from .modules.exception import UpYunClientException
 from .modules.sign import make_content_md5, make_policy, decode_msg
-from .modules.compat import b
+from .modules.compat import b, str
 
 class FormUpload(object):
     def __init__(self, bucket, secret, hp, endpoint):
@@ -38,7 +38,7 @@ class FormUpload(object):
             raise UpYunClientException("Unrecognize type of value to be uploaded")
 
     def __create_signature(self, policy):
-        signature = b("%s&%s") % (policy, b(self.secret))
+        signature = policy + b("&") + b(self.secret)
         return make_content_md5(signature)
 
     def __do_http_request(self, value, filename):

@@ -5,7 +5,7 @@ import socket
 import uuid
 import mimetypes
 
-from .compat import httplib, b
+from .compat import b, httplib
 from .exception import UpYunServiceException, UpYunClientException
 from .sign import decode_msg
 

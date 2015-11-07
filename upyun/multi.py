@@ -30,8 +30,8 @@ class Multipart(object):
         expiration = expiration or 1800
         expiration = int(expiration + time.time())
         status = []
-        file_size, file_name, block_size, blocks, save_token, token_secret, content \
-                                        = None, None, None, None, None, None, None
+        file_size, file_name, blocks, save_token, token_secret, content \
+                                        = None, None, None, None, None, None
         file_size = int(self.__get_size(value))
         file_name = os.path.basename(value.name).encode('utf-8')
 
@@ -207,4 +207,4 @@ class Multipart(object):
             f.seek(current_position, 0)
             data.append(f.read(length))
             current_position += length
-        return ''.join(data)
+        return b('').join(b(data))

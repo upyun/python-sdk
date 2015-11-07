@@ -58,7 +58,7 @@ class AvPretreatment(object):
     def __requests_pretreatment(self, data):
         resp, human, conn = None, None, None
         method = 'POST'
-        data['tasks'] = self.__process_tasksdata(data['tasks'])
+        data['tasks'] = decode_msg(self.__process_tasksdata(data['tasks']))
         uri = self.PRETREAT
         signature = self.__create_signature(data)
         auth = 'UPYUN %s:%s' % (self.operator, signature)
@@ -102,8 +102,8 @@ class AvPretreatment(object):
 
     def __create_signature(self, metadata):
         assert isinstance(metadata, dict)
-        signature = ''.join(map(lambda (k, v): '%s%s' %
-                (k, v if type(v) != list else ''.join(v)), sorted(metadata.items())))
+        signature = ''.join(map(lambda kv: '%s%s' %
+                (kv[0], kv[1] if type(kv[1]) != list else ''.join(kv[1])), sorted(metadata.items())))
         signature = "%s%s%s" % (self.operator, signature, self.password)
         return make_content_md5(b(signature))
 
