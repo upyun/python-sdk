@@ -49,7 +49,7 @@ class Multipart(object):
         retry = 0
         pool = ThreadPool(4)
         while not self.__upload_success(status) and retry < 5:
-            status_list = pool.map(self.__block_upload_hub, itertools.izip(range(blocks),
+            status_list = pool.map(self.__block_upload_hub, zip(range(blocks),
                                 itertools.repeat((status, value, file_size, block_size,
                                 expiration, save_token, token_secret, file_name))))
             status = self.__find_max_status(status_list)
