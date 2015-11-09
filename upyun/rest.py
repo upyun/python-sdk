@@ -14,6 +14,7 @@ from .form import FormUpload
 from .multi import Multipart
 
 __version__ = '2.3.0'
+DEFAULT_CHUNKSIZE = 8192
 
 def get_fileobj_size(fileobj):
     try:

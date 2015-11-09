@@ -85,6 +85,10 @@ class TestUpYun(unittest.TestCase):
             e = upyun.UpYun('bucket', 'username', 'password', timeout=3)
             e.up_rest.endpoint = 'e.api.upyun.com'
             e.getinfo('/')
+        with self.assertRaises(upyun.UpYunClientException):
+            e = upyun.UpYun('bucket', 'username', 'password', timeout=3)
+            with open('tests/test.png', 'rb') as f:
+                e.put(self.root + 'test.png', f, checksum=False, form=True)
 
     def test_root(self):
         res = self.up.getinfo('/')
@@ -253,22 +257,28 @@ class TestUpYun(unittest.TestCase):
     @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support file bucket \
                         and you have to specify bucket secret')
     def test_put_form(self):
-        with open('tests/test.png', 'rb') as f:
-            res = self.up.put(self.root + 'test.png', f,
-                                checksum=False, form=True)
-        self.assertDictEqual(res, {u'image-type': u'PNG', u'image-frames': 1,
-                            u'code': 200, u'image-height': 410, u'image-width': 1000})
+        __put(multi):
+            with open('tests/test.png', 'rb') as f:
+                res = self.up.put(self.root + 'test.png', f,
+                                    checksum=False, form=True, multipart=multi)
+            self.assertDictEqual(res, {u'image-type': u'PNG', u'image-frames': 1,
+                                u'code': 200, u'image-height': 410, u'image-width': 1000})
 
-        res = self.up.getinfo(self.root + 'test.png')
-        self.assertIsInstance(res, dict)
-        self.assertEqual(res['file-size'], '13001')
-        self.assertEqual(res['file-type'], 'file')
-        self.up.delete(self.root + 'test.png')
-        with self.assertRaises(upyun.UpYunServiceException) as se:
-            self.up.getinfo(self.root + 'test.png')
-        self.assertEqual(se.exception.status, 404)
-        self.assertEqual(len(se.exception.request_id), 66)
+            res = self.up.getinfo(self.root + 'test.png')
+            self.assertIsInstance(res, dict)
+            self.assertEqual(res['file-size'], '13001')
+            self.assertEqual(res['file-type'], 'file')
+            self.up.delete(self.root + 'test.png')
+            with self.assertRaises(upyun.UpYunServiceException) as se:
+                self.up.getinfo(self.root + 'test.png')
+            self.assertEqual(se.exception.status, 404)
+            self.assertEqual(len(se.exception.request_id), 66)
+        #test conflict upload method
+        __put(True)
+        __put(False)
 
+    @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support file bucket \
+                        and you have to specify bucket secret')
     def test_put_multipart(self):
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f,

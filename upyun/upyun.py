@@ -13,9 +13,6 @@ __version__ = '2.3.0'
 ED_LIST = ("v%d.api.upyun.com" % ed for ed in range(4))
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 
-DEFAULT_CHUNKSIZE = 8192
-DEFAULT_BLOCKSIZE = 1024*1024
-
 class UpYun(object):
     def __init__(self, bucket, username, password,
                     secret=None, timeout=None, endpoint=None,
@@ -41,8 +38,8 @@ class UpYun(object):
 
     def put(self, key, value, checksum=False, headers=None,
                 handler=None, params=None, multipart=False,
-                block_size=DEFAULT_BLOCKSIZE, form=False,
-                expiration=None, secret=None, retry=None):
+                block_size=None, form=False, expiration=None,
+                secret=None, retry=None):
         if (multipart or form) and not self.secret:
             raise UpYunClientException("You have to specify form secret with " +
                                         "multipart upload method")

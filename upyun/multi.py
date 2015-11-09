@@ -11,6 +11,9 @@ from .modules.exception import UpYunServiceException, UpYunClientException
 from .modules.sign import make_policy, make_signature, \
                             make_content_md5, decode_msg, encode_msg
 
+DEFAULT_BLOCKSIZE = 1024*1024
+DEFAULT_EXPIRATION = 1800
+
 class Multipart(object):
     ED_LIST = ("m%d.api.upyun.com" % ed for ed in range(4))
     ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
@@ -29,8 +32,9 @@ class Multipart(object):
     #@return 1: 表明上传失败
     ##
     def upload(self, key, value, block_size, expiration):
-        expiration = expiration or 1800
+        expiration = expiration or DEFAULT_EXPIRATION
         expiration = int(expiration + time.time())
+        block_size = block_size or DEFAULT_BLOCKSIZE
         status = []
         file_size, file_name, blocks, save_token, token_secret, content \
                                         = None, None, None, None, None, None
@@ -54,9 +58,9 @@ class Multipart(object):
                                 expiration, save_token, token_secret, file_name))))
             status = self.__find_max_status(status_list)
             retry += 1
-
         pool.close()
         pool.join()
+
         if self.__upload_success(status):
             return self.__end_upload(expiration, save_token, token_secret)
         else:
