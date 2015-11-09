@@ -3,6 +3,8 @@
 import os
 import time
 import json
+import itertools
+from multiprocessing.dummy import Pool as ThreadPool
 
 from .modules.compat import urlencode, str, b
 from .modules.exception import UpYunServiceException, UpYunClientException
@@ -45,12 +47,12 @@ class Multipart(object):
 
         #block item upload
         retry = 0
+        pool = ThreadPool(4)
         while not self.__upload_success(status) and retry < 5:
-            for block_index in range(blocks):
-                if not status[block_index]:
-                    content = self.__block_upload(block_index, value, file_size, block_size,
-                                        blocks, expiration, save_token, token_secret, file_name)
-                    status = self.__update_status(content)
+            status_list = pool.map(self.__block_upload_hub, itertools.izip(range(blocks),
+                                itertools.repeat((status, value, file_size, block_size,
+                                expiration, save_token, token_secret, file_name))))
+            status = self.__find_max_status(status_list)
             retry += 1
 
         if self.__upload_success(status):
@@ -82,15 +84,24 @@ class Multipart(object):
         return content, save_token, token_secret
 
 
+    def __block_upload_hub(self, index):
+        #Convert `f([1,2])` to `f(1,2)` call
+        return self.__block_upload(*index)
+
+
     ##
     #@parms int index: 分块在文件中的序号, 0为第一块
     #@parms file f
     #@return json result: 第二步接口返回参数
     ##
-    def __block_upload(self, index, value, file_size, block_size, 
-                            blocks, expiration, save_token, token_secret, file_name):
+    def __block_upload(self, index, parms):
+        status, value, file_size, block_size, expiration, save_token, \
+                                                token_secret, file_name = parms
+        if status[index]:
+            return status
+        content = None
         start_position = index * block_size
-        if index >= blocks - 1:
+        if index >= len(status) - 1:
             end_position = file_size
         else:
             end_position = start_position + block_size
@@ -103,7 +114,8 @@ class Multipart(object):
         policy = make_policy(data)
         signature = make_signature(data, token_secret)
         postdata = {'policy': policy, 'signature': signature, 'file': {'data': file_block}}
-        return self.__do_multipart_request(postdata, file_name)
+        content = self.__do_multipart_request(postdata, file_name)
+        return self.__update_status(content)
 
 
     ##
@@ -118,6 +130,14 @@ class Multipart(object):
         content = self.__do_http_request(postdata)
         return content
 
+
+    def __find_max_status(self, status_list):
+        max_item = 0
+        max_status = status_list[0]
+        for status in status_list:
+            if sum(status) > max_item:
+                max_status = status
+        return max_status
 
     ##
     #@parms list status: 各分块上传情况

@@ -44,8 +44,8 @@ class UpYun(object):
                 block_size=DEFAULT_BLOCKSIZE, form=False,
                 expiration=None, secret=None, retry=None):
         if (multipart or form) and not self.secret:
-            raise UpYunClientException("You have to specify form secret with\
-                                        multipart upload method")
+            raise UpYunClientException("You have to specify form secret with " +
+                                        "multipart upload method")
 
         #rest > form > multipart
         if multipart and form:

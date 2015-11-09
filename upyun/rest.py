@@ -116,17 +116,17 @@ class UpYunRest(object):
                                  handler=handler, params=params)
         if form:
             if not self.fp:
-                UpYunClientException("you should specify the secret \
-                                    when initializing upyun object \
-                                    if you want to use form upload!")
+                UpYunClientException("you should specify the secret " +
+                                    "when initializing upyun object " +
+                                    "if you want to use form upload!")
             h = self.fp.upload(key, value, expiration)
             return self.__get_form_headers(h)
 
         if multipart and hasattr(value, 'fileno'):
             if not self.mp:
-                UpYunClientException("you should specify the secret \
-                                    when initializing upyun object \
-                                    if you want to use multipart upload!")
+                UpYunClientException("you should specify the secret " +
+                                    "when initializing upyun object " +
+                                    "if you want to use multipart upload!")
             h = self.mp.upload(key, value, block_size, expiration)
             return self.__get_multi_meta_headers(h)
 
