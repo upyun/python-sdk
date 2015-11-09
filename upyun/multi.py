@@ -55,6 +55,8 @@ class Multipart(object):
             status = self.__find_max_status(status_list)
             retry += 1
 
+        pool.close()
+        pool.join()
         if self.__upload_success(status):
             return self.__end_upload(expiration, save_token, token_secret)
         else:
