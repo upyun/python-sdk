@@ -33,7 +33,7 @@ class Multipart(object):
         file_size, file_name, blocks, save_token, token_secret, content \
                                         = None, None, None, None, None, None
         file_size = int(self.__get_size(value))
-        file_name = os.path.basename(value.name).encode('utf-8')
+        file_name = encode_msg(os.path.basename(value.name))
 
         block_size = self.__check_size(file_size, block_size)
         blocks = int(file_size / block_size) + 1
@@ -44,15 +44,20 @@ class Multipart(object):
         status = self.__update_status(content)
 
         #block item upload
-        for block_index in range(blocks):
-            if not status[block_index]:
-                content = self.__block_upload(block_index, value, file_size, block_size,
-                                    blocks, expiration, save_token, token_secret, file_name)
-                status = self.__update_status(content)
+        retry = 0
+        while not self.__upload_success(status) and retry < 5:
+            for block_index in range(blocks):
+                if not status[block_index]:
+                    content = self.__block_upload(block_index, value, file_size, block_size,
+                                        blocks, expiration, save_token, token_secret, file_name)
+                    status = self.__update_status(content)
+            retry += 1
 
         if self.__upload_success(status):
             return self.__end_upload(expiration, save_token, token_secret)
-
+        else:
+            UpYunServiceException(None, 500, 'Upload failed',
+                                    'Failed to upload the whole file within retry times')
 
     # --- private API
 
@@ -73,8 +78,58 @@ class Multipart(object):
             token_secret = content['token_secret']
         else:
             raise UpYunServiceException(None, 503, 'Service unavailable',
-                                            'Not enough response from api')
+                                            'Not enough response datas from api')
         return content, save_token, token_secret
+
+
+    ##
+    #@parms int index: 分块在文件中的序号, 0为第一块
+    #@parms file f
+    #@return json result: 第二步接口返回参数
+    ##
+    def __block_upload(self, index, value, file_size, block_size, 
+                            blocks, expiration, save_token, token_secret, file_name):
+        start_position = index * block_size
+        if index >= blocks - 1:
+            end_position = file_size
+        else:
+            end_position = start_position + block_size
+
+        file_block = self.__read_block(value, start_position, end_position)
+        block_hash = make_content_md5(file_block)
+
+        data = {'expiration': expiration, 'block_index': index,
+                    'block_hash': block_hash, 'save_token': save_token}
+        policy = make_policy(data)
+        signature = make_signature(data, token_secret)
+        postdata = {'policy': policy, 'signature': signature, 'file': {'data': file_block}}
+        return self.__do_multipart_request(postdata, file_name)
+
+
+    ##
+    #将所有分块合并
+    #@return json result: 第三步接口返回值
+    ##
+    def __end_upload(self, expiration, save_token, token_secret):
+        data = {'expiration': expiration, 'save_token': save_token}
+        policy = make_policy(data)
+        signature = make_signature(data, token_secret)
+        postdata = {'policy': policy, 'signature': signature}
+        content = self.__do_http_request(postdata)
+        return content
+
+
+    ##
+    #@parms list status: 各分块上传情况
+    #将status更新到实例中
+    ##
+    def __update_status(self, content):
+        if 'status' in content and type(content['status']) == list:
+            return content['status']
+        else:
+            raise UpYunServiceException(None, 503, 'Service unavailable',
+                                            'Update status failed')
+
 
     ##
     #@parms dict value: post包中的data参数
@@ -89,6 +144,14 @@ class Multipart(object):
         resp, human, conn = self.hp.do_http_pipe('POST', self.endpoint, uri, headers=headers,
                                             value=value)
         return self.__handle_resp(resp, conn, human)
+
+
+    def __do_multipart_request(self, value, file_name):
+        uri = "/%s/" % self.bucket
+
+        resp, human, conn = self.hp.do_http_multipart(self.endpoint, uri, value, file_name)
+        return self.__handle_resp(resp, conn, human)
+
 
     def __handle_resp(self, resp, conn, human):
         content = None
@@ -105,67 +168,12 @@ class Multipart(object):
         return content
 
     ##
-    #@parms list status: 各分块上传情况
-    #将status更新到实例中
-    ##
-    def __update_status(self, content):
-        if 'status' in content and type(content['status']) == list:
-            return content['status']
-        else:
-            raise UpYunServiceException(None, 503, 'Service unavailable',
-                                            'Update status failed')
-
-    ##
-    #@parms int index: 分块在文件中的序号, 0为第一块
-    #@parms file f
-    #@return json result: 第二步接口返回参数
-    ##
-    def __block_upload(self, index, value, file_size, block_size, 
-                            blocks, expiration, save_token, token_secret, file_name):
-        start_position = int(index * block_size)
-        if index >= blocks - 1:
-            end_position = file_size
-        else:
-            end_position = int(start_position + block_size)
-        file_block = self.__read_block(value, start_position, end_position)
-        block_hash = make_content_md5(file_block)
-
-        data = {'expiration': expiration, 'block_index': index,
-                    'block_hash': block_hash, 'save_token': save_token}
-        policy = make_policy(data)
-        signature = make_signature(data, token_secret)
-        postdata = {'policy': policy, 'signature': signature, 'file': {'data': file_block}}
-        return self.__multipart_post(postdata, file_name)
-
-    ##
-    #构造multipart/form-data格式的post包，并发送
-    #@parms dict postdate
-    #@return json r_json: json格式接口返回值
-    ##
-    def __multipart_post(self, value, file_name):
-        uri = "/%s/" % self.bucket
-
-        resp, human, conn = self.hp.do_http_multipart(self.endpoint, uri, value, file_name)
-        return self.__handle_resp(resp, conn, human)
-
-    ##
     #检测所有分块是否上传成功
     #@return int True成功 False失败
     ##
     def __upload_success(self, status):
         return len(status) == sum(status)
 
-    ##
-    #将所有分块合并
-    #@return json result: 第三步接口返回值
-    ##
-    def __end_upload(self, expiration, save_token, token_secret):
-        data = {'expiration': expiration, 'save_token': save_token}
-        policy = make_policy(data)
-        signature = make_signature(data, token_secret)
-        postdata = {'policy': policy, 'signature': signature}
-        content = self.__do_http_request(postdata)
-        return content
 
     ##
     #@parms handler fileobj
@@ -187,6 +195,7 @@ class Multipart(object):
         if int(size) > 1024 * 1024 * 1024:
             raise UpYunClientException("File size is too large(larger than 1G)")
 
+        block_size = int(block_size)
         if block_size > 50 * 1024 * 1024:
             block_size = 50 * 1024 * 1024
         if block_size < 1024 * 1024:

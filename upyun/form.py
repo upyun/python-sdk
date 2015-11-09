@@ -6,7 +6,7 @@ import base64
 import os
 
 from .modules.exception import UpYunClientException
-from .modules.sign import make_content_md5, make_policy, decode_msg
+from .modules.sign import make_content_md5, make_policy, decode_msg, encode_msg
 from .modules.compat import b, str
 
 class FormUpload(object):
@@ -18,8 +18,8 @@ class FormUpload(object):
 
     def upload(self, key, value, expiration):
         expiration = int(expiration or 1800)
-        filename = os.path.basename(value.name).encode('utf-8')
         expiration += int(time.time())
+        filename = encode_msg(os.path.basename(value.name))
         value = self.__check_value(value)
         data = {"bucket": self.bucket, "expiration": expiration,
                             "save-key": key}

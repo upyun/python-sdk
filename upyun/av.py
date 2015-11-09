@@ -16,9 +16,9 @@ class AvPretreatment(object):
     STATUS = "/status/"
 
     def __init__(self, bucket, operator, password, chunksize, human, timeout):
+        self.bucket = bucket
         self.operator = operator
         self.password = password
-        self.bucket = bucket
         self.chunksize = chunksize
         self.human = human
         self.timeout = timeout
