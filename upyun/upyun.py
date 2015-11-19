@@ -13,10 +13,12 @@ __version__ = '2.3.0'
 ED_LIST = ("v%d.api.upyun.com" % ed for ed in range(4))
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 
+DEFAULT_CHUNKSIZE = 8192
+
 class UpYun(object):
     def __init__(self, bucket, username, password,
                     secret=None, timeout=None, endpoint=None,
-                    chunksize=None, human=True, mp_endpoint=None):
+                    chunksize=None, mp_endpoint=None):
         super(UpYun, self).__init__()
         self.bucket = bucket
         self.username = username
@@ -24,13 +26,12 @@ class UpYun(object):
         self.timeout = timeout or 60
         self.endpoint = endpoint or ED_AUTO
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
-        self.human = human
         self.secret = secret
         self.up_rest = UpYunRest(self.bucket, self.username, self.password,
                                         self.secret, self.timeout, self.endpoint,
-                                        self.chunksize, self.human, mp_endpoint)
+                                        self.chunksize, mp_endpoint)
         self.av = AvPretreatment(self.bucket, self.username, self.password,
-                                    self.chunksize, self.human, self.timeout)
+                                        self.chunksize, self.timeout)
 
     # --- public rest API
     def usage(self, key='/'):

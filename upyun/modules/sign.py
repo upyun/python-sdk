@@ -45,18 +45,12 @@ def encode_msg(msg):
     return msg
 
 def make_policy(data):
-    if type(data) == dict:
-        policy = json.dumps(data)
-        return base64.b64encode(b(policy))
-    else:
-        return None
+    policy = json.dumps(data)
+    return base64.b64encode(b(policy))
 
 def make_signature(data, secret):
-    if type(data) == dict:
         list_meta = sorted(data.items(), key=lambda d:d[0])
         signature = ''.join(map(lambda kv: '%s%s' %
                             (kv[0], str(kv[1])), list_meta))
         signature += secret
         return make_content_md5(b(signature))
-    else:
-        return None

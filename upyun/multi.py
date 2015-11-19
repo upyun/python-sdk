@@ -2,7 +2,7 @@
 
 import os
 import time
-import json
+import math
 import itertools
 from multiprocessing.dummy import Pool as ThreadPool
 
@@ -22,7 +22,8 @@ class Multipart(object):
         self.bucket = bucket
         self.secret = secret
         self.hp = hp
-        self.endpoint = endpoint or self.ED_AUTO
+        self.host = endpoint or self.ED_AUTO
+        self.uri = "/%s/" % bucket
 
     # --- public API
 
@@ -35,37 +36,34 @@ class Multipart(object):
         expiration = expiration or DEFAULT_EXPIRATION
         expiration = int(expiration + time.time())
         block_size = block_size or DEFAULT_BLOCKSIZE
-        status = []
-        file_size, file_name, blocks, save_token, token_secret, content \
-                                        = None, None, None, None, None, None
         file_size = int(self.__get_size(value))
-        file_name = encode_msg(os.path.basename(value.name))
 
-        block_size = self.__check_size(file_size, block_size)
-        blocks = int(file_size / block_size) + 1
+        block_size = self.__check_size(block_size)
+        blocks = int(math.ceil(file_size / block_size)) or 1
 
         #init upload
-        content, save_token, token_secret = self.__init_upload(
-                                    key, value, file_size, blocks, expiration)
-        status = self.__update_status(content)
+        content, save_token, token_secret = self.__init_upload(key, value,
+                                    file_size, blocks, expiration)
+        status = self.__get_status(content)
 
         #block item upload
         retry = 0
         pool = ThreadPool(4)
         while not self.__upload_success(status) and retry < 5:
             status_list = pool.map(self.__block_upload_hub, zip(range(blocks),
-                                itertools.repeat((status, value, file_size, block_size,
-                                expiration, save_token, token_secret, file_name))))
+                                   itertools.repeat((status, value, file_size, block_size,
+                                   expiration, save_token, token_secret))))
             status = self.__find_max_status(status_list)
             retry += 1
         pool.close()
         pool.join()
 
+        #end upload
         if self.__upload_success(status):
             return self.__end_upload(expiration, save_token, token_secret)
         else:
             UpYunServiceException(None, 500, 'Upload failed',
-                                    'Failed to upload the whole file within retry times')
+                                  'Failed to upload the whole file within retry times')
 
     # --- private API
 
@@ -74,9 +72,12 @@ class Multipart(object):
     #@return mixed result: 第一步接口返回数据
     ##
     def __init_upload(self, key, value, file_size, blocks, expiration):
-        data = {'expiration': expiration, 'file_blocks': blocks,
-                'file_hash':  make_content_md5(value), 'file_size': file_size,
-                'path': key}
+        data = {'expiration': expiration,
+                'file_blocks': blocks,
+                'file_hash':  make_content_md5(value),
+                'file_size': file_size,
+                'path': key,
+                }
         policy = make_policy(data)
         signature = make_signature(data, self.secret)
         postdata = {'policy': policy, 'signature': signature}
@@ -86,7 +87,7 @@ class Multipart(object):
             token_secret = content['token_secret']
         else:
             raise UpYunServiceException(None, 503, 'Service unavailable',
-                                            'Not enough response datas from api')
+                                        'Not enough response datas from api')
         return content, save_token, token_secret
 
 
@@ -101,11 +102,11 @@ class Multipart(object):
     #@return json result: 第二步接口返回参数
     ##
     def __block_upload(self, index, parms):
-        status, value, file_size, block_size, expiration, save_token, \
-                                                token_secret, file_name = parms
+        status, value, file_size, block_size, expiration, \
+                       save_token, token_secret = parms
+        # if status[index] is already 1, skip it 
         if status[index]:
             return status
-        content = None
         start_position = index * block_size
         if index >= len(status) - 1:
             end_position = file_size
@@ -116,13 +117,11 @@ class Multipart(object):
         block_hash = make_content_md5(file_block)
 
         data = {'expiration': expiration, 'block_index': index,
-                    'block_hash': block_hash, 'save_token': save_token}
+                'block_hash': block_hash, 'save_token': save_token}
         policy = make_policy(data)
         signature = make_signature(data, token_secret)
-        postdata = {'policy': policy, 'signature': signature, 'file': {'data': file_block}}
-        content = self.__do_multipart_request(postdata, file_name)
-        return self.__update_status(content)
-
+        postdata = {'policy': policy, 'signature': signature, 'file': file_block}
+        return self.hp.do_http_pipe('POST', self.host, self.uri, files=value)
 
     ##
     #将所有分块合并
@@ -133,15 +132,14 @@ class Multipart(object):
         policy = make_policy(data)
         signature = make_signature(data, token_secret)
         postdata = {'policy': policy, 'signature': signature}
-        content = self.__do_http_request(postdata)
-        return content
-
+        return self.__do_http_request(postdata)
 
     def __find_max_status(self, status_list):
         max_item = 0
         max_status = status_list[0]
         for status in status_list:
             if sum(status) > max_item:
+                max_item = sum(max_status)
                 max_status = status
         return max_status
 
@@ -149,12 +147,12 @@ class Multipart(object):
     #@parms list status: 各分块上传情况
     #将status更新到实例中
     ##
-    def __update_status(self, content):
+    def __get_status(self, content):
         if 'status' in content and type(content['status']) == list:
             return content['status']
         else:
             raise UpYunServiceException(None, 503, 'Service unavailable',
-                                            'Update status failed')
+                                        'Update status failed')
 
 
     ##
@@ -162,35 +160,19 @@ class Multipart(object):
     #@return json r_json: 接口返回的json格式的值
     ##
     def __do_http_request(self, value):
-        resp, human, conn = None, None, None
-        uri = "/%s/" % self.bucket
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
         value = urlencode(value)
-        resp, human, conn = self.hp.do_http_pipe('POST', self.endpoint, uri, headers=headers,
-                                            value=value)
-        return self.__handle_resp(resp, conn, human)
+        resp = self.hp.do_http_pipe('POST', self.host, self.uri,
+                                            headers=headers, value=value)
+        return self.__handle_resp(resp)
 
-
-    def __do_multipart_request(self, value, file_name):
-        uri = "/%s/" % self.bucket
-
-        resp, human, conn = self.hp.do_http_multipart(self.endpoint, uri, value, file_name)
-        return self.__handle_resp(resp, conn, human)
-
-
-    def __handle_resp(self, resp, conn, human):
+    def __handle_resp(self, resp):
         content = None
         try:
-            if human:
-                content = resp.json()
-            else:
-                content = json.loads(decode_msg(resp.read()))
+            content = resp.json()
         except Exception as e:
             raise UpYunClientException(str(e))
-        finally:
-            if conn:
-                conn.close()
         return content
 
     ##
@@ -217,15 +199,12 @@ class Multipart(object):
     ##
     #检查文件大小，若文件过大则直接返回
     ##
-    def __check_size(self, size, block_size):
-        if int(size) > 1024 * 1024 * 1024:
-            raise UpYunClientException("File size is too large(larger than 1G)")
-
+    def __check_size(self, block_size):
         block_size = int(block_size)
-        if block_size > 50 * 1024 * 1024:
-            block_size = 50 * 1024 * 1024
-        if block_size < 1024 * 1024:
-            block_size = 1024 * 1024
+        if block_size > 5 * 1024 * 1024:
+            block_size = 5 * 1024 * 1024
+        if block_size < 100 * 1024:
+            block_size = 100 * 1024
         return block_size
 
     ##
@@ -234,7 +213,7 @@ class Multipart(object):
     #@parms int length: 每次读取的长度
     #@return string data: 读取的二进制数据
     ##
-    def __read_block(self, f, current_position, end_position, length = 3*8192):
+    def __read_block(self, f, current_position, end_position, length=3*8192):
         data = []
         while current_position < end_position:
             if (current_position + length) > end_position:

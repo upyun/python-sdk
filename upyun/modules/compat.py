@@ -5,7 +5,6 @@ import sys
 PY3 = sys.version_info[0] == 3
 
 if PY3:
-    import http.client as httplib
     from urllib.parse import quote, urlencode
 
     def b(s):
@@ -17,7 +16,6 @@ if PY3:
     str = str
     bytes = bytes
 else:
-    import httplib
     from urllib import quote, urlencode
 
     def b(s):

@@ -2,7 +2,6 @@
 
 import json
 import base64
-import urllib
 import ast
 
 from .modules.httpipe import UpYunHttp
@@ -15,20 +14,19 @@ class AvPretreatment(object):
     PRETREAT = "/pretreatment/"
     STATUS = "/status/"
 
-    def __init__(self, bucket, operator, password, chunksize, human, timeout):
+    def __init__(self, bucket, operator, password, chunksize, timeout):
         self.bucket = bucket
         self.operator = operator
         self.password = password
         self.chunksize = chunksize
-        self.human = human
         self.timeout = timeout
-        self.hp = UpYunHttp(self.human, self.timeout)
+        self.hp = UpYunHttp(self.timeout)
 
     # --- public API
 
     def pretreat(self, tasks, source, notify_url=""):
         data = {'bucket_name': self.bucket, 'source': source,
-                'notify_url': notify_url, 'tasks': tasks}
+                'notify_url': notify_url, 'tasks': tasks,}
         content = self.__requests_pretreatment(data)
         try:
             content = ast.literal_eval(content)
@@ -51,53 +49,43 @@ class AvPretreatment(object):
         if type(content)  == dict and 'tasks' in content:
             return content['tasks']
         UpYunServiceException(None, 500, "Servers except respond tasks list",
-                                                "Service Error")
+                              "Service Error")
 
     # --- private API
 
     def __requests_pretreatment(self, data):
-        resp, human, conn = None, None, None
         method = 'POST'
         data['tasks'] = decode_msg(self.__process_tasksdata(data['tasks']))
         uri = self.PRETREAT
         signature = self.__create_signature(data)
         auth = 'UPYUN %s:%s' % (self.operator, signature)
         headers = {'Authorization': auth,
-                    'Content-Type': 'application/x-www-form-urlencoded'}
+                   'Content-Type': 'application/x-www-form-urlencoded'}
         value = urlencode(data)
-        resp, human, conn = self.hp.do_http_pipe(method, self.HOST, uri, headers=headers,
-                                        value=value)
-        return self.__handle_resp(resp, conn, human, method)
+        resp = self.hp.do_http_pipe(method, self.HOST, uri,
+                                          headers=headers, value=value)
+        return self.__handle_resp(resp, method)
 
     def __requests_status(self, data):
-        resp, human, conn = None, None, None
         method = 'GET'
         signature = self.__create_signature(data)
         data = urlencode(data)
         uri = "%s?%s" % (self.STATUS, data)
         auth = 'UPYUN %s:%s' % (self.operator, signature)
         headers = {'Authorization': auth}
-        resp, human, conn = self.hp.do_http_pipe(method, self.HOST, uri, headers=headers)
-        return self.__handle_resp(resp, conn, human, method)
+        resp = self.hp.do_http_pipe(method, self.HOST, uri,
+                                                 headers=headers)
+        return self.__handle_resp(resp, method)
 
-    def __handle_resp(self, resp, conn, human, method):
+    def __handle_resp(self, resp, method):
         content = None
         try:
-            if human:
-                if method == 'GET':
-                    content = resp.json()
-                elif method == 'POST':
-                    content = resp.text
-            else:
-                if method == 'GET':
-                    content = json.loads(decode_msg(resp.read()))
-                elif method == 'POST':
-                    content = decode_msg(resp.read())
+            if method == 'GET':
+                content = resp.json()
+            elif method == 'POST':
+                content = resp.text
         except Exception as e:
             raise UpYunClientException(str(e))
-        finally:
-            if conn:
-                conn.close()
         return content
 
     def __create_signature(self, metadata):
@@ -120,7 +108,8 @@ class CallbackValidation(object):
             'description',
             'task_id',
             'info',
-            'signature',]
+            'signature',
+            ]
 
     def __init__(self, dict_callback, av):
         self.params = dict_callback

@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json
 import time
-import base64
-import os
 
 from .modules.exception import UpYunClientException
 from .modules.sign import make_content_md5, make_policy, decode_msg, encode_msg
@@ -15,48 +12,36 @@ class FormUpload(object):
         self.secret = secret
         self.hp = hp
         self.host = endpoint
+        self.uri = "/%s/" % bucket
 
     def upload(self, key, value, expiration):
-        expiration = int(expiration or 1800)
+        expiration = expiration or 1800
         expiration += int(time.time())
-        filename = encode_msg(os.path.basename(value.name))
-        value = self.__check_value(value)
-        data = {"bucket": self.bucket, "expiration": expiration,
-                            "save-key": key}
-        policy = make_policy(data)
-        signature = self.__create_signature(policy)
-        postdata = {'policy': policy, 'signature': signature,
-                                            'file': {'data': value}}
-        return self.__do_http_request(postdata, filename)
 
-    def __check_value(self, value):
+        #check value type
         if hasattr(value, 'fileno'):
-            return value.read()
-        if type(value) == "str":
-            return value
-        else:
+            value = value.read()
+        elif type(value) != "str":
             raise UpYunClientException("Unrecognize type of value to be uploaded")
 
-    def __create_signature(self, policy):
-        signature = policy + b("&") + b(self.secret)
-        return make_content_md5(signature)
+        data = {"bucket": self.bucket,
+                "expiration": expiration,
+                "save-key": key,
+                }
+        policy = make_policy(data)
+        signature = make_content_md5(policy + b("&") + b(self.secret))
 
-    def __do_http_request(self, value, filename):
-        resp, human, conn = None, None, None
-        uri = "/%s/" % self.bucket
-        resp, human, conn = self.hp.do_http_multipart(self.host, uri, value, filename)
-        return self.__handle_resp(resp, human, conn)
+        postdata = {'policy': policy,
+                    'signature': signature,
+                    'file': value,
+                    }
+        resp = self.hp.do_http_pipe('POST', self.host, self.uri, files=value)
+        return self.__handle_resp(resp)
 
-    def __handle_resp(self, resp, human, conn):
+    def __handle_resp(self, resp):
         content = None
         try:
-            if human:
-                content = resp.json()
-            else:
-                content = json.loads(decode_msg(resp.read()))
+            content = resp.json()
         except Exception as e:
             raise UpYunClientException(str(e))
-        finally:
-            if conn:
-                conn.close()
         return content
