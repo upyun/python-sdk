@@ -55,7 +55,10 @@ class AvPretreatment(object):
 
     def __requests_pretreatment(self, data):
         method = 'POST'
-        data['tasks'] = decode_msg(self.__process_tasksdata(data['tasks']))
+        tasks = data['tasks']
+        assert isinstance(tasks, list)
+        data['tasks'] = decode_msg(base64.b64encode(b(json.dumps(tasks))))
+
         uri = self.PRETREAT
         signature = self.__create_signature(data)
         auth = 'UPYUN %s:%s' % (self.operator, signature)
@@ -63,7 +66,7 @@ class AvPretreatment(object):
                    'Content-Type': 'application/x-www-form-urlencoded'}
         value = urlencode(data)
         resp = self.hp.do_http_pipe(method, self.HOST, uri,
-                                          headers=headers, value=value)
+                                            headers=headers, value=value)
         return self.__handle_resp(resp, method)
 
     def __requests_status(self, data):
@@ -73,8 +76,7 @@ class AvPretreatment(object):
         uri = "%s?%s" % (self.STATUS, data)
         auth = 'UPYUN %s:%s' % (self.operator, signature)
         headers = {'Authorization': auth}
-        resp = self.hp.do_http_pipe(method, self.HOST, uri,
-                                                 headers=headers)
+        resp = self.hp.do_http_pipe(method, self.HOST, uri, headers=headers)
         return self.__handle_resp(resp, method)
 
     def __handle_resp(self, resp, method):
@@ -91,14 +93,10 @@ class AvPretreatment(object):
     def __create_signature(self, metadata):
         assert isinstance(metadata, dict)
         signature = ''.join(map(lambda kv: '%s%s' %
-                (kv[0], kv[1] if type(kv[1]) != list else ''.join(kv[1])), sorted(metadata.items())))
+                (kv[0], kv[1] if type(kv[1]) != list else ''.join(kv[1])),
+                sorted(metadata.items())))
         signature = "%s%s%s" % (self.operator, signature, self.password)
         return make_content_md5(b(signature))
-
-
-    def __process_tasksdata(self, tasks):
-        assert isinstance(tasks, list)
-        return base64.b64encode(b(json.dumps(tasks)))
 
 # --- Signature not correct right now
 class CallbackValidation(object):

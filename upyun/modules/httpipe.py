@@ -28,7 +28,6 @@ class UpYunHttp(object):
             except KeyError:
                 request_id = "Unknown"
             status = resp.status_code
-
             if status / 100 != 2:
                 msg = resp.reason
                 err = resp.text

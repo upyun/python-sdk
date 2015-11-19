@@ -35,11 +35,10 @@ class FormUpload(object):
                     'signature': signature,
                     'file': value,
                     }
-        resp = self.hp.do_http_pipe('POST', self.host, self.uri, files=value)
+        resp = self.hp.do_http_pipe('POST', self.host, self.uri, files=postdata)
         return self.__handle_resp(resp)
 
     def __handle_resp(self, resp):
-        content = None
         try:
             content = resp.json()
         except Exception as e:

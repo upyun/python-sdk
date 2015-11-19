@@ -11,9 +11,6 @@ from .modules.exception import UpYunServiceException, UpYunClientException
 from .modules.sign import make_policy, make_signature, \
                             make_content_md5, decode_msg, encode_msg
 
-DEFAULT_BLOCKSIZE = 1024*1024
-DEFAULT_EXPIRATION = 1800
-
 class Multipart(object):
     ED_LIST = ("m%d.api.upyun.com" % ed for ed in range(4))
     ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
@@ -33,9 +30,9 @@ class Multipart(object):
     #@return 1: 表明上传失败
     ##
     def upload(self, key, value, block_size, expiration):
-        expiration = expiration or DEFAULT_EXPIRATION
+        expiration = expiration or 1800
         expiration = int(expiration + time.time())
-        block_size = block_size or DEFAULT_BLOCKSIZE
+        block_size = block_size or 1024*1024
         file_size = int(self.__get_size(value))
 
         block_size = self.__check_size(block_size)
@@ -121,7 +118,9 @@ class Multipart(object):
         policy = make_policy(data)
         signature = make_signature(data, token_secret)
         postdata = {'policy': policy, 'signature': signature, 'file': file_block}
-        return self.hp.do_http_pipe('POST', self.host, self.uri, files=value)
+        resp = self.hp.do_http_pipe('POST', self.host, self.uri, files=postdata)
+        content = self.__handle_resp(resp)
+        return self.__get_status(content)
 
     ##
     #将所有分块合并
@@ -168,7 +167,6 @@ class Multipart(object):
         return self.__handle_resp(resp)
 
     def __handle_resp(self, resp):
-        content = None
         try:
             content = resp.json()
         except Exception as e:
@@ -193,19 +191,17 @@ class Multipart(object):
                return os.fstat(fileobj.fileno()).st_size
         except IOError:
             pass
-
         return len(fileobj.getvalue())
 
     ##
     #检查文件大小，若文件过大则直接返回
     ##
     def __check_size(self, block_size):
-        block_size = int(block_size)
         if block_size > 5 * 1024 * 1024:
             block_size = 5 * 1024 * 1024
         if block_size < 100 * 1024:
             block_size = 100 * 1024
-        return block_size
+        return int(block_size)
 
     ##
     #@parms int current_position: 文件起始位置

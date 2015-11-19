@@ -71,7 +71,7 @@ class TestUpYun(unittest.TestCase):
     def test_form_secret_failed(self):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             e = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
-                                secret='secret', timeout=3)
+                                    secret='secret', timeout=3)
             with open('tests/test.png', 'rb') as f:
                 res = e.put(self.root + 'test.png', f,
                             checksum=False, form=True)
