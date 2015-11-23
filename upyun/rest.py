@@ -2,6 +2,7 @@
 
 import os
 import datetime
+import json
 import requests
 
 from .modules.sign import make_rest_signature, make_content_md5, \
@@ -250,7 +251,7 @@ class UpYunRest(object):
     def __make_user_agent(self):
         default = 'upyun-python-sdk/%s' % __version__
 
-        return (default, requests.utils.default_user_agent())
+        return json.dumps(default, requests.utils.default_user_agent())
 
     def __get_meta_headers(self, headers):
         return dict((k[8:].lower(), v) for k, v in headers
