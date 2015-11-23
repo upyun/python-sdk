@@ -24,6 +24,7 @@ def get_fileobj_size(fileobj):
 
     return len(fileobj.getvalue())
 
+
 class UploadObject(object):
     def __init__(self, fileobj, chunksize=None, handler=None, params=None):
         self.fileobj = fileobj
@@ -32,6 +33,9 @@ class UploadObject(object):
         self.readsofar = 0
         if handler:
             self.hdr = handler(self.totalsize, params)
+
+    def __iter__(self):
+        return self
 
     def __next__(self):
         chunk = self.fileobj.read(self.chunksize)
@@ -52,16 +56,16 @@ class UploadObject(object):
 # wsgiref.handlers.format_date_time
 
 def httpdate_rfc1123(dt):
-    """Return a string representation of a date according to RFC 1123
+    '''Return a string representation of a date according to RFC 1123
     (HTTP/1.1).
 
     The supplied date must be in UTC.
 
-    """
+    '''
     weekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][dt.weekday()]
     month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
              'Oct', 'Nov', 'Dec'][dt.month - 1]
-    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % \
+    return '%s, %02d %s %04d %02d:%02d:%02d GMT' % \
         (weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
 
 
@@ -91,16 +95,16 @@ class UpYunRest(object):
         return str(int(res))
 
     def put(self, key, value, checksum, headers,
-                              handler, params, multipart,
-                              block_size, form, expiration, secret):
-        """
+                              handler, params, multipart, block_size,
+                              form, expiration, secret, kwargs):
+        '''
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
         >>>                 headers={'x-gmkerl-rotate': '180'}})
-        """
+        '''
         if headers is None:
             headers = {}
-        headers['Mkdir'] = 'true'
+
         if isinstance(value, str):
             value = b(value)
 
@@ -115,28 +119,26 @@ class UpYunRest(object):
                                  handler=handler, params=params)
         if form:
             if not self.fp:
-                UpYunClientException("you should specify the secret " +
-                                     "when initializing upyun object " +
-                                     "if you want to use form upload!")
-            h = self.fp.upload(key, value, expiration)
-            return self.__get_form_headers(h)
+                UpYunClientException('you should specify the secret '
+                                     'when initializing upyun object '
+                                     'if you want to use form upload!')
+            return self.fp.upload(key, value, expiration, kwargs)
 
         if multipart and hasattr(value, 'fileno'):
             if not self.mp:
-                UpYunClientException("you should specify the secret " +
-                                     "when initializing upyun object " +
-                                     "if you want to use multipart upload!")
-            h = self.mp.upload(key, value, block_size, expiration)
-            return self.__get_multi_meta_headers(h)
+                UpYunClientException('you should specify the secret '
+                                     'when initializing upyun object '
+                                     'if you want to use multipart upload!')
+            return self.mp.upload(key, value, block_size, expiration, kwargs)
 
         h = self.__do_http_request('PUT', key, value, headers)
         return self.__get_meta_headers(h)
 
     def get(self, key, value, handler, params):
-        """
+        '''
         >>> with open('bar.png', 'wb') as f:
         >>>    up.get('/path/to/bar.png', f)
-        """
+        '''
         return self.__do_http_request('GET', key, of=value, stream=True,
                                       handler=handler, params=params)
 
@@ -173,7 +175,7 @@ class UpYunRest(object):
         method = 'POST'
         host = 'purge.upyun.com'
         uri = '/purge/'
-        params = urlencode({"purge": urlstr})
+        params = urlencode({'purge': urlstr})
         headers = {'Content-Type': 'application/x-www-form-urlencoded',
                    'Accept': 'application/json'}
         self.__set_auth_headers(urlstr, headers=headers)
@@ -185,12 +187,11 @@ class UpYunRest(object):
         return [k[7 + len(domain):] for k in invalid_urls]
 
     # --- private API
-
     def __do_http_request(self, method, key,
                           value=None, headers=None, of=None, args='',
                           stream=False, handler=None, params=None):
-        _uri = "/%s/%s" % (self.bucket, key if key[0] != '/' else key[1:])
-        uri = "%s%s" % (quote(encode_msg(_uri), safe='~/'), args)
+        _uri = '/%s/%s' % (self.bucket, key if key[0] != '/' else key[1:])
+        uri = '%s%s' % (quote(encode_msg(_uri), safe='~/'), args)
 
         if headers is None:
             headers = {}
@@ -247,29 +248,13 @@ class UpYunRest(object):
         return content
 
     def __make_user_agent(self):
-        default = "upyun-python-sdk/%s" % __version__
+        default = 'upyun-python-sdk/%s' % __version__
 
         return (default, requests.utils.default_user_agent())
 
     def __get_meta_headers(self, headers):
         return dict((k[8:].lower(), v) for k, v in headers
                     if k[:8].lower() == 'x-upyun-')
-
-    def __get_multi_meta_headers(self, headers):
-        r = {}
-        for k in headers.keys():
-            if k in ['mimetype', 'image_width', 'image_height',
-                            'file_size', 'image_frames']:
-                r[k] = headers[k]
-        return r
-
-    def __get_form_headers(self, headers):
-        r = {}
-        for k in headers.keys():
-            if k in ['code', 'image-height', 'image-width',
-                            'image-frames', 'image-type']:
-                r[k] = headers[k]
-        return r
 
     def __set_auth_headers(self, playload,
                            method=None, length=0, headers=None):
@@ -278,7 +263,7 @@ class UpYunRest(object):
         # Date Format: RFC 1123
         dt = httpdate_rfc1123(datetime.datetime.utcnow())
         signature = make_rest_signature(self.bucket, self.username, self.password,
-                                                method, playload, dt, length)
+                                        method, playload, dt, length)
 
         headers['Date'] = dt
         headers['Authorization'] = signature

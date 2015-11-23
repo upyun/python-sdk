@@ -34,7 +34,7 @@ class DjangoFile(io.BytesIO):
         return len(self.getvalue())
 
 def rootpath():
-    return "/pysdk-%s/" % uuid.uuid4().hex
+    return '/pysdk-%s/' % uuid.uuid4().hex
 
 class TestUpYun(unittest.TestCase):
     def setUp(self):
@@ -251,15 +251,18 @@ class TestUpYun(unittest.TestCase):
         self.assertDictEqual(res, {})
         f.close()
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support file bucket \
-                        and you have to specify bucket secret')
+    @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support \
+                        file bucket and you have to specify bucket secret')
     def test_put_form(self):
         def __put(multi):
             with open('tests/test.png', 'rb') as f:
                 res = self.up.put(self.root + 'test.png', f,
-                                    checksum=False, form=True, multipart=multi)
-            self.assertDictEqual(res, {u'image-type': u'PNG', u'image-frames': 1,
-                                u'code': 200, u'image-height': 410, u'image-width': 1000})
+                                  checksum=False, form=True, multipart=multi)
+                self.assertEqual(res['code'], 200)
+                self.assertEqual(res['image-height'], 410)
+                self.assertEqual(res['image-width'], 1000)
+                self.assertEqual(res['image-frames'], 1)
+                self.assertEqual(res['image-type'], 'PNG')
 
             res = self.up.getinfo(self.root + 'test.png')
             self.assertIsInstance(res, dict)
@@ -274,15 +277,43 @@ class TestUpYun(unittest.TestCase):
         __put(True)
         __put(False)
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support file bucket \
-                        and you have to specify bucket secret')
+    @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support \
+                        file bucket and you have to specify bucket secret')
+    def test_put_callback(self):
+        def __put(form):
+            with open('tests/test.png', 'rb') as f:
+                kwargs = {'allow-file-type': 'jpg,jpeg,png',
+                          #'return-url': 'http://upyun.com/return/',
+                          'notify-url': 'http://upyun.com/return/',
+                         }
+                res = self.up.put(self.root + 'test.png', f,
+                                  checksum=False, form=form,
+                                  multipart=True, kwargs=kwargs)
+                self.assertEqual(res, None)
+
+            res = self.up.getinfo(self.root + 'test.png')
+            self.assertIsInstance(res, dict)
+            self.assertEqual(res['file-size'], '13001')
+            self.assertEqual(res['file-type'], 'file')
+            self.up.delete(self.root + 'test.png')
+            with self.assertRaises(upyun.UpYunServiceException) as se:
+                self.up.getinfo(self.root + 'test.png')
+            self.assertEqual(se.exception.status, 404)
+            self.assertEqual(len(se.exception.request_id), 66)
+        __put(True)
+        __put(False)
+
+    @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support \
+                        file bucket and you have to specify bucket secret')
     def test_put_multipart(self):
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f,
-                                checksum=False, multipart=True)
-        self.assertDictEqual(res, {u'mimetype': u'image/png',
-                                   u'image_width': 1000, u'image_height': 410,
-                                   u'file_size': 13001, u'image_frames': 1})
+                              checksum=False, multipart=True, block_size=100*1024)
+            self.assertEqual(res['image_height'], 410)
+            self.assertEqual(res['image_width'], 1000)
+            self.assertEqual(res['image_frames'], 1)
+            self.assertEqual(res['image_type'], 'PNG')
+            self.assertEqual(res['mimetype'], 'image/png')
 
         res = self.up.getinfo(self.root + 'test.png')
         self.assertIsInstance(res, dict)
@@ -302,7 +333,7 @@ class TestUpYun(unittest.TestCase):
         tasks = [{'type': 'probe'}, {'type': 'video'}]
 
         source = self.root + 'test.mp4'
-        notify_url = ""
+        notify_url = ''
         ids = self.up.pretreat(tasks, source, notify_url)
         self.assertIsInstance(ids, list)
         tasks = self.up.status(ids)

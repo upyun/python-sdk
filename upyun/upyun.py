@@ -10,7 +10,7 @@ from .modules.compat import b
 
 __version__ = '2.3.0'
 
-ED_LIST = ("v%d.api.upyun.com" % ed for ed in range(4))
+ED_LIST = ('v%d.api.upyun.com' % ed for ed in range(4))
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 
 DEFAULT_CHUNKSIZE = 8192
@@ -40,18 +40,18 @@ class UpYun(object):
     def put(self, key, value, checksum=False, headers=None,
                 handler=None, params=None, multipart=False,
                 block_size=None, form=False, expiration=None,
-                secret=None, retry=None):
+                secret=None, retry=None, kwargs={}):
         if (multipart or form) and not self.secret:
-            raise UpYunClientException("You have to specify form secret with " +
-                                        "multipart upload method")
+            raise UpYunClientException('You have to specify form secret with '
+                                        'multipart upload method')
 
-        #rest > form > multipart
+        #priority: rest > form > multipart
         if multipart and form:
             multipart = False
 
         return self.up_rest.put(key, value, checksum, headers,
-                                    handler, params, multipart,
-                                    block_size, form, expiration, secret)
+                                    handler, params, multipart, block_size,
+                                    form, expiration, secret, kwargs)
 
     def get(self, key, value=None, handler=None, params=None):
         return self.up_rest.get(key, value, handler, params)
@@ -73,7 +73,7 @@ class UpYun(object):
 
     # --- video pretreatment API
 
-    def pretreat(self, tasks, source, notify_url=""):
+    def pretreat(self, tasks, source, notify_url=''):
         return self.av.pretreat(tasks, source, notify_url)
 
     def status(self, taskids):

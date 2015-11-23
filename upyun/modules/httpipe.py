@@ -14,9 +14,9 @@ class UpYunHttp(object):
 
     # http://docs.python-requests.org/
     def do_http_pipe(self, method, host, uri,
-                           value=None, headers=None, stream=False, files=None):
+                     value=None, headers=None, stream=False, files=None):
         request_id, msg, err, status = [None] * 4
-        url = "http://%s%s" % (host, uri)
+        url = 'http://%s%s' % (host, uri)
         requests.adapters.DEFAULT_RETRIES = 5
         try:
             resp = self.session.request(method, url, data=value,
@@ -24,9 +24,9 @@ class UpYunHttp(object):
                                         timeout=self.timeout, files=files)
             resp.encoding = 'utf-8'
             try:
-                request_id = resp.headers["X-Request-Id"]
+                request_id = resp.headers['X-Request-Id']
             except KeyError:
-                request_id = "Unknown"
+                request_id = 'Unknown'
             status = resp.status_code
             if status / 100 != 2:
                 msg = resp.reason

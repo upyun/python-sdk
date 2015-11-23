@@ -14,12 +14,12 @@ def make_rest_signature(bucket, username, password,
     if method:
         signstr = '&'.join([method, uri, date, str(length), password])
         signature = hashlib.md5(b(signstr)).hexdigest()
-        return "UpYun %s:%s" % (username, signature)
+        return 'UpYun %s:%s' % (username, signature)
 
     else:
         signstr = '&'.join([uri, bucket, date, password])
         signature = hashlib.md5(b(signstr)).hexdigest()
-        return "UpYun %s:%s:%s" % (bucket, username, signature)
+        return 'UpYun %s:%s:%s' % (bucket, username, signature)
 
 def make_content_md5(value, chunksize=DEFAULT_CHUNKSIZE):
     if hasattr(value, 'fileno'):
