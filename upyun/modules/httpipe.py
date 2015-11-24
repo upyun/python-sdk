@@ -4,12 +4,12 @@ sys.path.append('../..')
 import uuid
 import requests
 import datetime
+import upyun
+import json
 
 from .compat import b
 from .exception import UpYunServiceException, UpYunClientException
 from .sign import decode_msg
-import upyun
-import json
 
 # wsgiref.handlers.format_date_time
 def httpdate_rfc1123(dt):
@@ -33,13 +33,16 @@ class UpYunHttp(object):
     def __init__(self, timeout):
         self.timeout = timeout
         self.session = requests.Session()
+        self.user_agent = None
 
     # http://docs.python-requests.org/
     def do_http_pipe(self, method, host, uri,
-                     value=None, headers=None, stream=False, files=None):
+                     value=None, headers={}, stream=False, files=None):
         request_id, msg, err, status = [None] * 4
         url = 'http://%s%s' % (host, uri)
         requests.adapters.DEFAULT_RETRIES = 5
+        headers = self.__set_headers(headers)
+
         try:
             resp = self.session.request(method, url, data=value,
                                         headers=headers, stream=stream,
@@ -66,6 +69,12 @@ class UpYunHttp(object):
 
         return resp  
 
-    def make_user_agent(self):
+    def __make_user_agent(self):
         default = 'upyun-python-sdk/%s' % upyun.__version__
         return json.dumps(default, requests.utils.default_user_agent())
+
+    def __set_headers(self, headers):
+        headers['Date'] = cur_dt()
+        if not 'User-Agent' in headers:
+            headers['User-Agent'] = self.__make_user_agent()
+        return headers

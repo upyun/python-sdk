@@ -324,7 +324,7 @@ class TestUpYun(unittest.TestCase):
         tasks = [{'type': 'probe'}, {'type': 'video'}]
 
         source = self.root + 'test.mp4'
-        notify_url = ''
+        notify_url = 'http://121.42.168.238:1234/'
         ids = self.up.pretreat(tasks, source, notify_url)
         self.assertIsInstance(ids, list)
         tasks = self.up.status(ids)

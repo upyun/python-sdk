@@ -55,8 +55,6 @@ class UpYunRest(object):
         self.password = password
         self.chunksize = chunksize
         self.endpoint = endpoint
-
-        self.user_agent = None
         self.hp = UpYunHttp(timeout)
 
     # --- public API
@@ -215,10 +213,5 @@ class UpYunRest(object):
         signature = make_rest_signature(self.bucket, self.username, self.password,
                                         method, playload, dt, length)
 
-        headers['Date'] = dt
         headers['Authorization'] = signature
-        if self.user_agent:
-            headers['User-Agent'] = self.user_agent
-        else:
-            headers['User-Agent'] = self.hp.make_user_agent()
         return headers

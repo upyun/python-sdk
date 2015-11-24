@@ -8,7 +8,7 @@ import itertools
 import threading
 from multiprocessing.dummy import Pool as ThreadPool
 
-from .modules.httpipe import UpYunHttp, cur_dt
+from .modules.httpipe import UpYunHttp
 from .modules.compat import urlencode, str, b
 from .modules.exception import UpYunServiceException, UpYunClientException
 from .modules.sign import make_policy, make_signature, \
@@ -21,7 +21,6 @@ class Multipart(object):
         self.hp = UpYunHttp(timeout)
         self.host = "m0.api.upyun.com"
         self.uri = '/%s/' % bucket
-        self.user_agent = None
 
     # --- public API
     def upload(self, key, value, block_size, expiration, kwargs):
@@ -137,7 +136,6 @@ class Multipart(object):
 
     def __do_http_request(self, value):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        headers = self.__set_headers(headers)
 
         value = urlencode(value)
         resp = self.hp.do_http_pipe('POST', self.host, self.uri,
@@ -150,14 +148,6 @@ class Multipart(object):
         except Exception as e:
             raise UpYunClientException(str(e))
         return content
-
-    def __set_headers(self, headers):
-        headers['Date'] = cur_dt()
-        if self.user_agent:
-            headers['User-Agent'] = self.user_agent
-        else:
-            headers['User-Agent'] = self.hp.make_user_agent()
-        return headers
 
     def __upload_success(self, status):
         return len(status) == sum(status)
