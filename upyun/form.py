@@ -34,22 +34,18 @@ class FormUpload(object):
                 'expiration': expiration,
                 'save-key': key,
                 }
+        if not isinstance(kwargs, dict):
+            kwargs = json.loads(kwargs)
+        data.update(kwargs)
         policy = make_policy(data)
         signature = make_content_md5(policy + b('&') + b(self.secret))
         postdata = {'policy': policy,
                     'signature': signature,
                     'file': value,
                     }
-        if not isinstance(kwargs, dict):
-            kwargs = json.loads(kwargs)
-        postdata.update(kwargs)
-
         resp = self.hp.do_http_pipe('POST', self.host, self.uri,
                                     headers=headers, files=postdata)
         return self.__handle_resp(resp)
-
-    def verify_sign(self, value):
-        pass
 
     def __set_headers(self, headers):
         headers['Date'] = cur_dt()

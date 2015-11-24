@@ -28,7 +28,7 @@ def make_content_md5(value, chunksize=DEFAULT_CHUNKSIZE):
             md5.update(chunk)
         value.seek(0)
         return md5.hexdigest()
-    elif isinstance(value, bytes) or (not PY3 and
+    elif isinstance(value, bytes) or ( not PY3 and
                                 isinstance(value, builtin_str)):
         return hashlib.md5(value).hexdigest()
     else:
@@ -51,6 +51,6 @@ def make_policy(data):
 def make_signature(data, secret):
         list_meta = sorted(data.items(), key=lambda d:d[0])
         signature = ''.join(map(lambda kv: '%s%s' %
-                            (kv[0], str(kv[1])), list_meta))
+                        (kv[0], str(kv[1])), list_meta))
         signature += secret
         return make_content_md5(b(signature))

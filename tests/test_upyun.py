@@ -279,7 +279,7 @@ class TestUpYun(unittest.TestCase):
         __put(True)
         __put(False)
         kwargs = {'allow-file-type': 'jpg,jpeg,png',
-                 #'return-url': 'http://upyun.com/return/',
+                  #'return-url': 'http://upyun.com/return/',
                   'notify-url': 'http://upyun.com/return/',
                  }
         __put(False, kwargs)
@@ -293,7 +293,6 @@ class TestUpYun(unittest.TestCase):
                 res = self.up.put(self.root + 'test.png', f,
                                   checksum=False, multipart=True,
                                   block_size=100*1024, kwargs={})
-                print res
                 self.assertEqual(res['image_height'], 410)
                 self.assertEqual(res['image_width'], 1000)
                 self.assertEqual(res['image_frames'], 1)

@@ -75,13 +75,12 @@ class Multipart(object):
                 'file_size': file_size,
                 'path': key,
                 }
+        if not isinstance(kwargs, dict):
+            kwargs = json.loads(kwargs)
+        data.update(kwargs)
         policy = make_policy(data)
         signature = make_signature(data, self.secret)
         postdata = {'policy': policy, 'signature': signature}
-
-        if not isinstance(kwargs, dict):
-            kwargs = json.loads(kwargs)
-        postdata.update(kwargs)
         return self.__do_http_request(postdata)
 
     def __block_upload(self, index, parms):

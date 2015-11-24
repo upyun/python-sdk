@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-
 import hashlib
+import json
 
 from .rest import UpYunRest
 from .form import FormUpload
@@ -9,6 +9,7 @@ from .av import AvPretreatment, CallbackValidation
 
 from .modules.exception import UpYunClientException
 from .modules.compat import b
+from .modules.sign import make_content_md5, encode_msg
 
 __version__ = '2.3.0'
 
@@ -85,10 +86,30 @@ class UpYun(object):
     def status(self, taskids):
         return self.av.status(taskids)
 
-    # --- no use yet, need developing
-    def verify_sign(self, callback_dict):
-        cv = CallbackValidation(callback_dict, self.av)
-        return cv.verify_sign()
+# --- no use yet, need developing
+def verify_put_sign(value, secret):
+    keys = ['code', 'message', 'url', 'time',
+            'form_api_secret', 'ext-param',]
+    data = []
+
+    if not isinstance(value, dict):
+        value = json.loads(value)
+    if 'no-sign' in value:
+        value['form_api_secret'] = ''
+        sign = value['no-sign']
+    else:
+        value['form_api_secret'] = secret
+        sign = value['sign']
+    for k in keys:
+        if k == 'url':
+            data.append(encode_msg(value[k]))
+        elif k in value:
+            data.append(str(value[k]))
+    signature = '&'.join(data)
+    return sign == make_content_md5(b(signature))
+
+    #cv = CallbackValidation(callback_dict, self.av)
+    #return cv.verify_sign()
 
 if __name__ == '__main__':
     pass
