@@ -42,7 +42,7 @@ class AvPretreatment(object):
         content = self.__requests_status(data)
         if type(content)  == dict and 'tasks' in content:
             return content['tasks']
-        raise UpYunServiceException(None, 500, 
+        raise UpYunServiceException(None, 500,
                         'Servers except respond tasks list', 'Service Error')
 
     # --- private API
@@ -99,26 +99,25 @@ class CallbackValidation(object):
             'signature',
             ]
 
-    def __init__(self, dict_callback, av):
-        self.params = dict_callback
+    def __init__(self, av):
         self.av = av
 
-    def set_params_by_post(self, dict_callback):
+    def verify_sign(self, value):
+        assert isinstance(value, dict)
+        value = self.__set_params_by_post(value)
+        if data.has_key('signature'):
+            signature = data['signature']
+            del data['signature']
+            if signature == self.av.__create_signature(data):
+                return True
+        return False
+
+    def __set_params_by_post(self, value):
         data = {}
         for k in KEYS:
-            if k in dict_callback:
-                v = dict_callback[k]
+            if k in value:
+                v = value[k]
                 if isinstance(v, list):
                     v = ' '.join(value)
                 data[k] = v
         return data
-
-    def verify_sign(self):
-        self.params = self.set_params_by_post(self.params)
-        data = self.params
-        if data.has_key('signature'):
-            value = data['signature']
-            del data['signature']
-            if value == self.av.create_signature(data):
-                return True
-        return False

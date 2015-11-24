@@ -4,6 +4,7 @@ import io
 import os
 import sys
 import uuid
+import json
 
 if sys.version_info >= (2, 7):
     import unittest
@@ -254,10 +255,11 @@ class TestUpYun(unittest.TestCase):
     @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support \
                         file bucket and you have to specify bucket secret')
     def test_put_form(self):
-        def __put(multi):
+        def __put(multi, kwargs={}):
             with open('tests/test.png', 'rb') as f:
                 res = self.up.put(self.root + 'test.png', f,
-                                  checksum=False, form=True, multipart=multi)
+                                  checksum=False, form=True,
+                                  multipart=multi, kwargs=kwargs)
                 self.assertEqual(res['code'], 200)
                 self.assertEqual(res['image-height'], 410)
                 self.assertEqual(res['image-width'], 1000)
@@ -276,20 +278,27 @@ class TestUpYun(unittest.TestCase):
         #test conflict upload method
         __put(True)
         __put(False)
+        kwargs = {'allow-file-type': 'jpg,jpeg,png',
+                 #'return-url': 'http://upyun.com/return/',
+                  'notify-url': 'http://upyun.com/return/',
+                 }
+        __put(False, kwargs)
+        __put(False, json.dumps(kwargs))
 
     @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support \
                         file bucket and you have to specify bucket secret')
-    def test_put_callback(self):
-        def __put(form):
+    def test_put_multipart(self):
+        def __put(kwargs):
             with open('tests/test.png', 'rb') as f:
-                kwargs = {'allow-file-type': 'jpg,jpeg,png',
-                          #'return-url': 'http://upyun.com/return/',
-                          'notify-url': 'http://upyun.com/return/',
-                         }
                 res = self.up.put(self.root + 'test.png', f,
-                                  checksum=False, form=form,
-                                  multipart=True, kwargs=kwargs)
-                self.assertEqual(res, None)
+                                  checksum=False, multipart=True,
+                                  block_size=100*1024, kwargs={})
+                print res
+                self.assertEqual(res['image_height'], 410)
+                self.assertEqual(res['image_width'], 1000)
+                self.assertEqual(res['image_frames'], 1)
+                self.assertEqual(res['image_type'], 'PNG')
+                self.assertEqual(res['mimetype'], 'image/png')
 
             res = self.up.getinfo(self.root + 'test.png')
             self.assertIsInstance(res, dict)
@@ -300,30 +309,13 @@ class TestUpYun(unittest.TestCase):
                 self.up.getinfo(self.root + 'test.png')
             self.assertEqual(se.exception.status, 404)
             self.assertEqual(len(se.exception.request_id), 66)
-        __put(True)
-        __put(False)
-
-    @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support \
-                        file bucket and you have to specify bucket secret')
-    def test_put_multipart(self):
-        with open('tests/test.png', 'rb') as f:
-            res = self.up.put(self.root + 'test.png', f,
-                              checksum=False, multipart=True, block_size=100*1024)
-            self.assertEqual(res['image_height'], 410)
-            self.assertEqual(res['image_width'], 1000)
-            self.assertEqual(res['image_frames'], 1)
-            self.assertEqual(res['image_type'], 'PNG')
-            self.assertEqual(res['mimetype'], 'image/png')
-
-        res = self.up.getinfo(self.root + 'test.png')
-        self.assertIsInstance(res, dict)
-        self.assertEqual(res['file-size'], '13001')
-        self.assertEqual(res['file-type'], 'file')
-        self.up.delete(self.root + 'test.png')
-        with self.assertRaises(upyun.UpYunServiceException) as se:
-            self.up.getinfo(self.root + 'test.png')
-        self.assertEqual(se.exception.status, 404)
-        self.assertEqual(len(se.exception.request_id), 66)
+        kwargs = {'allow-file-type': 'jpg,jpeg,png',
+                 #'return-url': 'http://upyun.com/return/',
+                  'notify-url': 'http://upyun.com/return/',
+                 }
+        __put({})
+        __put(kwargs)
+        __put(json.dumps(kwargs))
 
     @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
     def test_pretreat(self):

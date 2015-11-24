@@ -3,25 +3,25 @@
 import os
 import time
 import math
+import json
 import itertools
 import threading
 from multiprocessing.dummy import Pool as ThreadPool
 
+from .modules.httpipe import UpYunHttp, cur_dt
 from .modules.compat import urlencode, str, b
 from .modules.exception import UpYunServiceException, UpYunClientException
 from .modules.sign import make_policy, make_signature, \
                             make_content_md5, decode_msg, encode_msg
 
 class Multipart(object):
-    ED_LIST = ('m%d.api.upyun.com' % ed for ed in range(4))
-    ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
-
-    def __init__(self, bucket, secret, hp, endpoint):
+    def __init__(self, bucket, secret, timeout, endpoint):
         self.bucket = bucket
         self.secret = secret
-        self.hp = hp
-        self.host = endpoint or self.ED_AUTO
+        self.hp = UpYunHttp(timeout)
+        self.host = "m0.api.upyun.com"
         self.uri = '/%s/' % bucket
+        self.user_agent = None
 
     # --- public API
     def upload(self, key, value, block_size, expiration, kwargs):
@@ -75,10 +75,13 @@ class Multipart(object):
                 'file_size': file_size,
                 'path': key,
                 }
-        data.update(kwargs)
         policy = make_policy(data)
         signature = make_signature(data, self.secret)
         postdata = {'policy': policy, 'signature': signature}
+
+        if not isinstance(kwargs, dict):
+            kwargs = json.loads(kwargs)
+        postdata.update(kwargs)
         return self.__do_http_request(postdata)
 
     def __block_upload(self, index, parms):
@@ -97,7 +100,8 @@ class Multipart(object):
         block_hash = make_content_md5(file_block)
 
         data = {'expiration': expiration, 'block_index': index,
-                'block_hash': block_hash, 'save_token': save_token}
+                'block_hash': block_hash, 'save_token': save_token,
+                }
         policy = make_policy(data)
         signature = make_signature(data, token_secret)
         postdata = {'policy': policy,
@@ -134,6 +138,7 @@ class Multipart(object):
 
     def __do_http_request(self, value):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        headers = self.__set_headers(headers)
 
         value = urlencode(value)
         resp = self.hp.do_http_pipe('POST', self.host, self.uri,
@@ -146,6 +151,14 @@ class Multipart(object):
         except Exception as e:
             raise UpYunClientException(str(e))
         return content
+
+    def __set_headers(self, headers):
+        headers['Date'] = cur_dt()
+        if self.user_agent:
+            headers['User-Agent'] = self.user_agent
+        else:
+            headers['User-Agent'] = self.hp.make_user_agent()
+        return headers
 
     def __upload_success(self, status):
         return len(status) == sum(status)

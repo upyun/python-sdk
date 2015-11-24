@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import os
-import datetime
-import json
-import requests
 
 from .modules.sign import make_rest_signature, make_content_md5, \
                                                 encode_msg, decode_msg
 from .modules.exception import UpYunClientException
 from .modules.compat import b, str, quote, urlencode, builtin_str
-from .modules.httpipe import UpYunHttp
-
-from .form import FormUpload
-from .multi import Multipart
-
-__version__ = '2.3.0'
+from .modules.httpipe import UpYunHttp, cur_dt
 
 def get_fileobj_size(fileobj):
     try:
@@ -54,50 +46,25 @@ class UploadObject(object):
     def read(self, size=-1):
         return self.__next__()
 
-# wsgiref.handlers.format_date_time
-
-def httpdate_rfc1123(dt):
-    '''Return a string representation of a date according to RFC 1123
-    (HTTP/1.1).
-
-    The supplied date must be in UTC.
-
-    '''
-    weekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][dt.weekday()]
-    month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
-             'Oct', 'Nov', 'Dec'][dt.month - 1]
-    return '%s, %02d %s %04d %02d:%02d:%02d GMT' % \
-        (weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
-
 
 class UpYunRest(object):
-    def __init__(self, bucket, username, password, secret,
-                    timeout, endpoint, chunksize, mp_endpoint):
+    def __init__(self, bucket, username, password,
+                    timeout, endpoint, chunksize,):
         self.bucket = bucket
         self.username = username
         self.password = password
-        self.secret = secret
-        self.timeout = timeout
         self.chunksize = chunksize
         self.endpoint = endpoint
 
         self.user_agent = None
-        self.hp = UpYunHttp(self.timeout)
-        if self.secret:
-            self.mp = Multipart(self.bucket, self.secret, self.hp, mp_endpoint)
-            self.fp = FormUpload(self.bucket, self.secret, self.hp, self.endpoint)
-        else:
-            self.mp = None
-            self.fp = None
+        self.hp = UpYunHttp(timeout)
 
     # --- public API
     def usage(self, key):
         res = self.__do_http_request('GET', key, args='?usage')
         return str(int(res))
 
-    def put(self, key, value, checksum, headers,
-                              handler, params, multipart, block_size,
-                              form, expiration, secret, kwargs):
+    def put(self, key, value, checksum, headers, handler, params, secret):
         '''
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
@@ -118,19 +85,6 @@ class UpYunRest(object):
         if handler and hasattr(value, 'fileno'):
             value = UploadObject(value, chunksize=self.chunksize,
                                  handler=handler, params=params)
-        if form:
-            if not self.fp:
-                UpYunClientException('you should specify the secret '
-                                     'when initializing upyun object '
-                                     'if you want to use form upload!')
-            return self.fp.upload(key, value, expiration, kwargs)
-
-        if multipart and hasattr(value, 'fileno'):
-            if not self.mp:
-                UpYunClientException('you should specify the secret '
-                                     'when initializing upyun object '
-                                     'if you want to use multipart upload!')
-            return self.mp.upload(key, value, block_size, expiration, kwargs)
 
         h = self.__do_http_request('PUT', key, value, headers)
         return self.__get_meta_headers(h)
@@ -248,11 +202,6 @@ class UpYunRest(object):
             raise UpYunClientException(str(e))
         return content
 
-    def __make_user_agent(self):
-        default = 'upyun-python-sdk/%s' % __version__
-
-        return json.dumps(default, requests.utils.default_user_agent())
-
     def __get_meta_headers(self, headers):
         return dict((k[8:].lower(), v) for k, v in headers
                     if k[:8].lower() == 'x-upyun-')
@@ -261,8 +210,8 @@ class UpYunRest(object):
                            method=None, length=0, headers=None):
         if headers is None:
             headers = []
-        # Date Format: RFC 1123
-        dt = httpdate_rfc1123(datetime.datetime.utcnow())
+
+        dt = cur_dt()
         signature = make_rest_signature(self.bucket, self.username, self.password,
                                         method, playload, dt, length)
 
@@ -271,5 +220,5 @@ class UpYunRest(object):
         if self.user_agent:
             headers['User-Agent'] = self.user_agent
         else:
-            headers['User-Agent'] = self.__make_user_agent()
+            headers['User-Agent'] = self.hp.make_user_agent()
         return headers
