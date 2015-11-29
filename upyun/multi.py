@@ -30,7 +30,7 @@ class Multipart(object):
         block_size = block_size or 1024*1024
         file_size = int(self.__get_size(value))
         block_size = self.__check_size(block_size)
-        blocks = int(math.ceil(file_size / block_size)) + 1
+        blocks = int(math.ceil(file_size / block_size)) or 1
         if not isinstance(kwargs, dict):
             kwargs = json.loads(kwargs)
 
