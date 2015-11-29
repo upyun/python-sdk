@@ -45,9 +45,9 @@ class UpYun(object):
         return self.up_rest.usage(key)
 
     def put(self, key, value, checksum=False, headers=None,
-                handler=None, params=None,secret=None,
-                multipart=False, block_size=None, form=False,
-                expiration=None, kwargs={}):
+                  handler=None, params=None,secret=None,
+                  multipart=False, block_size=None, form=False,
+                  expiration=None, kwargs={}):
         if (multipart or form) and not self.secret:
             raise UpYunClientException('You have to specify form secret with '
                                        'multipart upload method')
@@ -59,7 +59,7 @@ class UpYun(object):
             return self.up_multi.upload(key, value,
                                         block_size, expiration, kwargs)
         return self.up_rest.put(key, value, checksum,
-                                    headers, handler, params, secret)
+                                     headers, handler, params, secret)
 
     def get(self, key, value=None, handler=None, params=None):
         return self.up_rest.get(key, value, handler, params)

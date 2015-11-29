@@ -202,7 +202,9 @@ class UpYunRest(object):
 
     def __get_meta_headers(self, headers):
         return dict((k[8:].lower(), v) for k, v in headers
-                    if k[:8].lower() == 'x-upyun-')
+                    if k[:8].lower() == 'x-upyun-'
+                    and k[8:].lower() != 'uuid'
+                    and k[8:].lower() != 'cluster')
 
     def __set_auth_headers(self, playload,
                            method=None, length=0, headers=None):
