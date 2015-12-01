@@ -54,3 +54,11 @@ def make_signature(data, secret):
                         (kv[0], str(kv[1])), list_meta))
         signature += secret
         return make_content_md5(b(signature))
+
+def make_av_signature(data, operator, password):
+    assert isinstance(data, dict)
+    signature = ''.join(map(lambda kv: '%s%s' %
+            (kv[0], kv[1] if type(kv[1]) != list else ''.join(kv[1])),
+            sorted(data.items())))
+    signature = '%s%s%s' % (operator, signature, password)
+    return make_content_md5(b(signature))

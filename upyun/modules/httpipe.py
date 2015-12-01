@@ -67,7 +67,7 @@ class UpYunHttp(object):
         if msg:
             raise UpYunServiceException(request_id, status, msg, err)
 
-        return resp  
+        return resp
 
     def __make_user_agent(self):
         default = 'upyun-python-sdk/%s' % upyun.__version__

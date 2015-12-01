@@ -5,7 +5,7 @@ import json
 from .rest import UpYunRest
 from .form import FormUpload
 from .multi import Multipart
-from .av import AvPretreatment, CallbackValidation
+from .av import AvPretreatment
 
 from .modules.exception import UpYunClientException
 from .modules.compat import b
@@ -47,17 +47,17 @@ class UpYun(object):
     def put(self, key, value, checksum=False, headers=None,
                   handler=None, params=None,secret=None,
                   multipart=False, block_size=None, form=False,
-                  expiration=None, kwargs={}):
+                  expiration=None, **kwargs):
         if (multipart or form) and not self.secret:
             raise UpYunClientException('You have to specify form secret with '
                                        'multipart upload method')
 
         #priority: rest > form > multipart
         if form and hasattr(value, 'fileno'):
-            return self.up_form.upload(key, value, expiration, kwargs)
+            return self.up_form.upload(key, value, expiration, **kwargs)
         if multipart and hasattr(value, 'fileno'):
             return self.up_multi.upload(key, value,
-                                        block_size, expiration, kwargs)
+                                        block_size, expiration, **kwargs)
         return self.up_rest.put(key, value, checksum,
                                      headers, handler, params, secret)
 
@@ -86,6 +86,9 @@ class UpYun(object):
     def status(self, taskids):
         return self.av.status(taskids)
 
+    def verify_tasks(self, value):
+        return self.av.verify_tasks(value)
+
 # --- no use yet, need developing
 def verify_put_sign(value, secret):
     keys = ['code', 'message', 'url', 'time',
@@ -107,9 +110,6 @@ def verify_put_sign(value, secret):
             data.append(str(value[k]))
     signature = '&'.join(data)
     return sign == make_content_md5(b(signature))
-
-    #cv = CallbackValidation(callback_dict, self.av)
-    #return cv.verify_sign()
 
 if __name__ == '__main__':
     pass

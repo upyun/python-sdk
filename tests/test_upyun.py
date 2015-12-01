@@ -255,11 +255,11 @@ class TestUpYun(unittest.TestCase):
     @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support \
                         file bucket and you have to specify bucket secret')
     def test_put_form(self):
-        def __put(multi, kwargs={}):
+        def __put(multi, **kwargs):
             with open('tests/test.png', 'rb') as f:
                 res = self.up.put(self.root + 'test.png', f,
                                   checksum=False, form=True,
-                                  multipart=multi, kwargs=kwargs)
+                                  multipart=multi, **kwargs)
                 self.assertEqual(res['code'], 200)
                 self.assertEqual(res['image-height'], 410)
                 self.assertEqual(res['image-width'], 1000)
@@ -282,17 +282,16 @@ class TestUpYun(unittest.TestCase):
                   #'return-url': 'http://upyun.com/return/',
                   'notify-url': 'http://upyun.com/return/',
                  }
-        __put(False, kwargs)
-        __put(False, json.dumps(kwargs))
+        __put(False, **kwargs)
 
     @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support \
                         file bucket and you have to specify bucket secret')
     def test_put_multipart(self):
-        def __put(kwargs):
+        def __put(**kwargs):
             with open('tests/test.png', 'rb') as f:
                 res = self.up.put(self.root + 'test.png', f,
                                   checksum=False, multipart=True,
-                                  block_size=100*1024, kwargs={})
+                                  block_size=100*1024, **kwargs)
                 self.assertEqual(res['image_height'], 410)
                 self.assertEqual(res['image_width'], 1000)
                 self.assertEqual(res['image_frames'], 1)
@@ -312,16 +311,15 @@ class TestUpYun(unittest.TestCase):
                  #'return-url': 'http://upyun.com/return/',
                   'notify-url': 'http://upyun.com/return/',
                  }
-        __put({})
-        __put(kwargs)
-        __put(json.dumps(kwargs))
+        __put()
+        __put(**kwargs)
 
     @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
     def test_pretreat(self):
         with open('tests/test.mp4', 'rb') as f:
             res = self.up.put(self.root + 'test.mp4', f, checksum=False)
         self.assertDictEqual(res, {})
-        tasks = [{'type': 'probe'}, {'type': 'video'}]
+        tasks = [{'type': 'probe',}, {'type': 'video',}]
 
         source = self.root + 'test.mp4'
         notify_url = 'http://121.42.168.238:1234/'
@@ -335,3 +333,27 @@ class TestUpYun(unittest.TestCase):
             self.up.getinfo(self.root + 'test.mp4')
         self.assertEqual(se.exception.status, 404)
         self.assertEqual(len(se.exception.request_id), 66)
+
+    def test_callback_valiate(self):
+        data = {'bucket_name': 'zj-files',
+                'status_code': 200,
+                'task_id': 'cb6e730dd90146bdb261f515fc940e5f',
+                'signature': 'fd0a51957184139aacaf2ee408e56e3a&info=e30=',
+                'path': ['/pysdk-4e5b2c42ca7146bc841ec0972f319d11/test.mp4'],
+                'description': 'OK'}
+        self.assertEqual(self.up.verify_tasks(data), True)
+
+    def test_put_sign(self):
+        data = '{"code":200,' \
+                '"message":"ok",' \
+                '"url":"\/2015\/06\/17\/190623\/upload_QQ\u56fe\u7247201506' \
+                '011111206f7c696f0920f097d7eefd750334003e.png",' \
+                '"time":1434539183,' \
+                '"image-width":1024,' \
+                '"image-height":768,' \
+                '"image-frames":1,' \
+                '"image-type":"PNG",' \
+                '"sign":"086c46cfedfc22bfa2e4971a77530a76"}'
+        data = json.loads(data)
+        self.assertEqual(upyun.verify_put_sign(data, 'lGetaXubhGezKp89+6iuOb5IaS3='), True)
+

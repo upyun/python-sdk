@@ -16,7 +16,7 @@ class FormUpload(object):
         self.host = endpoint
         self.uri = '/%s/' % bucket
 
-    def upload(self, key, value, expiration, kwargs):
+    def upload(self, key, value, expiration, **kwargs):
         expiration = expiration or 1800
         expiration += int(time.time())
 
@@ -30,8 +30,6 @@ class FormUpload(object):
                 'expiration': expiration,
                 'save-key': key,
                 }
-        if not isinstance(kwargs, dict):
-            kwargs = json.loads(kwargs)
         data.update(kwargs)
         policy = make_policy(data)
         signature = make_content_md5(policy + b('&') + b(self.secret))

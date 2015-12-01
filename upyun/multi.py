@@ -23,7 +23,7 @@ class Multipart(object):
         self.uri = '/%s/' % bucket
 
     # --- public API
-    def upload(self, key, value, block_size, expiration, kwargs):
+    def upload(self, key, value, block_size, expiration, **kwargs):
         lock = threading.Lock()
         expiration = expiration or 1800
         expiration = int(expiration + time.time())
@@ -31,12 +31,10 @@ class Multipart(object):
         file_size = int(self.__get_size(value))
         block_size = self.__check_size(block_size)
         blocks = int(math.ceil(file_size / block_size)) or 1
-        if not isinstance(kwargs, dict):
-            kwargs = json.loads(kwargs)
 
         #init upload
         content = self.__init_upload(key, value,
-                        file_size, blocks, expiration, kwargs)
+                        file_size, blocks, expiration, **kwargs)
         if 'save_token' in content and 'token_secret' in content:
             save_token = content['save_token']
             token_secret = content['token_secret']
@@ -67,15 +65,15 @@ class Multipart(object):
                         'Failed to upload the whole file within retry times')
 
     # --- private API
-    def __init_upload(self, key, value, file_size, blocks, expiration, kwargs):
+    def __init_upload(self, key, value, file_size,
+                      blocks, expiration, **kwargs):
         data = {'expiration': expiration,
                 'file_blocks': blocks,
                 'file_hash':  make_content_md5(value),
                 'file_size': file_size,
                 'path': key,
                 }
-        if not isinstance(kwargs, dict):
-            kwargs = json.loads(kwargs)
+
         data.update(kwargs)
         policy = make_policy(data)
         signature = make_signature(data, self.secret)
