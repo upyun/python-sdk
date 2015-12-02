@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import time
-import json
 
 from .modules.exception import UpYunClientException
-from .modules.sign import make_content_md5, make_policy, decode_msg, encode_msg
+from .modules.sign import make_content_md5, make_policy
 from .modules.compat import b
 from .modules.httpipe import UpYunHttp
+
 
 class FormUpload(object):
     def __init__(self, bucket, secret, timeout, endpoint):
@@ -20,12 +20,7 @@ class FormUpload(object):
         expiration = expiration or 1800
         expiration += int(time.time())
 
-        #check value type
-        if hasattr(value, 'fileno'):
-            value = value.read()
-        elif type(value) != 'str':
-            raise UpYunClientException('Unrecognize type of value to be uploaded')
-
+        value = value.read()
         data = {'bucket': self.bucket,
                 'expiration': expiration,
                 'save-key': key,

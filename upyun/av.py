@@ -2,12 +2,12 @@
 
 import json
 import base64
-import ast
 
 from .modules.httpipe import UpYunHttp
 from .modules.compat import urlencode, b
 from .modules.exception import UpYunClientException, UpYunServiceException
 from .modules.sign import make_av_signature, decode_msg
+
 
 class AvPretreatment(object):
     HOST = 'p0.api.upyun.com'
@@ -32,7 +32,7 @@ class AvPretreatment(object):
     # --- public API
     def pretreat(self, tasks, source, notify_url=''):
         data = {'bucket_name': self.bucket, 'source': source,
-                'notify_url': notify_url, 'tasks': tasks,}
+                'notify_url': notify_url, 'tasks': tasks, }
         return self.__requests_pretreatment(data)
 
     def status(self, taskids):
@@ -47,20 +47,21 @@ class AvPretreatment(object):
         data['bucket_name'] = self.bucket
         data['task_ids'] = taskids
         content = self.__requests_status(data)
-        if type(content)  == dict and 'tasks' in content:
+        if type(content) == dict and 'tasks' in content:
             return content['tasks']
         raise UpYunServiceException(None, 500,
-                        'Servers except respond tasks list', 'Service Error')
+                                    'Servers except respond tasks list',
+                                    'Service Error')
 
     # --- Signature not correct right now
     def verify_tasks(self, data):
         assert isinstance(data, dict)
         data = self.__set_params_by_post(data)
-        if data.has_key('signature'):
+        if 'signature' in data:
             signature = data['signature']
             del data['signature']
-            if signature == make_av_signature(data, self.operator, self.password):
-                return True
+            return signature == make_av_signature(data,
+                                                  self.operator, self.password)
         return False
 
     # --- private API

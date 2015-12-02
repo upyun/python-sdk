@@ -12,6 +12,7 @@ from .modules.compat import urlencode, b
 from .modules.exception import UpYunServiceException, UpYunClientException
 from .modules.sign import make_policy, make_signature, make_content_md5
 
+
 class Multipart(object):
     def __init__(self, bucket, secret, timeout, endpoint):
         self.bucket = bucket
@@ -30,9 +31,9 @@ class Multipart(object):
         block_size = self.__check_size(block_size)
         blocks = int(math.ceil(file_size / block_size)) or 1
 
-        #init upload
+        # - init upload
         content = self.__init_upload(key, value,
-                        file_size, blocks, expiration, **kwargs)
+                                     file_size, blocks, expiration, **kwargs)
         if 'save_token' in content and 'token_secret' in content:
             save_token = content['save_token']
             token_secret = content['token_secret']
@@ -41,26 +42,28 @@ class Multipart(object):
                                         'Not enough response datas from api')
         status = self.__get_status(content)
 
-        #block item upload
+        # - block item upload
         retry = 0
         pool = ThreadPool(4)
         while not self.__upload_success(status) and retry < 5:
-            status_list = pool.map(lambda parms: self.__block_upload(*parms), 
+            status_list = pool.map(lambda parms: self.__block_upload(*parms),
                                    zip(range(blocks), itertools.repeat(
-                                   (status, value, file_size, block_size,
-                                   expiration, save_token, token_secret, lock))
-                                   ))
+                                       (status, value, file_size,
+                                        block_size, expiration,
+                                        save_token, token_secret, lock))
+                                       ))
             status = self.__find_max_status(status_list)
             retry += 1
         pool.close()
         pool.join()
 
-        #end upload
+        # - end upload
         if self.__upload_success(status):
             return self.__end_upload(expiration, save_token, token_secret)
         else:
             UpYunServiceException(None, 500, 'Upload failed',
-                        'Failed to upload the whole file within retry times')
+                                  'Failed to upload the whole '
+                                  'file within retry times')
 
     # --- private API
     def __init_upload(self, key, value, file_size,
@@ -79,9 +82,9 @@ class Multipart(object):
         return self.__do_http_request(postdata)
 
     def __block_upload(self, index, parms):
-        status, value, file_size, block_size, expiration, \
-                       save_token, token_secret, lock = parms
-        # if status[index] is already 1, skip it
+        status, value, file_size, block_size, expiration,\
+            save_token, token_secret, lock = parms
+        # - if status[index] is already 1, skip it
         if status[index]:
             return status
         start_position = index * block_size
@@ -152,7 +155,7 @@ class Multipart(object):
     def __get_size(self, fileobj):
         try:
             if hasattr(fileobj, 'fileno'):
-               return os.fstat(fileobj.fileno()).st_size
+                return os.fstat(fileobj.fileno()).st_size
         except IOError:
             pass
         return len(fileobj.getvalue())

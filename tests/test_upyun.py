@@ -43,6 +43,9 @@ class TestUpYun(unittest.TestCase):
                               timeout=100, endpoint=upyun.ED_TELECOM)
         self.root = rootpath()
         self.up.mkdir(self.root)
+        with open('tests/bigfile.txt', 'w') as f:
+            f.seek(10*1024*1024)
+            f.write('abcdefghijklmnopqrstuvwxyz')
 
     def tearDown(self):
         for item in ['test.png', 'test.txt', 'test/test.png', 'test', 'test.mp4']:
@@ -54,6 +57,7 @@ class TestUpYun(unittest.TestCase):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root)
         self.assertEqual(se.exception.status, 404)
+        os.remove('tests/bigfile.txt')
 
     def test_auth_failed(self):
         with self.assertRaises(upyun.UpYunServiceException) as se:
@@ -288,26 +292,22 @@ class TestUpYun(unittest.TestCase):
                         file bucket and you have to specify bucket secret')
     def test_put_multipart(self):
         def __put(**kwargs):
-            with open('tests/test.png', 'rb') as f:
-                res = self.up.put(self.root + 'test.png', f,
+            with open('tests/bigfile.txt', 'rb') as f:
+                res = self.up.put(self.root + 'test_bigfile.txt', f,
                                   checksum=False, multipart=True,
-                                  block_size=100*1024, **kwargs)
-                self.assertEqual(res['image_height'], 410)
-                self.assertEqual(res['image_width'], 1000)
-                self.assertEqual(res['image_frames'], 1)
-                self.assertEqual(res['image_type'], 'PNG')
-                self.assertEqual(res['mimetype'], 'image/png')
+                                  block_size=1024*1024, **kwargs)
+                self.assertEqual(res['mimetype'], 'text/plain')
 
-            res = self.up.getinfo(self.root + 'test.png')
+            res = self.up.getinfo(self.root + 'test_bigfile.txt')
             self.assertIsInstance(res, dict)
-            self.assertEqual(res['file-size'], '13001')
+            self.assertEqual(res['file-size'], '10485786')
             self.assertEqual(res['file-type'], 'file')
-            self.up.delete(self.root + 'test.png')
+            self.up.delete(self.root + 'test_bigfile.txt')
             with self.assertRaises(upyun.UpYunServiceException) as se:
-                self.up.getinfo(self.root + 'test.png')
+                self.up.getinfo(self.root + 'test_bigfile.txt')
             self.assertEqual(se.exception.status, 404)
             self.assertEqual(len(se.exception.request_id), 66)
-        kwargs = {'allow-file-type': 'jpg,jpeg,png',
+        kwargs = {'allow-file-type': 'txt',
                  #'return-url': 'http://upyun.com/return/',
                   'notify-url': 'http://upyun.com/return/',
                  }

@@ -2,11 +2,12 @@
 
 import os
 
-from .modules.sign import make_rest_signature, \
-                          make_content_md5, encode_msg
+from .modules.sign import make_rest_signature,\
+    make_content_md5, encode_msg
 from .modules.exception import UpYunClientException
 from .modules.compat import b, str, quote, urlencode, builtin_str
 from .modules.httpipe import UpYunHttp, cur_dt
+
 
 def get_fileobj_size(fileobj):
     try:
@@ -49,7 +50,7 @@ class UploadObject(object):
 
 class UpYunRest(object):
     def __init__(self, bucket, username, password,
-                       timeout, endpoint, chunksize):
+                 timeout, endpoint, chunksize):
         self.bucket = bucket
         self.username = username
         self.password = password
@@ -134,7 +135,7 @@ class UpYunRest(object):
         self.__set_auth_headers(urlstr, headers=headers)
 
         resp = self.hp.do_http_pipe(method, host, uri,
-                                          value=params, headers=headers)
+                                    value=params, headers=headers)
         content = self.__handle_resp(resp, method, uri=uri)
         invalid_urls = content['invalid_domain_of_url']
         return [k[7 + len(domain):] for k in invalid_urls]
@@ -162,11 +163,11 @@ class UpYunRest(object):
         self.__set_auth_headers(uri, method, length, headers)
 
         resp = self.hp.do_http_pipe(method, self.endpoint, uri,
-                                            value, headers, stream)
+                                    value, headers, stream)
         return self.__handle_resp(resp, method, of, handler, params)
 
     def __handle_resp(self, resp, method=None, of=None,
-                                  handler=None, params=None, uri=None):
+                      handler=None, params=None, uri=None):
         content = None
         try:
             if method == 'GET' and of:
@@ -212,8 +213,9 @@ class UpYunRest(object):
             headers = []
 
         dt = cur_dt()
-        signature = make_rest_signature(self.bucket, self.username, self.password,
-                                        method, playload, dt, length)
+        signature = make_rest_signature(self.bucket, self.username,
+                                        self.password, method, playload,
+                                        dt, length)
 
         headers['Authorization'] = signature
         return headers

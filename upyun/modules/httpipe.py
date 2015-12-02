@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
-import sys
-import uuid
 import requests
 import datetime
 import upyun
 import json
 
-from .compat import b
 from .exception import UpYunServiceException, UpYunClientException
-from .sign import decode_msg
 
-# wsgiref.handlers.format_date_time
+
+# - wsgiref.handlers.format_date_time
 def httpdate_rfc1123(dt):
     '''Return a string representation of a date according to RFC 1123
     (HTTP/1.1).
@@ -24,9 +21,11 @@ def httpdate_rfc1123(dt):
     return '%s, %02d %s %04d %02d:%02d:%02d GMT' % \
         (weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
 
-# Date Format: RFC 1123
+
+# - Date Format: RFC 1123
 def cur_dt():
     return httpdate_rfc1123(datetime.datetime.utcnow())
+
 
 class UpYunHttp(object):
     def __init__(self, timeout):
@@ -34,7 +33,7 @@ class UpYunHttp(object):
         self.session = requests.Session()
         self.user_agent = None
 
-    # http://docs.python-requests.org/
+    # - http://docs.python-requests.org/
     def do_http_pipe(self, method, host, uri,
                      value=None, headers={}, stream=False, files=None):
         request_id, msg, err, status = [None] * 4
@@ -74,6 +73,6 @@ class UpYunHttp(object):
 
     def __set_headers(self, headers):
         headers['Date'] = cur_dt()
-        if not 'User-Agent' in headers:
+        if 'User-Agent' not in headers:
             headers['User-Agent'] = self.__make_user_agent()
         return headers

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .compat import builtin_str
 
+
 class UpYunServiceException(Exception):
     def __init__(self, request_id, status, msg, err):
         self.args = (request_id, status, msg, err)

@@ -18,9 +18,10 @@ ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 
 DEFAULT_CHUNKSIZE = 8192
 
+
 class UpYun(object):
     def __init__(self, bucket, username, password, secret=None,
-                    timeout=None, endpoint=None, chunksize=None):
+                 timeout=None, endpoint=None, chunksize=None):
         super(UpYun, self).__init__()
         self.bucket = bucket
         self.username = username
@@ -45,21 +46,21 @@ class UpYun(object):
         return self.up_rest.usage(key)
 
     def put(self, key, value, checksum=False, headers=None,
-                  handler=None, params=None,secret=None,
-                  multipart=False, block_size=None, form=False,
-                  expiration=None, **kwargs):
+            handler=None, params=None, secret=None,
+            multipart=False, block_size=None, form=False,
+            expiration=None, **kwargs):
         if (multipart or form) and not self.secret:
             raise UpYunClientException('You have to specify form secret with '
                                        'multipart upload method')
 
-        #priority: rest > form > multipart
+        # - priority: rest > form > multipart
         if form and hasattr(value, 'fileno'):
             return self.up_form.upload(key, value, expiration, **kwargs)
         if multipart and hasattr(value, 'fileno'):
             return self.up_multi.upload(key, value,
                                         block_size, expiration, **kwargs)
         return self.up_rest.put(key, value, checksum,
-                                     headers, handler, params, secret)
+                                headers, handler, params, secret)
 
     def get(self, key, value=None, handler=None, params=None):
         return self.up_rest.get(key, value, handler, params)
@@ -89,10 +90,11 @@ class UpYun(object):
     def verify_tasks(self, value):
         return self.av.verify_tasks(value)
 
+
 # --- no use yet, need developing
 def verify_put_sign(value, secret):
     KEYS = ['code', 'message', 'url', 'time',
-            'form_api_secret', 'ext-param',]
+            'form_api_secret', 'ext-param', ]
     data = []
 
     if not isinstance(value, dict):

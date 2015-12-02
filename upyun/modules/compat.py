@@ -26,5 +26,5 @@ else:
     bytes = str
 
 __all__ = [
-    'httplib', 'quote', 'urlencode'
+    'quote', 'urlencode'
 ]
