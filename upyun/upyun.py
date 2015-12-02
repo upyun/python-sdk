@@ -107,9 +107,9 @@ def verify_put_sign(value, secret):
         if k == 'url':
             data.append(encode_msg(value[k]))
         elif k in value:
-            data.append(builtin_str(value[k]))
-    signature = '&'.join(data)
-    return sign == make_content_md5(b(signature))
+            data.append(b(builtin_str(value[k])))
+    signature = b'&'.join(data)
+    return sign == make_content_md5(signature)
 
 if __name__ == '__main__':
     pass
