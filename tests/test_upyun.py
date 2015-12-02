@@ -283,8 +283,7 @@ class TestUpYun(unittest.TestCase):
         __put(True)
         __put(False)
         kwargs = {'allow-file-type': 'jpg,jpeg,png',
-                  #'return-url': 'http://upyun.com/return/',
-                  'notify-url': 'http://upyun.com/return/',
+                  'notify-url': 'http://upyun.com/notify/',
                  }
         __put(False, **kwargs)
 
@@ -308,8 +307,7 @@ class TestUpYun(unittest.TestCase):
             self.assertEqual(se.exception.status, 404)
             self.assertEqual(len(se.exception.request_id), 66)
         kwargs = {'allow-file-type': 'txt',
-                 #'return-url': 'http://upyun.com/return/',
-                  'notify-url': 'http://upyun.com/return/',
+                  'notify-url': 'http://upyun.com/notify/',
                  }
         __put()
         __put(**kwargs)
@@ -322,7 +320,7 @@ class TestUpYun(unittest.TestCase):
         tasks = [{'type': 'probe',}, {'type': 'video',}]
 
         source = self.root + 'test.mp4'
-        notify_url = 'http://121.42.168.238:1234/'
+        notify_url = 'http://upyun.com/notify/'
         ids = self.up.pretreat(tasks, source, notify_url)
         self.assertIsInstance(ids, list)
         tasks = self.up.status(ids)
@@ -333,15 +331,6 @@ class TestUpYun(unittest.TestCase):
             self.up.getinfo(self.root + 'test.mp4')
         self.assertEqual(se.exception.status, 404)
         self.assertEqual(len(se.exception.request_id), 66)
-
-    def test_callback_valiate(self):
-        data = {'bucket_name': 'zj-files',
-                'status_code': 200,
-                'task_id': 'cb6e730dd90146bdb261f515fc940e5f',
-                'signature': 'fd0a51957184139aacaf2ee408e56e3a&info=e30=',
-                'path': ['/pysdk-4e5b2c42ca7146bc841ec0972f319d11/test.mp4'],
-                'description': 'OK'}
-        self.assertEqual(self.up.verify_tasks(data), True)
 
     def test_put_sign(self):
         data = '{"code":200,' \
