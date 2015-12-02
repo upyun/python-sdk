@@ -2,8 +2,8 @@
 
 import os
 
-from .modules.sign import make_rest_signature, make_content_md5, \
-                                                encode_msg, decode_msg
+from .modules.sign import make_rest_signature, \
+                          make_content_md5, encode_msg
 from .modules.exception import UpYunClientException
 from .modules.compat import b, str, quote, urlencode, builtin_str
 from .modules.httpipe import UpYunHttp, cur_dt
@@ -49,7 +49,7 @@ class UploadObject(object):
 
 class UpYunRest(object):
     def __init__(self, bucket, username, password,
-                    timeout, endpoint, chunksize,):
+                       timeout, endpoint, chunksize):
         self.bucket = bucket
         self.username = username
         self.password = password
@@ -161,7 +161,7 @@ class UpYunRest(object):
 
         self.__set_auth_headers(uri, method, length, headers)
 
-        resp = self.hp.do_http_pipe(method, self.endpoint, uri, 
+        resp = self.hp.do_http_pipe(method, self.endpoint, uri,
                                             value, headers, stream)
         return self.__handle_resp(resp, method, of, handler, params)
 
@@ -197,7 +197,7 @@ class UpYunRest(object):
             elif method == 'POST' and uri == '/purge/':
                 content = resp.json()
         except Exception as e:
-            raise UpYunClientException(str(e))
+            raise UpYunClientException(e)
         return content
 
     def __get_meta_headers(self, headers):

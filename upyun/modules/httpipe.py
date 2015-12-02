@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sys
-sys.path.append('../..')
 import uuid
 import requests
 import datetime
@@ -58,11 +57,11 @@ class UpYunHttp(object):
                 err = resp.text
 
         except requests.exceptions.ConnectionError as e:
-            raise UpYunClientException(str(e))
+            raise UpYunClientException(e)
         except requests.exceptions.RequestException as e:
-            raise UpYunClientException(str(e))
+            raise UpYunClientException(e)
         except Exception as e:
-            raise UpYunClientException(str(e))
+            raise UpYunClientException(e)
 
         if msg:
             raise UpYunServiceException(request_id, status, msg, err)

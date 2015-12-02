@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from .compat import builtin_str
 
 class UpYunServiceException(Exception):
     def __init__(self, request_id, status, msg, err):
@@ -11,5 +12,5 @@ class UpYunServiceException(Exception):
 
 class UpYunClientException(Exception):
     def __init__(self, msg):
-        self.msg = msg
+        self.msg = builtin_str(msg)
         super(UpYunClientException, self).__init__(msg)

@@ -5,7 +5,7 @@ import json
 
 from .modules.exception import UpYunClientException
 from .modules.sign import make_content_md5, make_policy, decode_msg, encode_msg
-from .modules.compat import b, str
+from .modules.compat import b
 from .modules.httpipe import UpYunHttp
 
 class FormUpload(object):
@@ -46,5 +46,5 @@ class FormUpload(object):
         try:
             content = resp.json()
         except Exception as e:
-            raise UpYunClientException(str(e))
+            raise UpYunClientException(e)
         return content

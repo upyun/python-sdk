@@ -356,4 +356,3 @@ class TestUpYun(unittest.TestCase):
                 '"sign":"086c46cfedfc22bfa2e4971a77530a76"}'
         data = json.loads(data)
         self.assertEqual(upyun.verify_put_sign(data, 'lGetaXubhGezKp89+6iuOb5IaS3='), True)
-

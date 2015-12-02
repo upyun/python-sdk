@@ -8,7 +8,7 @@ from .multi import Multipart
 from .av import AvPretreatment
 
 from .modules.exception import UpYunClientException
-from .modules.compat import b
+from .modules.compat import b, builtin_str
 from .modules.sign import make_content_md5, encode_msg
 
 __version__ = '2.3.0'
@@ -30,15 +30,15 @@ class UpYun(object):
         self.secret = secret
         self.timeout = timeout or 60
         self.up_rest = UpYunRest(self.bucket, self.username,
-                                        self.password, self.timeout,
-                                        self.endpoint, self.chunksize)
+                                 self.password, self.timeout,
+                                 self.endpoint, self.chunksize)
         self.av = AvPretreatment(self.bucket, self.username, self.password,
-                                        self.chunksize, self.timeout)
+                                 self.chunksize, self.timeout)
         if self.secret:
             self.up_multi = Multipart(self.bucket, self.secret,
-                                        self.timeout, self.endpoint)
+                                      self.timeout, self.endpoint)
             self.up_form = FormUpload(self.bucket, self.secret,
-                                        self.timeout, self.endpoint)
+                                      self.timeout, self.endpoint)
 
     # --- public rest API
     def usage(self, key='/'):
@@ -91,7 +91,7 @@ class UpYun(object):
 
 # --- no use yet, need developing
 def verify_put_sign(value, secret):
-    keys = ['code', 'message', 'url', 'time',
+    KEYS = ['code', 'message', 'url', 'time',
             'form_api_secret', 'ext-param',]
     data = []
 
@@ -103,11 +103,11 @@ def verify_put_sign(value, secret):
     else:
         value['form_api_secret'] = secret
         sign = value['sign']
-    for k in keys:
+    for k in KEYS:
         if k == 'url':
             data.append(encode_msg(value[k]))
         elif k in value:
-            data.append(str(value[k]))
+            data.append(builtin_str(value[k]))
     signature = '&'.join(data)
     return sign == make_content_md5(b(signature))
 

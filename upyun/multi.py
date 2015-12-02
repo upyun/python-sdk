@@ -3,16 +3,14 @@
 import os
 import time
 import math
-import json
 import itertools
 import threading
 from multiprocessing.dummy import Pool as ThreadPool
 
 from .modules.httpipe import UpYunHttp
-from .modules.compat import urlencode, str, b
+from .modules.compat import urlencode, b
 from .modules.exception import UpYunServiceException, UpYunClientException
-from .modules.sign import make_policy, make_signature, \
-                            make_content_md5, decode_msg, encode_msg
+from .modules.sign import make_policy, make_signature, make_content_md5
 
 class Multipart(object):
     def __init__(self, bucket, secret, timeout, endpoint):
@@ -83,7 +81,7 @@ class Multipart(object):
     def __block_upload(self, index, parms):
         status, value, file_size, block_size, expiration, \
                        save_token, token_secret, lock = parms
-        # if status[index] is already 1, skip it 
+        # if status[index] is already 1, skip it
         if status[index]:
             return status
         start_position = index * block_size
@@ -92,7 +90,8 @@ class Multipart(object):
         else:
             end_position = start_position + block_size
 
-        file_block = self.__read_block(value, start_position, end_position, lock)
+        file_block = self.__read_block(value, start_position,
+                                       end_position, lock)
         block_hash = make_content_md5(file_block)
 
         data = {'expiration': expiration, 'block_index': index,
@@ -144,7 +143,7 @@ class Multipart(object):
         try:
             content = resp.json()
         except Exception as e:
-            raise UpYunClientException(str(e))
+            raise UpYunClientException(e)
         return content
 
     def __upload_success(self, status):

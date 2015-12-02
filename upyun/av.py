@@ -37,7 +37,7 @@ class AvPretreatment(object):
 
     def status(self, taskids):
         data = {}
-        if type(taskids) == str:
+        if type(taskids) == 'str':
             taskids = taskids.split(',')
         if type(taskids) == list and len(taskids) <= 20:
             taskids = ','.join(taskids)
@@ -56,7 +56,6 @@ class AvPretreatment(object):
     def verify_tasks(self, data):
         assert isinstance(data, dict)
         data = self.__set_params_by_post(data)
-        print data
         if data.has_key('signature'):
             signature = data['signature']
             del data['signature']
@@ -96,7 +95,7 @@ class AvPretreatment(object):
         try:
             content = resp.json()
         except Exception as e:
-            raise UpYunClientException(str(e))
+            raise UpYunClientException(e)
         return content
 
     def __set_params_by_post(self, value):
