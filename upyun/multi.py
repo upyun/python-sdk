@@ -14,7 +14,7 @@ from .modules.sign import make_policy, make_signature, make_content_md5
 
 
 class Multipart(object):
-    def __init__(self, bucket, secret, timeout, endpoint):
+    def __init__(self, bucket, secret, timeout, endpoint, debug):
         self.bucket = bucket
         self.secret = secret
         self.hp = UpYunHttp(timeout)

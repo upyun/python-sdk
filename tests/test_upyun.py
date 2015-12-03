@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import io
 import os
 import sys
@@ -14,6 +13,7 @@ else:
 curpath = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, curpath)
 
+
 def b(s):
     PY3 = sys.version_info[0] == 3
 
@@ -27,15 +27,17 @@ import upyun
 BUCKET = os.getenv('UPYUN_BUCKET')
 USERNAME = os.getenv('UPYUN_USERNAME')
 PASSWORD = os.getenv('UPYUN_PASSWORD')
-BUCKET_TYPE = os.getenv('UPYUN_BUCKET_TYPE') or 'F'
 SECRET = os.getenv('UPYUN_SECRET')
+
+
+def rootpath():
+    return '/pysdk-%s/' % uuid.uuid4().hex
+
 
 class DjangoFile(io.BytesIO):
     def __len__(self):
         return len(self.getvalue())
 
-def rootpath():
-    return '/pysdk-%s/' % uuid.uuid4().hex
 
 class TestUpYun(unittest.TestCase):
     def setUp(self):
@@ -48,7 +50,8 @@ class TestUpYun(unittest.TestCase):
             f.write('abcdefghijklmnopqrstuvwxyz')
 
     def tearDown(self):
-        for item in ['test.png', 'test.txt', 'test/test.png', 'test', 'test.mp4']:
+        for item in ['test.png', 'test.txt',
+                     'test/test.png', 'test', 'test.mp4']:
             try:
                 self.up.delete(self.root + item)
             except upyun.UpYunServiceException:
@@ -58,6 +61,9 @@ class TestUpYun(unittest.TestCase):
             self.up.getinfo(self.root)
         self.assertEqual(se.exception.status, 404)
         os.remove('tests/bigfile.txt')
+
+    def test_getenv_info(self):
+        upyun.UpYun(None).getinfo('/')
 
     def test_auth_failed(self):
         with self.assertRaises(upyun.UpYunServiceException) as se:
@@ -69,17 +75,16 @@ class TestUpYun(unittest.TestCase):
             e = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
                             secret='secret', timeout=3)
             with open('tests/test.png', 'rb') as f:
-                res = e.put(self.root + 'test.png', f,
-                            checksum=False, multipart=True)
+                e.put(self.root + 'test.png', f,
+                      checksum=False, multipart=True)
         self.assertEqual(se.exception.status, 401)
 
     def test_form_secret_failed(self):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             e = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
-                                    secret='secret', timeout=3)
+                            secret='secret', timeout=3)
             with open('tests/test.png', 'rb') as f:
-                res = e.put(self.root + 'test.png', f,
-                            checksum=False, form=True)
+                e.put(self.root + 'test.png', f, checksum=False, form=True)
         self.assertEqual(se.exception.status, 401)
 
     def test_client_exception(self):
@@ -100,7 +105,6 @@ class TestUpYun(unittest.TestCase):
         res = self.up.usage()
         self.assertGreaterEqual(int(res), 0)
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
     def test_put_directly(self):
         self.up.put(self.root + 'test.txt', 'abcdefghijklmnopqrstuvwxyz\n')
         res = self.up.get(self.root + 'test.txt')
@@ -234,7 +238,6 @@ class TestUpYun(unittest.TestCase):
         res = self.up.purge('/test.png', 'invalid.upyun.com')
         self.assertListEqual(res, [u'/test.png', u''])
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
     def test_filelike_object_flask(self):
         class ProgressBarHandler(object):
             def __init__(self, totalsize, params):
@@ -249,15 +252,14 @@ class TestUpYun(unittest.TestCase):
         self.assertDictEqual(res, {})
         f.close()
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
     def test_filelike_object_django(self):
         f = DjangoFile(b('www.upyun.com'))
         res = self.up.put(self.root + 'test.txt', f, checksum=False)
         self.assertDictEqual(res, {})
         f.close()
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support \
-                        file bucket and you have to specify bucket secret')
+    @unittest.skipUnless(SECRET, 'only support file bucket and '
+                                 'you have to specify bucket secret')
     def test_put_form(self):
         def __put(multi, **kwargs):
             with open('tests/test.png', 'rb') as f:
@@ -279,16 +281,16 @@ class TestUpYun(unittest.TestCase):
                 self.up.getinfo(self.root + 'test.png')
             self.assertEqual(se.exception.status, 404)
             self.assertEqual(len(se.exception.request_id), 66)
-        #test conflict upload method
+        # - test conflict upload method
         __put(True)
         __put(False)
         kwargs = {'allow-file-type': 'jpg,jpeg,png',
-                  'notify-url': 'http://upyun.com/notify/',
-                 }
+                  'notify-url': 'http://httpbin.org/post',
+                  }
         __put(False, **kwargs)
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F' or not SECRET, 'only support \
-                        file bucket and you have to specify bucket secret')
+    @unittest.skipUnless(SECRET, 'only support file bucket and '
+                                 'you have to specify bucket secret')
     def test_put_multipart(self):
         def __put(**kwargs):
             with open('tests/bigfile.txt', 'rb') as f:
@@ -307,20 +309,19 @@ class TestUpYun(unittest.TestCase):
             self.assertEqual(se.exception.status, 404)
             self.assertEqual(len(se.exception.request_id), 66)
         kwargs = {'allow-file-type': 'txt',
-                  'notify-url': 'http://upyun.com/notify/',
-                 }
+                  'notify-url': 'http://httpbin.org/post',
+                  }
         __put()
         __put(**kwargs)
 
-    @unittest.skipUnless(BUCKET_TYPE == 'F', 'only support file bucket')
     def test_pretreat(self):
         with open('tests/test.mp4', 'rb') as f:
             res = self.up.put(self.root + 'test.mp4', f, checksum=False)
         self.assertDictEqual(res, {})
-        tasks = [{'type': 'probe',}, {'type': 'video',}]
+        tasks = [{'type': 'probe', }, {'type': 'video', }]
 
         source = self.root + 'test.mp4'
-        notify_url = 'http://upyun.com/notify/'
+        notify_url = 'http://httpbin.org/post'
         ids = self.up.pretreat(tasks, source, notify_url)
         self.assertIsInstance(ids, list)
         tasks = self.up.status(ids)
@@ -334,14 +335,15 @@ class TestUpYun(unittest.TestCase):
 
     def test_put_sign(self):
         data = '{"code":200,' \
-                '"message":"ok",' \
-                '"url":"\/2015\/06\/17\/190623\/upload_QQ\u56fe\u7247201506' \
-                '011111206f7c696f0920f097d7eefd750334003e.png",' \
-                '"time":1434539183,' \
-                '"image-width":1024,' \
-                '"image-height":768,' \
-                '"image-frames":1,' \
-                '"image-type":"PNG",' \
-                '"sign":"086c46cfedfc22bfa2e4971a77530a76"}'
+            '"message":"ok",' \
+            '"url":"\/2015\/06\/17\/190623\/upload_QQ\u56fe\u7247201506' \
+            '011111206f7c696f0920f097d7eefd750334003e.png",' \
+            '"time":1434539183,' \
+            '"image-width":1024,' \
+            '"image-height":768,' \
+            '"image-frames":1,' \
+            '"image-type":"PNG",' \
+            '"sign":"086c46cfedfc22bfa2e4971a77530a76"}'
         data = json.loads(data)
-        self.assertEqual(upyun.verify_put_sign(data, 'lGetaXubhGezKp89+6iuOb5IaS3='), True)
+        secret = 'lGetaXubhGezKp89+6iuOb5IaS3='
+        self.assertEqual(upyun.verify_put_sign(data, secret), True)

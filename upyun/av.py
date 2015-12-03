@@ -22,7 +22,8 @@ class AvPretreatment(object):
             'signature',
             ]
 
-    def __init__(self, bucket, operator, password, chunksize, timeout):
+    def __init__(self, bucket, operator, password,
+                 chunksize, timeout, debug):
         self.bucket = bucket
         self.operator = operator
         self.password = password

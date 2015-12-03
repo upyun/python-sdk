@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import json
+import os
 
 from .rest import UpYunRest
 from .form import FormUpload
@@ -10,6 +11,7 @@ from .av import AvPretreatment
 from .modules.exception import UpYunClientException
 from .modules.compat import b, builtin_str
 from .modules.sign import make_content_md5, encode_msg
+from .modules.check import has_object
 
 __version__ = '2.3.0'
 
@@ -20,28 +22,42 @@ DEFAULT_CHUNKSIZE = 8192
 
 
 class UpYun(object):
-    def __init__(self, bucket, username, password, secret=None,
-                 timeout=None, endpoint=None, chunksize=None):
+    def __init__(self, bucket, username=None, password=None, secret=None,
+                 timeout=None, endpoint=None, chunksize=None, debug=False):
         super(UpYun, self).__init__()
-        self.bucket = bucket
-        self.username = username
+        self.bucket = bucket or os.getenv('UPYUN_BUCKET')
+        self.username = username or os.getenv('UPYUN_USERNAME')
+        password = password or os.getenv('UPYUN_PASSWORD')
         self.password = hashlib.md5(b(password)).hexdigest()
         self.endpoint = endpoint or ED_AUTO
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
-        self.secret = secret
+        self.secret = secret or os.getenv('UPYUN_SECRET')
         self.timeout = timeout or 60
         self.up_rest = UpYunRest(self.bucket, self.username,
                                  self.password, self.timeout,
-                                 self.endpoint, self.chunksize)
+                                 self.endpoint, self.chunksize, debug)
         self.av = AvPretreatment(self.bucket, self.username, self.password,
-                                 self.chunksize, self.timeout)
+                                 self.chunksize, self.timeout, debug)
         if self.secret:
             self.up_multi = Multipart(self.bucket, self.secret,
-                                      self.timeout, self.endpoint)
+                                      self.timeout, self.endpoint, debug)
             self.up_form = FormUpload(self.bucket, self.secret,
-                                      self.timeout, self.endpoint)
+                                      self.timeout, self.endpoint, debug)
+
+        if debug:
+            self.__init_debug_log(bucket=bucket, username=username,
+                                  password=password, secret=secret,
+                                  timeout=timeout, endpoint=endpoint,
+                                  chunksize=chunksize, debug=debug)
+
+    def __init_debug_log(self, **kwargs):
+        with open('debug.log', "w") as f:
+            pass
+            # f.write("### Running in debug mode ###")
+            # f.write('\n'.join(map(lambda kv: "%s: %s" % for kv[0], kv[1] in kwargs.items())))
 
     # --- public rest API
+    @has_object('up_rest')
     def usage(self, key='/'):
         return self.up_rest.usage(key)
 
@@ -62,31 +78,40 @@ class UpYun(object):
         return self.up_rest.put(key, value, checksum,
                                 headers, handler, params, secret)
 
+    @has_object('up_rest')
     def get(self, key, value=None, handler=None, params=None):
         return self.up_rest.get(key, value, handler, params)
 
+    @has_object('up_rest')
     def delete(self, key):
         self.up_rest.delete(key)
 
+    @has_object('up_rest')
     def mkdir(self, key):
         self.up_rest.mkdir(key)
 
+    @has_object('up_rest')
     def getlist(self, key='/'):
         return self.up_rest.getlist(key)
 
+    @has_object('up_rest')
     def getinfo(self, key):
         return self.up_rest.getinfo(key)
 
+    @has_object('up_rest')
     def purge(self, keys, domain=None):
         return self.up_rest.purge(keys, domain)
 
     # --- video pretreatment API
+    @has_object('av')
     def pretreat(self, tasks, source, notify_url=''):
         return self.av.pretreat(tasks, source, notify_url)
 
+    @has_object('av')
     def status(self, taskids):
         return self.av.status(taskids)
 
+    @has_object('av')
     def verify_tasks(self, value):
         return self.av.verify_tasks(value)
 

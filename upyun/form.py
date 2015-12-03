@@ -9,7 +9,7 @@ from .modules.httpipe import UpYunHttp
 
 
 class FormUpload(object):
-    def __init__(self, bucket, secret, timeout, endpoint):
+    def __init__(self, bucket, secret, timeout, endpoint, debug):
         self.bucket = bucket
         self.secret = secret
         self.hp = UpYunHttp(timeout)

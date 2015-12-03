@@ -50,7 +50,7 @@ class UploadObject(object):
 
 class UpYunRest(object):
     def __init__(self, bucket, username, password,
-                 timeout, endpoint, chunksize):
+                 timeout, endpoint, chunksize, debug):
         self.bucket = bucket
         self.username = username
         self.password = password
