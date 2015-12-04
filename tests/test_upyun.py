@@ -61,7 +61,6 @@ class TestUpYun(unittest.TestCase):
             self.up.getinfo(self.root)
         self.assertEqual(se.exception.status, 404)
         os.remove('tests/bigfile.txt')
-        os.remove('debug.log')
 
     def test_getenv_info(self):
         upyun.UpYun(None).getinfo('/')
@@ -70,6 +69,7 @@ class TestUpYun(unittest.TestCase):
         up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, SECRET,
                          endpoint=upyun.ED_TELECOM, debug=True)
         up.getinfo('/')
+        os.remove('debug.log')
 
     def test_auth_failed(self):
         with self.assertRaises(upyun.UpYunServiceException) as se:
