@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import os
 
 from .modules.sign import make_rest_signature,\
@@ -56,7 +55,7 @@ class UpYunRest(object):
         self.password = password
         self.chunksize = chunksize
         self.endpoint = endpoint
-        self.hp = UpYunHttp(timeout)
+        self.hp = UpYunHttp(timeout, debug)
 
     # --- public API
     def usage(self, key):

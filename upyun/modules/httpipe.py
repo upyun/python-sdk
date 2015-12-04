@@ -28,8 +28,9 @@ def cur_dt():
 
 
 class UpYunHttp(object):
-    def __init__(self, timeout):
+    def __init__(self, timeout, debug):
         self.timeout = timeout
+        self.debug = debug
         self.session = requests.Session()
         self.user_agent = None
 
@@ -40,6 +41,17 @@ class UpYunHttp(object):
         url = 'http://%s%s' % (host, uri)
         requests.adapters.DEFAULT_RETRIES = 5
         headers = self.__set_headers(headers)
+
+        if self.debug:
+            with open('debug.log', 'a') as f:
+                f.write('\n\n## Http request params ##\n\n')
+                kwargs = {'method': method, 'host': host, 'uri': uri,
+                          'value': value, 'headers': headers,
+                          'stream': stream, 'files': files,
+                          'timeout': self.timeout,
+                          }
+                f.write('\n'.join(map(lambda kv: '%s: %s'
+                                  % (kv[0], kv[1]), kwargs.items())))
 
         try:
             resp = self.session.request(method, url, data=value,
@@ -54,6 +66,14 @@ class UpYunHttp(object):
             if status / 100 != 2:
                 msg = resp.reason
                 err = resp.text
+
+            if self.debug:
+                with open('debug.log', 'a') as f:
+                    f.write('\n\n## Http responds ##\n\n')
+                    kwargs = {'request_id': request_id, 'status': status,
+                              'msg': msg, 'err': err}
+                    f.write('\n'.join(map(lambda kv: '%s: %s'
+                                      % (kv[0], kv[1]), kwargs.items())))
 
         except requests.exceptions.ConnectionError as e:
             raise UpYunClientException(e)

@@ -33,6 +33,7 @@ class UpYun(object):
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.secret = secret or os.getenv('UPYUN_SECRET')
         self.timeout = timeout or 60
+
         self.up_rest = UpYunRest(self.bucket, self.username,
                                  self.password, self.timeout,
                                  self.endpoint, self.chunksize, debug)
@@ -51,10 +52,11 @@ class UpYun(object):
                                   chunksize=chunksize, debug=debug)
 
     def __init_debug_log(self, **kwargs):
-        with open('debug.log', "w") as f:
-            pass
-            # f.write("### Running in debug mode ###")
-            # f.write('\n'.join(map(lambda kv: "%s: %s" % for kv[0], kv[1] in kwargs.items())))
+        with open('debug.log', 'w') as f:
+            f.write('### Running in debug mode ###\n\n\n')
+            f.write('## Initial params ##\n\n')
+            f.write('\n'.join(map(lambda kv: '%s: %s'
+                              % (kv[0], kv[1]), kwargs.items())))
 
     # --- public rest API
     @has_object('up_rest')

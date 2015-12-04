@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import os
 import time
 import math
@@ -17,8 +16,8 @@ class Multipart(object):
     def __init__(self, bucket, secret, timeout, endpoint, debug):
         self.bucket = bucket
         self.secret = secret
-        self.hp = UpYunHttp(timeout)
-        self.host = "m0.api.upyun.com"
+        self.hp = UpYunHttp(timeout, debug)
+        self.host = 'm0.api.upyun.com'
         self.uri = '/%s/' % bucket
 
     # --- public API

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import time
 
 from .modules.exception import UpYunClientException
@@ -12,7 +11,7 @@ class FormUpload(object):
     def __init__(self, bucket, secret, timeout, endpoint, debug):
         self.bucket = bucket
         self.secret = secret
-        self.hp = UpYunHttp(timeout)
+        self.hp = UpYunHttp(timeout, debug)
         self.host = endpoint
         self.uri = '/%s/' % bucket
 

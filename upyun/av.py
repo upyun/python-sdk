@@ -28,7 +28,7 @@ class AvPretreatment(object):
         self.operator = operator
         self.password = password
         self.chunksize = chunksize
-        self.hp = UpYunHttp(timeout)
+        self.hp = UpYunHttp(timeout, debug)
 
     # --- public API
     def pretreat(self, tasks, source, notify_url=''):
