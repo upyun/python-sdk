@@ -3,7 +3,7 @@
 [![pypi package](https://badge.fury.io/py/upyun.png)](http://badge.fury.io/py/upyun) [![Build
 Status](https://travis-ci.org/upyun/python-sdk.svg?branch=master)](https://travis-ci.org/upyun/python-sdk)
 
-又拍云存储 Python SDK，基于 [又拍云存储 HTTP REST API 接口](http://docs.upyun.com/api/rest_api/) 开发。
+又拍云存储 Python SDK，集合 [又拍云存储 HTTP REST 接口](http://docs.upyun.com/api/rest_api/), [又拍云存储 HTTP FORM 接口](http://docs.upyun.com/api/form_api/), [分块上传](http://docs.upyun.com/api/multipart_upload/)和[视频处理](http://docs.upyun.com/api/av_pretreatment/) 全功能 API 接口。
 
 ### 更新说明
 
@@ -92,7 +92,6 @@ with open('unix.png', 'rb') as f:
 
 ```
 {'frames': '1', 'width': '1280', 'file-type': 'PNG', 'height': '800'}
-
 ```
 
 上传失败，则抛出相应异常。
@@ -105,8 +104,7 @@ with open('unix.png', 'rb') as f:
 
 ```python
 kwargs = { 'allow-file-type': 'jpg,jpeg,png',
-            'notify-url': 'http://httpbin.org/post',
-            }
+            'notify-url': 'http://httpbin.org/post', }
 
 with open('unix.png', 'rb') as f:
     res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, form=True, kwargs=kwargs)
@@ -128,8 +126,7 @@ with open('unix.png', 'rb') as f:
 
 ```python
 kwargs = { 'allow-file-type': 'jpg,jpeg,png', 
-            'notify-url': 'http://httpbin.org/post',
-            }
+            'notify-url': 'http://httpbin.org/post', }
 
 with open('unix.png', 'rb') as f:
     res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, multipart=True, block_size=1024*1024, kwargs=kwargs)
@@ -274,7 +271,6 @@ up.pretreat(tasks, source, notify_url)
 ### 视频处理进度查询
 
 ```python
-
 ids = ['35f0148d414a688a275bf915ba7cebb2','98adbaa52b2f63d6d7f327a0ff223348', ...]
 up.status(ids)
 ```
