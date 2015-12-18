@@ -95,11 +95,19 @@ class UploadObject(object):
 class UpYun(object):
 
     def __init__(self, bucket, username, password,
-                 timeout=None, endpoint=None, chunksize=None, human=True):
+                 timeout=None, endpoint=None, chunksize=None, human=True,
+                 read_timeout=None):
+        """
+        :param read_timeout: if not None, read_timeout is set separately from connection timeout
+        """
         self.bucket = bucket
         self.username = username
         self.password = hashlib.md5(b(password)).hexdigest()
         self.timeout = timeout or 60
+        if read_timeout is not None:
+            self.requests_timeout = (self.timeout, read_timeout)
+        else:
+            self.requests_timeout = self.timeout
         self.endpoint = endpoint or ED_AUTO
         self.user_agent = None
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
@@ -192,7 +200,7 @@ class UpYun(object):
         try:
             if self.human_mode:
                 resp = self.session.post('http://' + ''.join(api), data=params,
-                                         timeout=self.timeout, headers=headers)
+                                         timeout=self.requests_timeout, headers=headers)
                 resp.encoding = 'utf-8'
                 status = resp.status_code
                 if status / 100 == 2:
@@ -388,7 +396,7 @@ class UpYun(object):
         try:
             resp = self.session.request(method, URL, data=value,
                                         headers=headers, stream=stream,
-                                        timeout=self.timeout)
+                                        timeout=self.requests_timeout)
             resp.encoding = 'utf-8'
             try:
                 request_id = resp.headers["X-Request-Id"]
