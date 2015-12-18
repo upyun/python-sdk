@@ -98,7 +98,8 @@ class UpYun(object):
                  timeout=None, endpoint=None, chunksize=None, human=True,
                  read_timeout=None):
         """
-        :param read_timeout: if not None, read_timeout is set separately from connection timeout
+        :param read_timeout: if not None
+            read_timeout is set separately from connection timeout
         """
         self.bucket = bucket
         self.username = username
@@ -199,8 +200,10 @@ class UpYun(object):
 
         try:
             if self.human_mode:
-                resp = self.session.post('http://' + ''.join(api), data=params,
-                                         timeout=self.requests_timeout, headers=headers)
+                resp = self.session.post('http://' + ''.join(api),
+                                         data=params,
+                                         timeout=self.requests_timeout,
+                                         headers=headers)
                 resp.encoding = 'utf-8'
                 status = resp.status_code
                 if status / 100 == 2:
