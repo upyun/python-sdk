@@ -4,14 +4,13 @@ import time
 from .modules.exception import UpYunClientException
 from .modules.sign import make_content_md5, make_policy
 from .modules.compat import b
-from .modules.httpipe import UpYunHttp
 
 
 class FormUpload(object):
-    def __init__(self, bucket, secret, timeout, endpoint, debug):
+    def __init__(self, bucket, secret, endpoint, hp):
         self.bucket = bucket
         self.secret = secret
-        self.hp = UpYunHttp(timeout, debug)
+        self.hp = hp
         self.host = endpoint
         self.uri = '/%s/' % bucket
 

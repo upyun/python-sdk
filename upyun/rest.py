@@ -5,7 +5,7 @@ from .modules.sign import make_rest_signature,\
     make_content_md5, encode_msg
 from .modules.exception import UpYunClientException
 from .modules.compat import b, str, quote, urlencode, builtin_str
-from .modules.httpipe import UpYunHttp, cur_dt
+from .modules.httpipe import cur_dt
 
 
 def get_fileobj_size(fileobj):
@@ -49,13 +49,13 @@ class UploadObject(object):
 
 class UpYunRest(object):
     def __init__(self, bucket, username, password,
-                 timeout, endpoint, chunksize, debug):
+                 endpoint, chunksize, hp):
         self.bucket = bucket
         self.username = username
         self.password = password
         self.chunksize = chunksize
         self.endpoint = endpoint
-        self.hp = UpYunHttp(timeout, debug)
+        self.hp = hp
 
     # --- public API
     def usage(self, key):

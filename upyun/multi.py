@@ -6,17 +6,16 @@ import itertools
 import threading
 from multiprocessing.dummy import Pool as ThreadPool
 
-from .modules.httpipe import UpYunHttp
 from .modules.compat import urlencode, b
 from .modules.exception import UpYunServiceException, UpYunClientException
 from .modules.sign import make_policy, make_signature, make_content_md5
 
 
 class Multipart(object):
-    def __init__(self, bucket, secret, timeout, endpoint, debug):
+    def __init__(self, bucket, secret, endpoint, hp):
         self.bucket = bucket
         self.secret = secret
-        self.hp = UpYunHttp(timeout, debug)
+        self.hp = hp
         self.host = 'm0.api.upyun.com'
         self.uri = '/%s/' % bucket
 

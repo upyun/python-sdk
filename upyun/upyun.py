@@ -8,6 +8,7 @@ from .form import FormUpload
 from .multi import Multipart
 from .av import AvPretreatment
 
+from .modules.httpipe import UpYunHttp
 from .modules.exception import UpYunClientException
 from .modules.compat import b, builtin_str
 from .modules.sign import make_content_md5, encode_msg
@@ -23,7 +24,8 @@ DEFAULT_CHUNKSIZE = 8192
 
 class UpYun(object):
     def __init__(self, bucket, username=None, password=None, secret=None,
-                 timeout=None, endpoint=None, chunksize=None, debug=False):
+                 timeout=None, endpoint=None, chunksize=None, debug=False,
+                 read_timeout=None):
         super(UpYun, self).__init__()
         self.bucket = bucket or os.getenv('UPYUN_BUCKET')
         self.username = username or os.getenv('UPYUN_USERNAME')
@@ -33,17 +35,23 @@ class UpYun(object):
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.secret = secret or os.getenv('UPYUN_SECRET')
         self.timeout = timeout or 60
+        if read_timeout is not None:
+            self.requests_timeout = (self.timeout, read_timeout)
+        else:
+            self.requests_timeout = self.timeout
+        self.hp = UpYunHttp(self.requests_timeout, debug)
 
         self.up_rest = UpYunRest(self.bucket, self.username,
-                                 self.password, self.timeout,
-                                 self.endpoint, self.chunksize, debug)
-        self.av = AvPretreatment(self.bucket, self.username, self.password,
-                                 self.chunksize, self.timeout, debug)
+                                 self.password, self.endpoint,
+                                 self.chunksize, self.hp)
+        self.av = AvPretreatment(self.bucket, self.username,
+                                 self.password, self.chunksize,
+                                 self.hp)
         if self.secret:
             self.up_multi = Multipart(self.bucket, self.secret,
-                                      self.timeout, self.endpoint, debug)
+                                      self.endpoint, self.hp)
             self.up_form = FormUpload(self.bucket, self.secret,
-                                      self.timeout, self.endpoint, debug)
+                                      self.endpoint, self.hp)
 
         if debug:
             self.__init_debug_log(bucket=bucket, username=username,

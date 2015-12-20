@@ -3,7 +3,6 @@
 import json
 import base64
 
-from .modules.httpipe import UpYunHttp
 from .modules.compat import urlencode, b
 from .modules.exception import UpYunClientException, UpYunServiceException
 from .modules.sign import make_av_signature, decode_msg
@@ -23,12 +22,12 @@ class AvPretreatment(object):
             ]
 
     def __init__(self, bucket, operator, password,
-                 chunksize, timeout, debug):
+                 chunksize, hp):
         self.bucket = bucket
         self.operator = operator
         self.password = password
         self.chunksize = chunksize
-        self.hp = UpYunHttp(timeout, debug)
+        self.hp = hp
 
     # --- public API
     def pretreat(self, tasks, source, notify_url=''):
