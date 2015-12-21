@@ -321,7 +321,7 @@ class TestUpYun(unittest.TestCase):
         __put(**kwargs)
 
     def test_pretreat(self):
-        with open('tests/test.mp4', 'rb') as f:
+        with open('/tmp/test.mp4', 'rb') as f:
             res = self.up.put(self.root + 'test.mp4', f, checksum=False)
         self.assertDictEqual(res, {})
         tasks = [{'type': 'probe', }, {'type': 'video', }]
