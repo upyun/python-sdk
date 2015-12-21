@@ -93,6 +93,7 @@ class TestUpYun(unittest.TestCase):
                 e.put(self.root + 'test.png', f, checksum=False, form=True)
         self.assertEqual(se.exception.status, 401)
 
+    @unittest.skipUnless(SECRET, 'you have to specify bucket secret')
     def test_client_exception(self):
         with self.assertRaises(upyun.UpYunClientException):
             e = upyun.UpYun('bucket', 'username', 'password', timeout=3)
@@ -264,8 +265,7 @@ class TestUpYun(unittest.TestCase):
         self.assertDictEqual(res, {})
         f.close()
 
-    @unittest.skipUnless(SECRET, 'only support file bucket and '
-                                 'you have to specify bucket secret')
+    @unittest.skipUnless(SECRET, 'you have to specify bucket secret')
     def test_put_form(self):
         def __put(multi, **kwargs):
             with open('tests/test.png', 'rb') as f:
@@ -295,8 +295,7 @@ class TestUpYun(unittest.TestCase):
                   }
         __put(False, **kwargs)
 
-    @unittest.skipUnless(SECRET, 'only support file bucket and '
-                                 'you have to specify bucket secret')
+    @unittest.skipUnless(SECRET, 'you have to specify bucket secret')
     def test_put_multipart(self):
         def __put(**kwargs):
             with open('tests/bigfile.txt', 'rb') as f:
