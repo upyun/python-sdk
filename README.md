@@ -3,7 +3,7 @@
 [![pypi package](https://badge.fury.io/py/upyun.png)](http://badge.fury.io/py/upyun) [![Build
 Status](https://travis-ci.org/upyun/python-sdk.svg?branch=master)](https://travis-ci.org/upyun/python-sdk)
 
-又拍云存储 Python SDK，集合 [又拍云存储 HTTP REST 接口](http://docs.upyun.com/api/rest_api/), [又拍云存储 HTTP FORM 接口](http://docs.upyun.com/api/form_api/), [分块上传](http://docs.upyun.com/api/multipart_upload/)和[视频处理](http://docs.upyun.com/api/av_pretreatment/) 全功能 API 接口。
+又拍云存储 Python SDK，集合 [又拍云存储 HTTP REST 接口](http://docs.upyun.com/api/rest_api/)，[又拍云存储 HTTP FORM 接口](http://docs.upyun.com/api/form_api/)，[分块上传](http://docs.upyun.com/api/multipart_upload/) 和 [视频处理接口](http://docs.upyun.com/api/av_pretreatment/)。
 
 ### 更新说明
 
@@ -30,12 +30,6 @@ export UPYUN_PASSWORD=<password>
 make init test
 ```
 
-特别地，若为图片空间还需在运行前指定如下环境变量：
-
-```
-export UPYUN_BUCKET_TYPE=P
-```
-
 ## 基本函数接口
 
 ### 初始化 UpYun
@@ -48,7 +42,7 @@ up = upyun.UpYun('bucket', 'username', 'password', 'secret', timeout=30, endpoin
 
 其中，参数 `bucket` 为空间名称，必选。
 
-`username` , `password` 和 `secret` 分别为授权操作员帐号, 密码和空间表单 API, 默认为 `Null`, 可选。当使用表单或者分块上传时, 可不填 `username` 及 `password` 参数, 但 `sercret` 参数必选. 其他情况下, `secret` 参数可选, 而 `username` 及 `password` 参数必选. `timeout` 为 HTTP 请求超时时间，默认 60 秒，可选。
+`username` , `password` 和 `secret` 分别为授权操作员帐号, 密码和空间表单 API 密钥, 默认为 `None`, 可选。当使用表单或者分块上传时, 可不填 `username` 及 `password` 参数, 但 `sercret` 参数必选。 其他情况下, `secret` 参数可选, 而 `username` 及 `password` 参数必选。 `timeout` 为 HTTP 请求超时时间，默认 60 秒，可选。
 
 以及，根据国内的网络情况，又拍云存储 API 目前提供了电信、联通网通、移动铁通三个接入点，在初始化时可由参数 `endpoint` 进行设置，其可选的值有：
 
@@ -86,7 +80,7 @@ with open('unix.png', 'rb') as f:
     res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, headers=headers)
 ```
 
-其中，参数 `checksum` 和 `headers` 可选，前者默认 False，表示不进行 MD5 校验; 后者可根据需求设置自定义 HTTP Header，例如作图参数 x-gmkerl-*, 具体请参考 [标准 API 上传文件](http://docs.upyun.com/api/rest_api/#_4) 。
+其中，参数 `checksum` 和 `headers` 可选，前者默认 False，表示不进行 MD5 校验; 后者可根据需求设置自定义 HTTP Header，例如作图参数 x-gmkerl-*, 具体请参考 [REST API 上传文件](http://docs.upyun.com/api/rest_api/#_4) 。
 
 上传成功，如果当前空间是图片空间，那么 `res` 返回的是一个包含图片长、宽、帧数和类型信息的 Python Dict 对象 (文件空间，返回一个空的 Dict)：
 
