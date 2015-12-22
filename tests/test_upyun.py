@@ -239,11 +239,11 @@ class TestUpYun(unittest.TestCase):
 
     def test_purge(self):
         res = self.up.purge('/test.png')
-        self.assertListEqual(res, [u''])
+        self.assertListEqual(res, [])
         res = self.up.purge(['/test.png', 'test/test.png'])
-        self.assertListEqual(res, [u''])
+        self.assertListEqual(res, [])
         res = self.up.purge('/test.png', 'invalid.upyun.com')
-        self.assertListEqual(res, [u'/test.png', u''])
+        self.assertListEqual(res, [u'/test.png'])
 
     def test_filelike_object_flask(self):
         class ProgressBarHandler(object):
