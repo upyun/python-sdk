@@ -42,7 +42,7 @@ class DjangoFile(io.BytesIO):
 class TestUpYun(unittest.TestCase):
     def setUp(self):
         self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, SECRET,
-                              timeout=100, endpoint=upyun.ED_TELECOM)
+                              timeout=100, endpoint=upyun.ED_AUTO)
         self.root = rootpath()
         self.up.mkdir(self.root)
         with open('tests/bigfile.txt', 'w') as f:
@@ -67,7 +67,7 @@ class TestUpYun(unittest.TestCase):
 
     def test_debug_func(self):
         up = upyun.UpYun(BUCKET, USERNAME, PASSWORD, SECRET,
-                         endpoint=upyun.ED_TELECOM, debug=True)
+                         endpoint=upyun.ED_AUTO, debug=True)
         up.getinfo('/')
         os.remove('debug.log')
 
