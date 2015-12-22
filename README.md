@@ -1,7 +1,7 @@
 # UPYUN Python SDK
 
 [![pypi package](https://badge.fury.io/py/upyun.png)](http://badge.fury.io/py/upyun) [![Build
-Status](https://travis-ci.org/upyun/python-sdk.svg?branch=master)](https://travis-ci.org/upyun/python-sdk)
+Status](https://travis-ci.org/upyun/python-sdk.svg)](https://travis-ci.org/upyun/python-sdk)
 
 又拍云存储 Python SDK，集合 [又拍云存储 HTTP REST 接口](http://docs.upyun.com/api/rest_api/)，[又拍云存储 HTTP FORM 接口](http://docs.upyun.com/api/form_api/)，[分块上传](http://docs.upyun.com/api/multipart_upload/) 和 [视频处理接口](http://docs.upyun.com/api/av_pretreatment/)。
 
