@@ -6,10 +6,5 @@ python:
   - 3.4
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
-before_script:
-  - export UPYUN_BUCKET=pysdk
-  - export UPYUN_USERNAME=pysdk
-  - export UPYUN_PASSWORD=BQzwgG9tvw6FWb
-  - export UPYUN_BUCKET_TYPE=P
 script:
   - make init test
