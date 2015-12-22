@@ -79,7 +79,7 @@ class TestUpYun(unittest.TestCase):
     def test_multipart_secret_failed(self):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             e = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
-                            secret='secret', timeout=3)
+                            secret='secret', timeout=100)
             with open('tests/test.png', 'rb') as f:
                 e.put(self.root + 'test.png', f,
                       checksum=False, multipart=True)
@@ -88,7 +88,7 @@ class TestUpYun(unittest.TestCase):
     def test_form_secret_failed(self):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             e = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
-                            secret='secret', timeout=3)
+                            secret='secret', timeout=100)
             with open('tests/test.png', 'rb') as f:
                 e.put(self.root + 'test.png', f, checksum=False, form=True)
         self.assertEqual(se.exception.status, 401)
@@ -96,11 +96,11 @@ class TestUpYun(unittest.TestCase):
     @unittest.skipUnless(SECRET, 'you have to specify bucket secret')
     def test_client_exception(self):
         with self.assertRaises(upyun.UpYunClientException):
-            e = upyun.UpYun('bucket', 'username', 'password', timeout=3)
+            e = upyun.UpYun('bucket', 'username', 'password', timeout=100)
             e.up_rest.endpoint = 'e.api.upyun.com'
             e.getinfo('/')
         with self.assertRaises(upyun.UpYunServiceException):
-            e = upyun.UpYun('bucket', 'username', 'password', timeout=3)
+            e = upyun.UpYun('bucket', 'username', 'password', timeout=100)
             with open('tests/test.png', 'rb') as f:
                 e.put(self.root + 'test.png', f, checksum=False, form=True)
 
