@@ -25,7 +25,7 @@ setup(
     author='Monkey Zhang (timebug)',
     author_email='timebug.info@gmail.com',
     url='https://github.com/upyun/python-sdk',
-    packages=['upyun'],
+    packages=['upyun', 'upyun.modules'],
     keywords=['upyun', 'python', 'sdk'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',

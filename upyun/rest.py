@@ -137,7 +137,7 @@ class UpYunRest(object):
                                     value=params, headers=headers)
         content = self.__handle_resp(resp, method, uri=uri)
         invalid_urls = content['invalid_domain_of_url']
-        return [k[7 + len(domain):] for k in invalid_urls]
+        return [k[7 + len(domain):] for k in invalid_urls if k]
 
     # --- private API
     def __do_http_request(self, method, key,
