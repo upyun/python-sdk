@@ -30,8 +30,8 @@ class UpYun(object):
         self.bucket = bucket or os.getenv('UPYUN_BUCKET')
         self.username = username or os.getenv('UPYUN_USERNAME')
         password = password or os.getenv('UPYUN_PASSWORD')
-        self.password = hashlib.md5(b(password)).hexdigest() if password \
-                else None
+        self.password = (hashlib.md5(b(password)).hexdigest()
+                         if password else None)
         self.endpoint = endpoint or ED_AUTO
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.secret = secret or os.getenv('UPYUN_SECRET')
