@@ -93,14 +93,16 @@ class TestUpYun(unittest.TestCase):
                 e.put(self.root + 'test.png', f, checksum=False, form=True)
         self.assertEqual(se.exception.status, 401)
 
-    @unittest.skipUnless(SECRET, 'you have to specify bucket secret')
     def test_client_exception(self):
         with self.assertRaises(upyun.UpYunClientException):
-            e = upyun.UpYun('bucket', 'username', 'password', timeout=100)
+            e = upyun.UpYun('bucket', username='username',
+                            password='password', timeout=100)
             e.up_rest.endpoint = 'e.api.upyun.com'
             e.getinfo('/')
-        with self.assertRaises(upyun.UpYunServiceException):
-            e = upyun.UpYun('bucket', 'username', 'password', timeout=100)
+        with self.assertRaises(upyun.UpYunClientException):
+            e = upyun.UpYun('bucket', username='username',
+                            password='password', timeout=100)
+            e.secret = None
             with open('tests/test.png', 'rb') as f:
                 e.put(self.root + 'test.png', f, checksum=False, form=True)
 
@@ -267,7 +269,7 @@ class TestUpYun(unittest.TestCase):
 
     @unittest.skipUnless(SECRET, 'you have to specify bucket secret')
     def test_put_form(self):
-        def __put(multi, **kwargs):
+        def __put(up, multi, kwargs={}):
             with open('tests/test.png', 'rb') as f:
                 res = self.up.put(self.root + 'test.png', f,
                                   checksum=False, form=True,
@@ -288,36 +290,44 @@ class TestUpYun(unittest.TestCase):
             self.assertEqual(se.exception.status, 404)
             self.assertEqual(len(se.exception.request_id), 66)
         # - test conflict upload method
-        __put(True)
-        __put(False)
+        up = upyun.UpYun(BUCKET, secret=SECRET,
+                         timeout=100, endpoint=upyun.ED_AUTO)
         kwargs = {'allow-file-type': 'jpg,jpeg,png',
                   'notify-url': 'http://httpbin.org/post',
                   }
-        __put(False, **kwargs)
+        __put(self.up, True)
+        __put(self.up, False)
+        __put(self.up, False, kwargs=kwargs)
+        __put(up, True)
 
     @unittest.skipUnless(SECRET, 'you have to specify bucket secret')
     def test_put_multipart(self):
-        def __put(**kwargs):
+        def __put(up, kwargs={}):
             with open('tests/bigfile.txt', 'rb') as f:
-                res = self.up.put(self.root + 'test_bigfile.txt', f,
-                                  checksum=False, multipart=True,
-                                  block_size=1024*1024, **kwargs)
+                res = up.put(self.root + 'test_bigfile.txt', f,
+                             checksum=False, multipart=True,
+                             block_size=1024*1024, **kwargs)
                 self.assertEqual(res['mimetype'], 'text/plain')
 
-            res = self.up.getinfo(self.root + 'test_bigfile.txt')
+            res = up.getinfo(self.root + 'test_bigfile.txt')
             self.assertIsInstance(res, dict)
             self.assertEqual(res['file-size'], '10485786')
             self.assertEqual(res['file-type'], 'file')
-            self.up.delete(self.root + 'test_bigfile.txt')
+            up.delete(self.root + 'test_bigfile.txt')
             with self.assertRaises(upyun.UpYunServiceException) as se:
-                self.up.getinfo(self.root + 'test_bigfile.txt')
+                up.getinfo(self.root + 'test_bigfile.txt')
             self.assertEqual(se.exception.status, 404)
             self.assertEqual(len(se.exception.request_id), 66)
         kwargs = {'allow-file-type': 'txt',
                   'notify-url': 'http://httpbin.org/post',
                   }
-        __put()
-        __put(**kwargs)
+        up = upyun.UpYun(BUCKET, secret=SECRET,
+                         timeout=100, endpoint=upyun.ED_AUTO)
+        up.up_multi.username = None
+        up.up_multi.password = None
+        __put(self.up)
+        __put(self.up, kwargs=kwargs)
+        __put(up)
 
     def test_pretreat(self):
         with open('/tmp/test.mp4', 'rb') as f:

@@ -47,7 +47,23 @@ up = upyun.UpYun('bucket', 'username', 'password', 'secret', timeout=30, endpoin
 
 其中，参数 `bucket` 为空间名称，必选。
 
-`username` , `password` 和 `secret` 分别为授权操作员帐号, 密码和空间表单 API 密钥, 默认为 `None`, 可选。当使用表单或者分块上传时, 可不填 `username` 及 `password` 参数, 但 `sercret` 参数必选。 其他情况下, `secret` 参数可选, 而 `username` 及 `password` 参数必选。 `timeout` 为 HTTP 请求超时时间，默认 60 秒，可选。
+`username` ，`password` 和 `secret` 分别为授权操作员帐号，密码和空间表单 API 密钥，默认为 `None`，可选。当使用表单或者分块上传时，可不填 `username` 及 `password` 参数，但 `sercret` 参数必选。 其他情况下，`secret` 参数可选，而 `username` 及 `password` 参数必选。 `timeout` 为 HTTP 请求超时时间，默认 60 秒，可选。
+
+###### 表单或分块上传接口初始化示例
+
+```python
+import upyun
+
+up = upyun.UpYun('bucket', secret='secret')
+```
+
+###### 其他接口初始化示例
+
+```python
+import upyun
+
+up = upyun.UpYun('bucket', username='username', password='password')
+```
 
 以及，根据国内的网络情况，UPYUN API 目前提供了电信、联通网通、移动铁通三个接入点，在初始化时可由参数 `endpoint` 进行设置，其可选的值有：
 
@@ -58,7 +74,13 @@ upyun.ED_CNC      # 联通网通接入点
 upyun.ED_CTT      # 移动铁通接入点
 ```
 
-默认设置为 `upyun.ED_AUTO` ， 但是我们推荐根据服务器网络状况，手动设置合理的接入点以获取最佳的访问速度。
+默认设置为 `upyun.ED_AUTO` ，但是我们推荐根据服务器网络状况，手动设置合理的接入点以获取最佳的访问速度。同时，也可通过：
+
+```python
+up.<api>.endpoint = upyun.ED_TELECOM
+```
+
+在对象使用过程中更改，其中 `<api>` 为你所要调用接口，REST 为 `up_rest`，分块为 `up_multi`，表单为 `up_form`，视频处理为 `av`。
 
 ### 上传文件
 
@@ -68,7 +90,7 @@ upyun.ED_CTT      # 移动铁通接入点
 up.put('/upyun-python-sdk/ascii.txt', 'abcdefghijklmnopqrstuvwxyz\n')
 ```
 
-其中，方法 `up.put` 默认已开启相应目录的自动创建。
+其中，方法 `up.put` 默认自动创建相应目录。
 
 #### 数据流方式上传，可降低内存占用
 
@@ -79,9 +101,9 @@ with open('unix.png', 'rb') as f:
     res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, headers=headers)
 ```
 
-其中，参数 `checksum` 和 `headers` 可选，前者默认 False，表示不进行 MD5 校验; 后者可根据需求设置自定义 HTTP Header，例如作图参数 x-gmkerl-*, 具体请参考 [REST API 上传文件](http://docs.upyun.com/api/rest_api/#_4) 。
+其中，参数 `checksum` 和 `headers` 可选，前者默认 False，表示不进行 MD5 校验; 后者可根据需求设置自定义 HTTP Header，例如作图参数 `x-gmkerl-*` ，具体请参考 [REST API 上传文件](http://docs.upyun.com/api/rest_api/#_4)。
 
-上传成功，如果当前空间是图片空间，那么 `res` 返回的是一个包含图片长、宽、帧数和类型信息的 Python Dict 对象 (文件空间，返回一个空的 Dict)：
+上传成功，如果是图片类型文件，那么 `res` 返回的是一个包含图片长、宽、帧数和类型信息的 Python Dict 对象 ( 其他文件类型, 返回一个空的 Dict)：
 
 ```
 {'frames': '1', 'width': '1280', 'file-type': 'PNG', 'height': '800'}
@@ -93,60 +115,64 @@ with open('unix.png', 'rb') as f:
 
 用户可直接上传文件到 UPYUN，而不需要通过客户服务器进行中转。
 
-使用表单上传时, 初始化时 `secret` 参数必选。
+使用表单上传时，初始化时 `secret` 参数必选。
 
 ```python
 kwargs = { 'allow-file-type': 'jpg,jpeg,png',
-            'notify-url': 'http://httpbin.org/post', }
+           'notify-url': 'http://httpbin.org/post', }
 
 with open('unix.png', 'rb') as f:
-    res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, form=True, kwargs=kwargs)
+    res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, form=True, **kwargs)
 ```
 
-其中，参数 `form` 表示是否使用表单上传方式, 必选。
+其中，参数 `form` 表示是否使用表单上传方式，必选。
 
-同时表单上传可携带许多额外的可选参数, 可以组合成字典作为函数可选参数传入, 例如表单参数 allow-file-type, 具体请参考 [表单 API 参数](http://docs.upyun.com/api/form_api/#api_1)。
+同时表单上传可携带许多额外的可选参数，可以组合成字典作为函数可选参数传入，例如表单参数 `allow-file-type` ，具体请参考 [表单 API 参数](http://docs.upyun.com/api/form_api/#api_1)。
 
-表单上传还支持同步通知及异步通知机制, 可以通过设置 `return-url` 和 `notify-url` 来指定 URL。具体请参考[通知规则](http://docs.upyun.com/api/form_api/#_2)。
+表单上传还支持同步通知及异步通知机制，可以通过设置 `return-url` 和 `notify-url` 来指定 URL。具体请参考[通知规则](http://docs.upyun.com/api/form_api/#_2)。
 
-上传成功返回同普通上传, 上传失败则抛出相应异常。
+上传成功，如果是图片类型文件，那么 `res` 返回的是一个包含图片长、宽、帧数、类型信息、图片上传地址、返回状态码、返回状态信息和 signature 的 Python Dict 对象 (其他文件类型，则返回信息不包括图片长、宽和帧数参数)：
+
+```
+{u'code': 200, u'image-height': 410, u'url': u'/upyun-python-sdk/xinu.png', u'image-frames': 1, u'sign': u'60e63662202e50bddedd01f8ca601ba5', u'image-type': u'PNG', u'time': 1450783577, u'message': u'ok', u'image-width': 1000}
+```
 
 #### 分块上传, 可将大文件拆分成多块并发上传
 
 在上传大文件的时候，面对有可能因为网络质量等其他原因而造成的上传失败，使用分块上传非常有必要。
 
-使用分块上传时, 初始化时 `secret` 参数必选。
+使用分块上传时，初始化时 `secret` 参数必选。
 
 ```python
 kwargs = { 'allow-file-type': 'jpg,jpeg,png',
-            'notify-url': 'http://httpbin.org/post', }
+           'notify-url': 'http://httpbin.org/post', }
 
 with open('unix.png', 'rb') as f:
     res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, multipart=True, block_size=1024*1024, kwargs=kwargs)
 ```
 
-其中, 参数 `multipart` 表示是否使用表单上传方式, 必选。`block_size` 可以手动指定分块的大小, 默认大小为 1M, 可选。 (分块大小需大于 100K, 小于 5M)
+其中，参数 `multipart` 表示是否使用表单上传方式，必选。`block_size` 可以手动指定分块的大小，默认大小为 1M，可选。 (分块大小需大于 100K, 小于 5M)
 
-分块上传也可携带许多额外的可选参数, 可以组合成字典作为函数可选参数传入, 具体请参考 [分块 API 参数](http://docs.upyun.com/api/multipart_upload/#_6)。
+分块上传也可携带许多额外的可选参数，可以组合成字典作为函数可选参数传入，具体请参考 [分块 API 参数](http://docs.upyun.com/api/multipart_upload/#_6)。
 
 分块上传支持同步通知及异步通知机制。
 
-上传成功返回同普通上传, 上传失败则抛出相应异常。
+上传成功返回同表单上传，上传失败则抛出相应异常。
 
 #### 表单及分块上传回调签名验证
 
-如果在表单或分块上传中使用了 `return-url` 或 `notify-url` 等通知方法后, 结果信息会包含 `sign` (或 `no-sign`, 上传时表单 API 未取得时返回) 参数, 用于验证上传的结果是否正确。
+如果在表单或分块上传中使用了 `return-url` 或 `notify-url` 等通知方法后，结果信息会包含 `sign` (或 `no-sign`，上传时表单 API 未取得时返回) 参数，用于验证上传的结果是否正确。
 
 ```python
 import upyun
-data = XXXX
+data = <XXXX>
 secret = 'secret'
 upyun.verify_put_sign(data, secret)
 ```
 
-其中 `data` 为回调的结果信息, 可以是字典结构, 也可以是 json 字符串, 但必须为 `utf-8` 编码, 必选。`secret` 为空间表单 API, 必选。
+其中 `data` 为回调的结果信息，可以是字典结构，也可以是 json 字符串，但必须为 `utf-8` 编码，必选。`secret` 为空间表单 API，必选。
 
-若回调签名与参数计算结果一致, 则返回 True, 否则, 返回 False。
+若回调签名与参数计算结果一致，则返回 True，否则，返回 False。
 
 ### 下载文件
 
@@ -238,7 +264,7 @@ notify_url = 'http://httpbin.org/post'
 up.pretreat(tasks, source, notify_url)
 ```
 
-`tasks` 为提交的任务数据, 需将所有任务组成数组, 若仅有一个任务, 也应组成数组结构, 必选. UPYUN 的视频处理服务目前支持四种类型的处理请求：
+`tasks` 为提交的任务数据，需将所有任务组成数组，若仅有一个任务，也应组成数组结构，必选。UPYUN 的视频处理服务目前支持四种类型的处理请求：
 
 - 视频转码
 - HLS 切割
@@ -247,9 +273,9 @@ up.pretreat(tasks, source, notify_url)
 
 具体请参考[视频处理参数](http://docs.upyun.com/api/av_pretreatment/#_8)
 
-`notify_url` 为异步回调地址，在处理完成之后将会以 `HTTP POST` 请求进行异步通知, 参考[回调参数](http://docs.upyun.com/api/av_pretreatment/#_11), 必选。`source` 为待处理源文件路径, 需提供已上传文件的相对路径。
+`notify_url` 为异步回调地址，在处理完成之后将会以 `HTTP POST` 请求进行异步通知，参考[回调参数](http://docs.upyun.com/api/av_pretreatment/#_11), 必选。`source` 为待处理源文件路径，需提供已上传文件的相对路径。
 
-视频处理任务提交成功, 则会针对提交的处理任务返回一组唯一的 `task_id`, 可以根据这个 `task_id` 查询处理进度. 如:
+视频处理任务提交成功，则会针对提交的处理任务返回一组唯一的 `task_id`，可以根据这个 `task_id` 查询处理进度，如:
 
 ```
 [
@@ -267,7 +293,7 @@ up.pretreat(tasks, source, notify_url)
 ids = ['35f0148d414a688a275bf915ba7cebb2','98adbaa52b2f63d6d7f327a0ff223348', ...]
 up.status(ids)
 ```
-以视频处理接口返回的数组作为传入参数, 需为数组结构。
+以视频处理接口返回的数组作为传入参数，需为 Python List 结构。
 
 返回的数据示例如下:
 
@@ -281,7 +307,7 @@ up.status(ids)
 }
 ```
 
-特别的，当值为 null 时，表示没有查询到相关的任务信息。同时, 由于视频处理所用时间较长, 当提交任务后立刻去查询进度, 也有可能会返回 null。
+特别的，当值为 null 时，表示没有查询到相关的任务信息。同时，由于视频处理所用时间较长，当提交任务后立刻去查询进度，也有可能会返回 null。
 
 ### 异常处理
 
@@ -301,7 +327,7 @@ except upyun.UpYunClientException as ce:
     print 'Error Message: ' + ce.msg + '\n'
 ```
 
-其中， `UpYunServiceException` 主要是 UPYUN 端返回的错误信息，具体错误代码请参考 [标准 API 错误代码表](http://docs.upyun.com/api/errno/); 而 `UpYunClientException` 则主要是一些客户端环境的异常，例如客户端网络超时, 或客户端参数不完整等。
+其中， `UpYunServiceException` 主要是 UPYUN 端返回的错误信息，具体错误代码请参考 [标准 API 错误代码表](http://docs.upyun.com/api/errno/); 而 `UpYunClientException` 则主要是一些客户端环境的异常，例如客户端网络超时，或客户端参数不完整等。
 
 ## 高级特性
 
