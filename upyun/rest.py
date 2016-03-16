@@ -156,6 +156,10 @@ class UpYunRest(object):
         elif hasattr(value, 'fileno'):
             length = get_fileobj_size(value)
             headers['Content-Length'] = length
+            # [ugly]:compatible with newest requests feature
+            # force the stream upload with empty file to normal upload
+            if not length:
+                value = ''
         elif value is not None:
             raise UpYunClientException('object type error')
 
