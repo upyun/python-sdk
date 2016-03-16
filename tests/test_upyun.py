@@ -13,6 +13,8 @@ else:
 curpath = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, curpath)
 
+import upyun
+
 
 def b(s):
     PY3 = sys.version_info[0] == 3
@@ -21,8 +23,6 @@ def b(s):
         return s.encode('utf-8')
     else:
         return s
-
-import upyun
 
 BUCKET = os.getenv('UPYUN_BUCKET')
 USERNAME = os.getenv('UPYUN_USERNAME')
