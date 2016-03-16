@@ -68,7 +68,7 @@ class Multipart(object):
                       blocks, expiration, **kwargs):
         data = {'expiration': expiration,
                 'file_blocks': blocks,
-                'file_hash':  make_content_md5(value),
+                'file_hash': make_content_md5(value),
                 'file_size': file_size,
                 'path': key,
                 }

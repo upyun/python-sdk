@@ -5,8 +5,6 @@ import sys
 import uuid
 import json
 
-import upyun
-
 if sys.version_info >= (2, 7):
     import unittest
 else:
@@ -14,6 +12,8 @@ else:
 
 curpath = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, curpath)
+
+import upyun
 
 
 def b(s):

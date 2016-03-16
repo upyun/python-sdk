@@ -23,7 +23,7 @@ test:
 	@echo $(TAG)Running tests$(END)
 	wget http://zj-files.b0.upaiyun.com/python_sdk/mid.mp4 -O /tmp/test.mp4
 	pip install pytest pytest-cov flake8
-	flake8 upyun tests
+	flake8 upyun tests --ignore=E402,E226
 	py.test --cov ./upyun --cov ./tests --verbose ./tests
 	rm -f /tmp/test.mp4
 	@echo
