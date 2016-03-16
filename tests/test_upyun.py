@@ -5,6 +5,8 @@ import sys
 import uuid
 import json
 
+import upyun
+
 if sys.version_info >= (2, 7):
     import unittest
 else:
@@ -21,8 +23,6 @@ def b(s):
         return s.encode('utf-8')
     else:
         return s
-
-import upyun
 
 BUCKET = os.getenv('UPYUN_BUCKET')
 USERNAME = os.getenv('UPYUN_USERNAME')
