@@ -137,7 +137,6 @@ class TestUpYun(unittest.TestCase):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root + 'test.png')
         self.assertEqual(se.exception.status, 404)
-        self.assertEqual(len(se.exception.request_id), 32)
 
     def test_put_with_checksum(self):
         with open('tests/test.png', 'rb') as f:
@@ -288,7 +287,6 @@ class TestUpYun(unittest.TestCase):
             with self.assertRaises(upyun.UpYunServiceException) as se:
                 self.up.getinfo(self.root + 'test.png')
             self.assertEqual(se.exception.status, 404)
-            self.assertEqual(len(se.exception.request_id), 32)
         # - test conflict upload method
         up = upyun.UpYun(BUCKET, secret=SECRET,
                          timeout=100, endpoint=upyun.ED_AUTO)
@@ -314,7 +312,6 @@ class TestUpYun(unittest.TestCase):
             with self.assertRaises(upyun.UpYunServiceException) as se:
                 self.up.getinfo(self.root + rname)
             self.assertEqual(se.exception.status, 404)
-            self.assertEqual(len(se.exception.request_id), 32)
 
         up = upyun.UpYun(BUCKET, secret=SECRET,
                          timeout=100, endpoint=upyun.ED_AUTO)
@@ -338,7 +335,6 @@ class TestUpYun(unittest.TestCase):
             with self.assertRaises(upyun.UpYunServiceException) as se:
                 up.getinfo(self.root + 'test_bigfile.txt')
             self.assertEqual(se.exception.status, 404)
-            self.assertEqual(len(se.exception.request_id), 32)
         kwargs = {'allow-file-type': 'txt',
                   'notify-url': 'http://httpbin.org/post',
                   }
@@ -367,7 +363,6 @@ class TestUpYun(unittest.TestCase):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root + 'test.mp4')
         self.assertEqual(se.exception.status, 404)
-        self.assertEqual(len(se.exception.request_id), 32)
 
     def test_put_sign(self):
         data = '{"code":200,' \
