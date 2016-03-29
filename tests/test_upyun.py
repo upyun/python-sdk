@@ -137,7 +137,7 @@ class TestUpYun(unittest.TestCase):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root + 'test.png')
         self.assertEqual(se.exception.status, 404)
-        self.assertEqual(len(se.exception.request_id), 66)
+        self.assertEqual(len(se.exception.request_id), 32)
 
     def test_put_with_checksum(self):
         with open('tests/test.png', 'rb') as f:
@@ -288,7 +288,7 @@ class TestUpYun(unittest.TestCase):
             with self.assertRaises(upyun.UpYunServiceException) as se:
                 self.up.getinfo(self.root + 'test.png')
             self.assertEqual(se.exception.status, 404)
-            self.assertEqual(len(se.exception.request_id), 66)
+            self.assertEqual(len(se.exception.request_id), 32)
         # - test conflict upload method
         up = upyun.UpYun(BUCKET, secret=SECRET,
                          timeout=100, endpoint=upyun.ED_AUTO)
@@ -299,6 +299,27 @@ class TestUpYun(unittest.TestCase):
         __put(self.up, False)
         __put(self.up, False, kwargs=kwargs)
         __put(up, True)
+
+    def test_put_form_placeholder(self):
+        def __put(up, fname, kwargs={}):
+            with open('tests/test.png', 'rb') as f:
+                res = self.up.put(fname, f, form=True, **kwargs)
+
+            rname = 'testtest.png.png'
+            res = self.up.getinfo(self.root + rname)
+            self.assertIsInstance(res, dict)
+            self.assertEqual(res['file-size'], '13001')
+            self.assertEqual(res['file-type'], 'file')
+            self.up.delete(self.root + rname)
+            with self.assertRaises(upyun.UpYunServiceException) as se:
+                self.up.getinfo(self.root + rname)
+            self.assertEqual(se.exception.status, 404)
+            self.assertEqual(len(se.exception.request_id), 32)
+
+        up = upyun.UpYun(BUCKET, secret=SECRET,
+                         timeout=100, endpoint=upyun.ED_AUTO)
+        fname = self.root + '{filename}{filename}.{suffix}{.suffix}'
+        __put(up, fname)
 
     @unittest.skipUnless(SECRET, 'you have to specify bucket secret')
     def test_put_multipart(self):
@@ -317,7 +338,7 @@ class TestUpYun(unittest.TestCase):
             with self.assertRaises(upyun.UpYunServiceException) as se:
                 up.getinfo(self.root + 'test_bigfile.txt')
             self.assertEqual(se.exception.status, 404)
-            self.assertEqual(len(se.exception.request_id), 66)
+            self.assertEqual(len(se.exception.request_id), 32)
         kwargs = {'allow-file-type': 'txt',
                   'notify-url': 'http://httpbin.org/post',
                   }
@@ -346,7 +367,7 @@ class TestUpYun(unittest.TestCase):
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root + 'test.mp4')
         self.assertEqual(se.exception.status, 404)
-        self.assertEqual(len(se.exception.request_id), 66)
+        self.assertEqual(len(se.exception.request_id), 32)
 
     def test_put_sign(self):
         data = '{"code":200,' \
