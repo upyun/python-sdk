@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import time
 
 from .modules.exception import UpYunClientException
@@ -18,7 +19,6 @@ class FormUpload(object):
         expiration = expiration or 1800
         expiration += int(time.time())
 
-        value = value.read()
         data = {'bucket': self.bucket,
                 'expiration': expiration,
                 'save-key': key,
@@ -28,7 +28,7 @@ class FormUpload(object):
         signature = make_content_md5(policy + b('&') + b(self.secret))
         postdata = {'policy': policy,
                     'signature': signature,
-                    'file': value,
+                    'file': (os.path.basename(value.name), value),
                     }
         resp = self.hp.do_http_pipe('POST', self.host, self.uri,
                                     files=postdata)
