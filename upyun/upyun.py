@@ -127,6 +127,11 @@ class UpYun(object):
     def verify_tasks(self, value):
         return self.av.verify_tasks(value)
 
+    # --- depress task
+    @has_object('av')
+    def unzip(self, tasks, source, notify_url):
+        return self.av.pretreat(tasks, source, notify_url, 'unzip')
+
 
 # --- no use yet, need developing
 def verify_put_sign(value, secret):
