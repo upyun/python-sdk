@@ -30,9 +30,10 @@ class AvPretreatment(object):
         self.hp = hp
 
     # --- public API
-    def pretreat(self, tasks, source, notify_url=''):
+    def pretreat(self, tasks, source, notify_url, app_name):
         data = {'bucket_name': self.bucket, 'source': source,
-                'notify_url': notify_url, 'tasks': tasks, }
+                'notify_url': notify_url, 'tasks': tasks,
+                'app_name': app_name}
         return self.__requests_pretreatment(data)
 
     def status(self, taskids):
