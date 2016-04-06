@@ -116,8 +116,8 @@ class UpYun(object):
 
     # --- video pretreatment API
     @has_object('av')
-    def pretreat(self, tasks, source, notify_url='', app_name=None):
-        return self.av.pretreat(tasks, source, notify_url, app_name)
+    def pretreat(self, tasks, source, notify_url=''):
+        return self.av.pretreat(tasks, source, notify_url)
 
     @has_object('av')
     def status(self, taskids):
@@ -126,6 +126,11 @@ class UpYun(object):
     @has_object('av')
     def verify_tasks(self, value):
         return self.av.verify_tasks(value)
+
+    # --- depress task
+    @has_object('av')
+    def unzip(self, tasks, source, notify_url, app_name='unzip'):
+        return self.av.pretreat(tasks, source, notify_url, app_name)
 
 
 # --- no use yet, need developing
