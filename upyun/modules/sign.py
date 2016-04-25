@@ -58,7 +58,7 @@ def make_signature(data, secret):
     list_meta = sorted(data.items(), key=lambda d: d[0])
     signature = ''.join(map(lambda kv: '%s%s' %
                         (kv[0], str(kv[1])), list_meta))
-    signature += secret
+    signature = '%s&%s' % (signature, secret)
     return make_content_md5(b(signature))
 
 
