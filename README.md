@@ -3,15 +3,59 @@
 [![pypi package](https://badge.fury.io/py/upyun.png)](http://badge.fury.io/py/upyun) [![Build
 Status](https://travis-ci.org/upyun/python-sdk.svg)](https://travis-ci.org/upyun/python-sdk)
 
-UPYUN Python SDK，集合 [UPYUN HTTP REST 接口](http://docs.upyun.com/api/rest_api/)，[UPYUN HTTP FORM 接口](http://docs.upyun.com/api/form_api/)，[分块上传](http://docs.upyun.com/api/multipart_upload/) 和 [视频处理接口](http://docs.upyun.com/api/av_pretreatment/)。
+UPYUN Python SDK，集成:
 
-### 更新说明
+- [UPYUN HTTP REST 接口](http://docs.upyun.com/api/rest_api/)
+- [UPYUN 缓存刷新接口](http://docs.upyun.com/api/purge/)
+- [UPYUN HTTP 表单上传接口](http://docs.upyun.com/api/form_api/)
+- [UPYUN 分块上传接口](http://docs.upyun.com/api/multipart_upload/)
+- [UPYUN 音视频处理接口](http://docs.upyun.com/api/av_pretreatment/)
+
+# Table of Contents
+
+- [UPYUN Python SDK](#upyun-python-sdk)
+    - [更新说明](#更新说明)
+    - [安装说明](#安装说明)
+    - [Examples](#examples)
+    - [Usage](#usage)
+        - [UPYUN HTTP REST 接口](#upyun-http-rest-接口)
+            - [初始化 UpYun](#初始化-upyun)
+            - [上传文件](#上传文件-1)
+                - [直接上传](#直接传递文件内容的形式上传)
+                - [流式上传](#数据流方式上传)
+            - [下载文件](#下载文件)
+                - [直接下载](#直接读取文件内容)
+                - [流式下载](#数据流模式下载)
+            - [创建目录](#创建目录)
+            - [删除目录活文件](#删除目录或文件)
+            - [获取文件目录列表](#获取文件目录列表)
+                - [获取超大目录列表](#获取超大目录列表)
+            - [获取空间使用情况](#获取空间使用情况)
+        - [UPYUN 缓存刷新接口](#upyun-缓存刷新接口)
+        - [UPYUN HTTP 表单上传接口](#upyun-http-表单上传接口)
+            - [初始化-UpYun_Form](#初始化-upyun_form)
+            - [上传文件](#上传文件-2)
+        - [UPYUN 分块上传接口](#upyun-分块上传接口)
+            - [初始化-UpYun_Multipart](#初始化-upyun_multipart)
+            - [上传文件](#上传文件-3)
+            - [回调签名验证](#表单及分块上传回调签名验证)
+        - [UPYUN 音视频处理接口](#upyun-音视频处理接口)
+            - [初始化 UpYun_Media](#初始化-upyun_media)
+            - [进度查询](#任务处理进度查询)
+        - [高级特性](#高级特性)
+            - [自定义数据流大小](#自定义数据流大小)
+            - [自定义文件上传和下载过程](#自定义文件上传和下载过程)
+            - [原图密钥保护](#原图密钥保护)
+        - [异常处理](#异常处理)
+    
+
+# 更新说明
 
 1. 不再兼容 1.x 的版本，新版接口设计和实现更加 Pythonic，且代码风格完全符合 [pep8](https://pypi.python.org/pypi/pep8) 规范。
 2. 2.2.0 及以上版本同时兼容了最新版本的 Python 2.6 / 2.7 / 3.3 / 3.4。
 3. 2.3.0 及以上版本不再支持直接使用默认标准库 httplib，必须依赖 requests 这个第三方 HTTP Client 库。
 
-### 安装说明
+# 安装说明
 
 > 安装第三方依赖库 [requests](https://github.com/kennethreitz/requests): HTTP for Humans!
 
@@ -25,31 +69,48 @@ pip install requests
 pip install upyun
 ```
 
+> 升级 UPYUN SDK
+
+```
+pip install —-upgrade upyun
+```
+
+> 安装依赖
+
+```
+pip install -r requirements.txt
+```
+
 > 运行测试用例
 
 ```
 export UPYUN_BUCKET=<bucket>
 export UPYUN_USERNAME=<username>
 export UPYUN_PASSWORD=<password>
+export UPYUN_SECRET=<secret>
 
-make init test
+make test
 ```
 
-## 基本函数接口
+# Examples
+示例代码见 `examples/`。
+
+# Usage
+
+## UPYUN HTTP REST 接口
 
 ### 初始化 UpYun
 
 ```python
 import upyun
 
-up = upyun.UpYun('bucket', 'username', 'password', 'secret', timeout=30, endpoint=upyun.ED_AUTO)
+up = upyun.UpYun('bucket', 'username', 'password', timeout=30, endpoint=upyun.ED_AUTO)
 ```
 
-其中，参数 `bucket` 为空间名称，必选。
+其中，参数 `bucket`，`username` ，`password` 分别为空间名称，授权操作员帐号和密码，必选。
+`timeout` 为 HTTP 请求超时时间，默认 60 秒，可选。
 
-`username` ，`password` 和 `secret` 分别为授权操作员帐号，密码和空间表单 API 密钥，默认为 `None`，可选。当使用表单或者分块上传时，可不填 `username` 及 `password` 参数，但 `sercret` 参数必选。 其他情况下，`secret` 参数可选，而 `username` 及 `password` 参数必选。 `timeout` 为 HTTP 请求超时时间，默认 60 秒，可选。
-
-###### 表单或分块上传接口初始化示例
+##### 表单或分块上传接口初始化示例
 
 ```python
 import upyun
@@ -57,7 +118,7 @@ import upyun
 up = upyun.UpYun('bucket', secret='secret')
 ```
 
-###### 其他接口初始化示例
+##### 其他接口初始化示例
 
 ```python
 import upyun
@@ -92,7 +153,9 @@ up.put('/upyun-python-sdk/ascii.txt', 'abcdefghijklmnopqrstuvwxyz\n')
 
 其中，方法 `up.put` 默认自动创建相应目录。
 
-#### 数据流方式上传，可降低内存占用
+#### 数据流方式上传
+
+使用数据流方式上传，可降低内存占用
 
 ```python
 headers = { 'x-gmkerl-rotate': '180' }
@@ -111,69 +174,6 @@ with open('unix.png', 'rb') as f:
 
 上传失败，则抛出相应异常。
 
-#### 表单方式上传
-
-用户可直接上传文件到 UPYUN，而不需要通过客户服务器进行中转。
-
-使用表单上传时，初始化时 `secret` 参数必选。
-
-```python
-kwargs = { 'allow-file-type': 'jpg,jpeg,png',
-           'notify-url': 'http://httpbin.org/post', }
-
-with open('unix.png', 'rb') as f:
-    res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, form=True, **kwargs)
-```
-
-其中，参数 `form` 表示是否使用表单上传方式，必选。
-
-同时表单上传可携带许多额外的可选参数，可以组合成字典作为函数可选参数传入，例如表单参数 `allow-file-type` ，具体请参考 [表单 API 参数](http://docs.upyun.com/api/form_api/#api_1)。
-
-表单上传还支持同步通知及异步通知机制，可以通过设置 `return-url` 和 `notify-url` 来指定 URL。具体请参考[通知规则](http://docs.upyun.com/api/form_api/#_2)。
-
-上传成功，如果是图片类型文件，那么 `res` 返回的是一个包含图片长、宽、帧数、类型信息、图片上传地址、返回状态码、返回状态信息和 signature 的 Python Dict 对象 (其他文件类型，则返回信息不包括图片长、宽和帧数参数)：
-
-```
-{u'code': 200, u'image-height': 410, u'url': u'/upyun-python-sdk/xinu.png', u'image-frames': 1, u'sign': u'60e63662202e50bddedd01f8ca601ba5', u'image-type': u'PNG', u'time': 1450783577, u'message': u'ok', u'image-width': 1000}
-```
-
-#### 分块上传, 可将大文件拆分成多块并发上传
-
-在上传大文件的时候，面对有可能因为网络质量等其他原因而造成的上传失败，使用分块上传非常有必要。
-
-使用分块上传时，初始化时 `secret` 参数必选。
-
-```python
-kwargs = { 'allow-file-type': 'jpg,jpeg,png',
-           'notify-url': 'http://httpbin.org/post', }
-
-with open('unix.png', 'rb') as f:
-    res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, multipart=True, block_size=1024*1024, kwargs=kwargs)
-```
-
-其中，参数 `multipart` 表示是否使用表单上传方式，必选。`block_size` 可以手动指定分块的大小，默认大小为 1M，可选。 (分块大小需大于 100K, 小于 5M)
-
-分块上传也可携带许多额外的可选参数，可以组合成字典作为函数可选参数传入，具体请参考 [分块 API 参数](http://docs.upyun.com/api/multipart_upload/#_6)。
-
-分块上传支持同步通知及异步通知机制。
-
-上传成功返回同表单上传，上传失败则抛出相应异常。
-
-#### 表单及分块上传回调签名验证
-
-如果在表单或分块上传中使用了 `return-url` 或 `notify-url` 等通知方法后，结果信息会包含 `sign` (或 `no-sign`，上传时表单 API 未取得时返回) 参数，用于验证上传的结果是否正确。
-
-```python
-import upyun
-data = <XXXX>
-secret = 'secret'
-upyun.verify_put_sign(data, secret)
-```
-
-其中 `data` 为回调的结果信息，可以是字典结构，也可以是 json 字符串，但必须为 `utf-8` 编码，必选。`secret` 为空间表单 API，必选。
-
-若回调签名与参数计算结果一致，则返回 True，否则，返回 False。
-
 ### 下载文件
 
 #### 直接读取文件内容
@@ -184,7 +184,9 @@ res = up.get('/upyun-python-sdk/ascii.txt')
 
 下载成功，返回文件内容; 失败则抛出相应异常。
 
-#### 使用数据流模式下载，节省内存占用
+#### 数据流模式下载
+
+使用数据流模式下载，节省内存占用
 
 ```python
 with open('xinu.png', 'wb') as f:
@@ -234,6 +236,18 @@ print item['time'] # 创建时间
 
 获取失败，则抛出相应的异常。该方法默认获取根目录列表信息。
 
+#### 获取超大目录列表
+
+若目录下存在超大数量文件，推荐使用 `get_large_list` 接口，可以通过指定 `limit` 来控制每次程序每次拉取的文件数(默认为1000)，以及 `order` 来控制文件排列的顺序(`asc` 或 `desc`，按时间升序或降序排列。默认 `desc`)。
+
+```python
+for res in up.get_large_list('/upyun-python-sdk/', limit=5000, order='desc'):
+    print res
+```
+
+获取成功，返回一个迭代器, 迭代输出该目录下所有目录或文件条目信息的 Python List 对象。
+
+
 ### 获取文件信息
 
 ```python
@@ -253,14 +267,148 @@ res = up.usage()
 
 获取成功，始终返回该空间当前使用的总容量，单位 Bytes，值类型为 Python String 对象; 失败则抛出相应异常。
 
-### 视频处理
+### 切换目录
 
-用于处理已经上传到对应存储空间中的视频文件，进行转码、截图等操作。
+```python
+up.cd('test')
+up.cd('test/')
+up.cd('/upyun/test')
+up.cd('/upyun/test/')
+```
+
+你可以通过 `cd` 函数来切换工作目录，若不切换目录，则默认的工作目录为根目录 `/`。你可以使用绝对路径及相对路径来进行目录的切换(目前尚不支持 `.` 及 `..`)。
+
+切换成功时返回 `0`，否则抛出相应异常。
+
+支持相对路径作为参数的命令为: `usage`, `put`, `get`, `getlist`, `getinfo`, `mkdir`, `delete`, `purge`。你可以像在 `Linux` 上使用相对路径操作文件一样通过 `cd` 等命令来管理你在 `UPYUN` 上的文件。当然，你仍然可以使用绝对路径作为`put`, `get`, `getlist` 等命令的参数。
+
+> 注意: 目前 `cd` 命令的容错能力较差，请不要使用错误的目录路径作为 `cd` 的参数，以免损坏你的远端目录树。
+
+## UPYUN 缓存刷新接口
+
+基于 [UPYUN 缓存刷新 API 接口](http://docs.upyun.com/api/purge/) 开发，方便对 CDN 空间缓存资源进行主动刷新。
+
+特别地，云存储空间正常情况下，资源更新则不需要额外提交刷新请求，缓存系统会自动进行处理。
+
+```python
+>>> print up.purge('/upyun-python-sdk/xinu.png')
+[]
+```
+
+```python
+>>> print up.purge(['/unix.png', '/xinu.png'], domain='invalid.upyun.com')
+['/unix.png', '/unix.png']
+```
+
+支持提交单个或一组 URI 到缓存刷新队列，其中 `domain` 参数可特别指定为该空间对应的绑定域名作为本次刷新的域，默认其值为 `None`，表示始终使用默认域名。
+
+提交成功，返回一个 Python List 对象，包含本次提交中无效的 URI 列表；失败则抛出相应异常。
+
+## UPYUN HTTP 表单上传接口
+
+使用 `UPYUN HTTP 表单上传接口`，用户可直接上传文件到 UPYUN，而不需要通过客户服务器进行中转。
+
+### 初始化 UpYun_Form
+
+```python
+import upyun
+
+up = upyun.UpYun('bucket', secret='secret')
+```
+
+其中，参数 `bucket` `secret` 分别为空间名称和表单密钥，必选。
+
+### 上传文件
+
+```python
+kwargs = { 'allow-file-type': 'jpg,jpeg,png',
+           'notify-url': 'http://httpbin.org/post', }
+
+with open('unix.png', 'rb') as f:
+    res = up.put('/upyun-python-sdk/xinu.png', f, form=True, **kwargs)
+```
+
+其中，参数 `form` 表示是否使用表单上传方式，必选。
+
+同时表单上传可携带许多额外的可选参数，可以组合成字典作为函数可选参数传入，例如表单参数 `allow-file-type` ，具体请参考 [表单 API 参数](http://docs.upyun.com/api/form_api/#api_1)。
+
+表单上传还支持同步通知及异步通知机制，可以通过设置 `return-url` 和 `notify-url` 来指定 URL。具体请参考[通知规则](http://docs.upyun.com/api/form_api/#_2)。
+
+上传成功，如果是图片类型文件，那么 `res` 返回的是一个包含图片长、宽、帧数、类型信息、图片上传地址、返回状态码、返回状态信息和 signature 的 Python Dict 对象 (其他文件类型，则返回信息不包括图片长、宽和帧数参数)：
+
+```python
+>>> with open('unix.png', 'rb') as f:
+>>>     res = up.put('/upyun-python-sdk/xinu.png', f, form=True, **kwargs)
+
+{u'code': 200, u'image-height': 410, u'url': u'/upyun-python-sdk/xinu.png', u'image-frames': 1, u'sign': u'60e63662202e50bddedd01f8ca601ba5', u'image-type': u'PNG', u'time': 1450783577, u'message': u'ok', u'image-width': 1000}
+```
+
+## UPYUN 分块上传接口
+
+当文件大小较大时，面对有可能因为网络质量等其他原因而造成的上传失败问题，可以使用分块上传接口。
+
+> 注意: 如果文件大小大于 10M 时推荐使用分块上传, 否则尽量使用 REST 上传, 速度更快。
+
+### 初始化 UpYun_Multipart
+
+```python
+import upyun
+
+up = upyun.UpYun('bucket', secret='secret')
+```
+
+其中，参数 `bucket` `secret` 分别为空间名称和表单密钥，必选。
+
+### 上传文件
+
+```python
+kwargs = { 'allow-file-type': 'jpg,jpeg,png',
+           'notify-url': 'http://httpbin.org/post', }
+
+with open('unix.png', 'rb') as f:
+    res = up.put('/upyun-python-sdk/xinu.png', f, multipart=True, block_size=1024*1024, kwargs=kwargs)
+```
+
+其中，参数 `multipart` 表示是否使用表单上传方式，必选。`block_size` 可以手动指定分块的大小，默认大小为 1M，可选。 (分块大小需大于 100K, 小于 5M)
+
+分块上传也可携带许多额外的可选参数，可以组合成字典作为函数可选参数传入，具体请参考 [分块 API 参数](http://docs.upyun.com/api/multipart_upload/#_6)。
+
+分块上传支持同步通知及异步通知机制。
+
+上传成功返回同表单上传，上传失败则抛出相应异常。
+
+### 表单及分块上传回调签名验证
+
+如果在表单或分块上传中使用了 `return-url` 或 `notify-url` 等通知方法后，结果信息会包含 `sign` (或 `no-sign`，上传时表单 API 未取得时返回) 参数，用于验证上传的结果是否正确。
+
+```python
+import upyun
+data = <XXXX>
+secret = 'secret'
+upyun.verify_put_sign(data, secret)
+```
+
+其中 `data` 为回调的结果信息，可以是字典结构，也可以是 json 字符串，但必须为 `utf-8` 编码，必选。`secret` 为空间表单 API，必选。
+
+若回调签名与参数计算结果一致，则返回 True，否则，返回 False。
+
+## UPYUN 音视频处理接口
+
+用于处理对已经上传到对应存储空间中的音视频文件，进行转码、HLS 切割、截图、获取视频信息等处理。
+
+### 初始化 UpYun_Media
+
+```python
+up = upyun.UpYun('bucket', 'username', 'password')
+```
+
+### 提交任务
 
 ```python
 source = '/bucket/test.mp4'
 tasks = [{'type': 'probe', }, {'type': 'hls', 'hls_time': '100'}]
 notify_url = 'http://httpbin.org/post'
+
 up.pretreat(tasks, source, notify_url)
 ```
 
@@ -287,7 +435,7 @@ up.pretreat(tasks, source, notify_url)
 
 任务提交失败则会抛出相应异常。
 
-### 视频处理进度查询
+### 任务处理进度查询
 
 ```python
 ids = ['35f0148d414a688a275bf915ba7cebb2','98adbaa52b2f63d6d7f327a0ff223348', ...]
@@ -309,25 +457,6 @@ up.status(ids)
 
 特别的，当值为 null 时，表示没有查询到相关的任务信息。同时，由于视频处理所用时间较长，当提交任务后立刻去查询进度，也有可能会返回 null。
 
-### 异常处理
-
-```python
-try:
-    res = up.usage()
-
-    # do something else
-
-except upyun.UpYunServiceException as se:
-    print 'Except an UpYunServiceException ...'
-    print 'Request Id: ' + se.request_id
-    print 'HTTP Status Code: ' + str(se.status)
-    print 'Error Message:    ' + se.msg + '\n'
-except upyun.UpYunClientException as ce:
-    print 'Except an UpYunClientException ...'
-    print 'Error Message: ' + ce.msg + '\n'
-```
-
-其中， `UpYunServiceException` 主要是 UPYUN 端返回的错误信息，具体错误代码请参考 [标准 API 错误代码表](http://docs.upyun.com/api/errno/); 而 `UpYunClientException` 则主要是一些客户端环境的异常，例如客户端网络超时，或客户端参数不完整等。
 
 ## 高级特性
 
@@ -377,22 +506,22 @@ with open('unix.png', 'rb') as f:
 
 详见 [UPYUN HTTP REST API 接口](http://docs.upyun.com/api/rest_api/) 中关于原图密钥保护的说明。
 
-## 缓存刷新
-
-基于 [UPYUN 缓存刷新 API 接口](http://docs.upyun.com/api/purge/) 开发，方便对 CDN 空间缓存资源进行主动刷新。
-
-特别地，云存储空间正常情况下，资源更新则不需要额外提交刷新请求，缓存系统会自动进行处理。
+## 异常处理
 
 ```python
->>> print up.purge('/upyun-python-sdk/xinu.png')
-[]
+try:
+    res = up.usage()
+
+    # do something else
+
+except upyun.UpYunServiceException as se:
+    print 'Except an UpYunServiceException ...'
+    print 'Request Id: ' + se.request_id
+    print 'HTTP Status Code: ' + str(se.status)
+    print 'Error Message:    ' + se.msg + '\n'
+except upyun.UpYunClientException as ce:
+    print 'Except an UpYunClientException ...'
+    print 'Error Message: ' + ce.msg + '\n'
 ```
 
-```python
->>> print up.purge(['/unix.png', '/xinu.png'], domain='invalid.upyun.com')
-['/unix.png', '/unix.png']
-```
-
-支持提交单个或一组 URI 到缓存刷新队列，其中 `domain` 参数可特别指定为该空间对应的绑定域名作为本次刷新的域，默认其值为 `None`，表示始终使用默认域名。
-
-提交成功，返回一个 Python List 对象，包含本次提交中无效的 URI 列表；失败则抛出相应异常。
+其中， `UpYunServiceException` 主要是 UPYUN 端返回的错误信息，具体错误代码请参考 [标准 API 错误代码表](http://docs.upyun.com/api/errno/); 而 `UpYunClientException` 则主要是一些客户端环境的异常，例如客户端网络超时，或客户端参数不完整等。

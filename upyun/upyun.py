@@ -22,6 +22,14 @@ ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
 DEFAULT_CHUNKSIZE = 8192
 
 
+def const_path(func):
+    def _(self, key, *a, **kw):
+        if isinstance(key, str):
+            key = self.workdir + key if key[0] != '/' else key
+        return func(self, key, *a, **kw)
+    return _
+
+
 class UpYun(object):
     def __init__(self, bucket, username=None, password=None, secret=None,
                  timeout=None, endpoint=None, chunksize=None, debug=False,
@@ -35,6 +43,7 @@ class UpYun(object):
         self.endpoint = endpoint or ED_AUTO
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
         self.secret = secret or os.getenv('UPYUN_SECRET')
+        self.workdir = '/'
         self.timeout = timeout or 60
         if read_timeout is not None:
             self.requests_timeout = (self.timeout, read_timeout)
@@ -71,8 +80,10 @@ class UpYun(object):
     # --- public rest API
     @has_object('up_rest')
     def usage(self, key='/'):
+        key = self.workdir + key if key[0] != '/' else key
         return self.up_rest.usage(key)
 
+    @const_path
     def put(self, key, value, checksum=False, headers=None,
             handler=None, params=None, secret=None,
             multipart=False, block_size=None, form=False,
@@ -91,27 +102,50 @@ class UpYun(object):
                                 headers, handler, params, secret)
 
     @has_object('up_rest')
+    @const_path
     def get(self, key, value=None, handler=None, params=None):
         return self.up_rest.get(key, value, handler, params)
 
     @has_object('up_rest')
+    @const_path
     def delete(self, key):
         self.up_rest.delete(key)
 
     @has_object('up_rest')
+    @const_path
     def mkdir(self, key):
         self.up_rest.mkdir(key)
 
+    @const_path
+    def cd(self, key):
+        for d, ch in enumerate(key):
+            if ch == '/' and d+1 != len(key) and key[d+1] == '/':
+                raise UpYunClientException('Please use correct dir path')
+        key = key + '/' if key[-1] != '/' else key
+        self.workdir = key
+        return 0
+
     @has_object('up_rest')
+    @const_path
     def getlist(self, key='/'):
         return self.up_rest.getlist(key)
 
     @has_object('up_rest')
+    @const_path
+    def get_large_list(self, key='/', limit=1000, order='desc'):
+        return self.up_rest.get_large_list(key, limit, order)
+
+    @has_object('up_rest')
+    @const_path
     def getinfo(self, key):
         return self.up_rest.getinfo(key)
 
     @has_object('up_rest')
+    @const_path
     def purge(self, keys, domain=None):
+        if isinstance(keys, list):
+            keys = [self.workdir + key if key[0] != '/' else key
+                    for key in keys]
         return self.up_rest.purge(keys, domain)
 
     # --- video pretreatment API
