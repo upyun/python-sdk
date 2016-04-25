@@ -135,7 +135,8 @@ class UpYun(object):
             sources = task.get('sources')
             for key in (sources, save_as):
                 if type(key) != str or key == '':
-                    raise UpYunClientException('Given not correct %s in tasks' % key)
+                    raise UpYunClientException('Given not correct %s '
+                                               'in task' % key)
         return self.av.pretreat(tasks, 'upyun', notify_url, 'depress')
 
     # --- compress task
@@ -145,9 +146,9 @@ class UpYun(object):
             save_as = task.get('save_as')
             sources = task.get('sources')
             if type(save_as) != str or save_as == '':
-                raise UpYunClientException('Given not correct save_as in tasks')
+                raise UpYunClientException('Given not correct save_as in task')
             if type(sources) != list or len(sources) == 0:
-                raise UpYunClientException('Given not correct sources in tasks')
+                raise UpYunClientException('Given not correct sources in task')
         return self.av.pretreat(tasks, 'upyun', notify_url, 'compress')
 
 
