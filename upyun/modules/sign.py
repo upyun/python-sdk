@@ -10,19 +10,6 @@ from .exception import UpYunClientException
 DEFAULT_CHUNKSIZE = 8192
 
 
-def make_rest_signature(bucket, username, password,
-                        method, uri, date, length):
-    if method:
-        signstr = '&'.join([method, uri, date, str(length), password])
-        signature = hashlib.md5(b(signstr)).hexdigest()
-        return 'UpYun %s:%s' % (username, signature)
-
-    else:
-        signstr = '&'.join([uri, bucket, date, password])
-        signature = hashlib.md5(b(signstr)).hexdigest()
-        return 'UpYun %s:%s:%s' % (bucket, username, signature)
-
-
 def make_content_md5(value, chunksize=DEFAULT_CHUNKSIZE):
     if hasattr(value, 'fileno'):
         md5 = hashlib.md5()
@@ -54,7 +41,20 @@ def make_policy(data):
     return base64.b64encode(b(policy))
 
 
-def make_signature(data, secret):
+def make_rest_signature(bucket, username, password,
+                        method, uri, date, length):
+    if method:
+        signstr = '&'.join([method, uri, date, str(length), password])
+        signature = hashlib.md5(b(signstr)).hexdigest()
+        return 'UpYun %s:%s' % (username, signature)
+
+    else:
+        signstr = '&'.join([uri, bucket, date, password])
+        signature = hashlib.md5(b(signstr)).hexdigest()
+        return 'UpYun %s:%s:%s' % (bucket, username, signature)
+
+
+def make_multi_signature(data, secret):
     list_meta = sorted(data.items(), key=lambda d: d[0])
     signature = ''.join(map(lambda kv: '%s%s' %
                         (kv[0], str(kv[1])), list_meta))

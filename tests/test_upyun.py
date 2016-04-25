@@ -45,22 +45,9 @@ class TestUpYun(unittest.TestCase):
                               timeout=100, endpoint=upyun.ED_AUTO)
         self.root = rootpath()
         self.up.mkdir(self.root)
-        with open('tests/bigfile.txt', 'w') as f:
-            f.seek(10*1024*1024)
-            f.write('abcdefghijklmnopqrstuvwxyz')
 
     def tearDown(self):
-        for item in ['test.png', 'test.txt',
-                     'test/test.png', 'test', 'test.mp4']:
-            try:
-                self.up.delete(self.root + item)
-            except upyun.UpYunServiceException:
-                pass
         self.up.delete(self.root)
-#       with self.assertRaises(upyun.UpYunServiceException) as se:
-#           self.up.getinfo(self.root)
-#           self.assertEqual(se.exception.status, 404)
-        os.remove('tests/bigfile.txt')
 
     def test_getenv_info(self):
         upyun.UpYun(None).getinfo('/')
@@ -259,12 +246,14 @@ class TestUpYun(unittest.TestCase):
                           handler=ProgressBarHandler, params=self)
         self.assertDictEqual(res, {})
         f.close()
+        self.up.delete(self.root + 'test.txt')
 
     def test_filelike_object_django(self):
         f = DjangoFile(b('www.upyun.com'))
         res = self.up.put(self.root + 'test.txt', f, checksum=False)
         self.assertDictEqual(res, {})
         f.close()
+        self.up.delete(self.root + 'test.txt')
 
     @unittest.skipUnless(SECRET, 'you have to specify bucket secret')
     def test_put_form(self):
@@ -335,6 +324,11 @@ class TestUpYun(unittest.TestCase):
             with self.assertRaises(upyun.UpYunServiceException) as se:
                 up.getinfo(self.root + 'test_bigfile.txt')
             self.assertEqual(se.exception.status, 404)
+
+        with open('tests/bigfile.txt', 'w') as f:
+            f.seek(10*1024*1024)
+            f.write('abcdefghijklmnopqrstuvwxyz')
+
         kwargs = {'allow-file-type': 'txt',
                   'notify-url': 'http://httpbin.org/post',
                   }
@@ -345,6 +339,7 @@ class TestUpYun(unittest.TestCase):
         __put(self.up)
         __put(self.up, kwargs=kwargs)
         __put(up)
+        os.remove('tests/bigfile.txt')
 
     def test_pretreat(self):
         with open('/tmp/test.mp4', 'rb') as f:
