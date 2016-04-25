@@ -8,7 +8,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 from .modules.compat import urlencode, b
 from .modules.exception import UpYunServiceException, UpYunClientException
-from .modules.sign import make_policy, make_signature, make_content_md5
+from .modules.sign import make_policy, make_multi_signature, make_content_md5
 
 
 class Multipart(object):
@@ -75,7 +75,7 @@ class Multipart(object):
 
         data.update(kwargs)
         policy = make_policy(data)
-        signature = make_signature(data, self.secret)
+        signature = make_multi_signature(data, self.secret)
         postdata = {'policy': policy, 'signature': signature}
         return self.__do_http_request(postdata)
 
@@ -99,7 +99,7 @@ class Multipart(object):
                 'block_hash': block_hash, 'save_token': save_token,
                 }
         policy = make_policy(data)
-        signature = make_signature(data, token_secret)
+        signature = make_multi_signature(data, token_secret)
         postdata = {'policy': policy,
                     'signature': signature,
                     'file': file_block,
@@ -112,7 +112,7 @@ class Multipart(object):
     def __end_upload(self, expiration, save_token, token_secret):
         data = {'expiration': expiration, 'save_token': save_token}
         policy = make_policy(data)
-        signature = make_signature(data, token_secret)
+        signature = make_multi_signature(data, token_secret)
         postdata = {'policy': policy, 'signature': signature}
         return self.__do_http_request(postdata)
 
