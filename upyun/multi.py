@@ -27,7 +27,7 @@ class Multipart(object):
         block_size = block_size or 1024*1024
         file_size = int(self.__get_size(value))
         block_size = self.__check_size(block_size)
-        blocks = int(math.ceil(file_size / block_size)) or 1
+        blocks = int(math.ceil(file_size * 1.0 / block_size)) or 1
 
         # - init upload
         content = self.__init_upload(key, value,
