@@ -148,7 +148,7 @@ kwargs = { 'allow-file-type': 'jpg,jpeg,png',
            'notify-url': 'http://httpbin.org/post', }
 
 with open('unix.png', 'rb') as f:
-    res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, multipart=True, block_size=1024*1024, kwargs=kwargs)
+    res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, multipart=True, block_size=1024*1024, **kwargs)
 ```
 
 其中，参数 `multipart` 表示是否使用表单上传方式，必选。`block_size` 可以手动指定分块的大小，默认大小为 1M，可选。 (分块大小需大于 100K, 小于 5M)
