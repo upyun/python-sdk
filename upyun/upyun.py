@@ -14,7 +14,7 @@ from .modules.compat import b, builtin_str
 from .modules.sign import make_content_md5, encode_msg
 from .modules.check import has_object
 
-__version__ = '2.3.4'
+__version__ = '2.3.5'
 
 ED_LIST = ('v%d.api.upyun.com' % ed for ed in range(4))
 ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT = ED_LIST
