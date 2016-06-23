@@ -151,6 +151,10 @@ class UpYun(object):
                 raise UpYunClientException('Given not correct sources in task')
         return self.av.pretreat(tasks, 'upyun', notify_url, 'compress')
 
+    @has_object('av')
+    def put_tasks(self, tasks, notify_url, app_name):
+        return self.av.pretreat(tasks, '', notify_url, app_name)
+
 
 # --- no use yet, need developing
 def verify_put_sign(value, secret):

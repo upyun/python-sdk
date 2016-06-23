@@ -309,6 +309,45 @@ up.status(ids)
 
 特别的，当值为 null 时，表示没有查询到相关的任务信息。同时，由于视频处理所用时间较长，当提交任务后立刻去查询进度，也有可能会返回 null。
 
+
+### 异步任务提交
+
+```
+notify_url = 'http://httpbin.org/post'                          // 回调地址
+
+compress_tasks = [
+    {
+        "sources": ["a/b/c/source/1.jpg","a/b/c/source/2.jpg"],
+        "save_as": "/result/t.zip",
+        "home_dir": "a/b/c"
+    },
+]
+
+print up.put_tasks(compress_tasks, notify_url, 'compress')
+
+depress_tasks = [
+    {
+        "sources": "/source/t.zip",              //UPYUN 存储空间中内文件路径
+        "save_as": "/result/t/",                 //保存路径
+    },
+]
+
+print up.put_tasks(depress_tasks, notify_url, 'depress')
+
+fetch_tasks = [
+    {
+        'url': 'http://www.upyun.com/index.html',               // 需要拉取文件的 URL
+        'random': False,                                        // 是否追加随机数, 默认 false
+        'overwrite': True,                                      // 是否覆盖，默认 true
+        'save_as': '/site/index.html',                          // 保存路径
+    }
+]
+
+print up.put_tasks(fetch_tasks, notify_url, 'spiderman')
+```
+
+具体请参考 [压缩解压缩](http://docs.upyun.com/cloud/unzip/) 和 [异步文件拉取](http://docs.upyun.com/cloud/spider/)
+
 ### 异常处理
 
 ```python
