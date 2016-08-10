@@ -5,6 +5,8 @@ import sys
 import uuid
 import json
 
+import datetime
+
 if sys.version_info >= (2, 7):
     import unittest
 else:
@@ -14,6 +16,9 @@ curpath = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, curpath)
 
 import upyun
+from upyun import FileStore
+
+upyun.add_stderr_logger()
 
 
 def b(s):
@@ -138,6 +143,51 @@ class TestUpYun(unittest.TestCase):
         self.up.delete(self.root + 'test.png')
         with self.assertRaises(upyun.UpYunServiceException) as se:
             self.up.getinfo(self.root + 'test.png')
+        self.assertEqual(se.exception.status, 404)
+
+    def test_resume(self):
+        now = datetime.datetime.now().strftime('%b-%d-%y-%H')
+        resume_root = '/pysdk-%s/' % now
+        with open('tests/resume.txt', 'w') as f:
+            f.seek(15 * 1024 * 1024)
+            f.write(uuid.uuid4().hex)
+        with open('tests/resume.txt', 'rb') as f:
+            before = upyun.make_content_md5(f)
+            self.up.put(resume_root + 'resume.txt',
+                        f, checksum=True, need_resume=True)
+        with open('tests/get.txt', 'wb') as f:
+            self.up.get(resume_root + 'resume.txt', f)
+        with open('tests/get.txt', 'rb') as f:
+            after = upyun.make_content_md5(f)
+        self.assertEqual(before, after)
+        os.remove('tests/get.txt')
+        os.remove('tests/resume.txt')
+        self.up.delete(resume_root + 'resume.txt')
+        with self.assertRaises(upyun.UpYunServiceException) as se:
+            self.up.getinfo(resume_root + 'resume.txt')
+        self.assertEqual(se.exception.status, 404)
+
+    def test_resume_store(self):
+        now = datetime.datetime.now().strftime('%b-%d-%y-%H')
+        resume_root = '/pysdk-%s/' % now
+        with open('tests/resume_store.txt', 'w') as f:
+            f.seek(15 * 1024 * 1024)
+            f.write('abcdefghijklmnopqrstuvwxyz')
+        with open('tests/resume_store.txt', 'rb') as f:
+            before = upyun.make_content_md5(f)
+            self.up.put(resume_root + 'resume_store.txt',
+                        f, headers={"X-Upyun-Multi-Type": 'text/plain'},
+                        checksum=True, need_resume=True, store=FileStore())
+        with open('tests/get.txt', 'wb') as f:
+            self.up.get(resume_root + 'resume_store.txt', f)
+        with open('tests/get.txt', 'rb') as f:
+            after = upyun.make_content_md5(f)
+        self.assertEqual(before, after)
+        os.remove('tests/get.txt')
+        os.remove('tests/resume_store.txt')
+        self.up.delete(resume_root + 'resume_store.txt')
+        with self.assertRaises(upyun.UpYunServiceException) as se:
+            self.up.getinfo(resume_root + 'resume_store.txt')
         self.assertEqual(se.exception.status, 404)
 
     def test_mkdir(self):
