@@ -6,6 +6,7 @@ from .modules.sign import make_rest_signature,\
 from .modules.exception import UpYunClientException
 from .modules.compat import b, str, quote, urlencode, builtin_str
 from .modules.httpipe import cur_dt
+from .resume import UpYunResume, THRESHOLD
 
 
 def get_fileobj_size(fileobj):
@@ -62,12 +63,30 @@ class UpYunRest(object):
         res = self.__do_http_request('GET', key, args='?usage')
         return str(int(res))
 
-    def put(self, key, value, checksum, headers, handler, params, secret):
-        '''
+    def _resume(self, key, f, file_size, checksum=None,
+                secret=None, headers=None, store=None, reporter=None):
+        if secret:
+            headers = headers or {}
+            headers['Content-Secret'] = secret
+        resumer = UpYunResume(self, key, f, file_size,
+                              headers, checksum, store, reporter)
+        return resumer.upload()
+
+    def put(self, key, value, checksum, headers, handler, params, secret,
+            need_resume, store, reporter):
+        """
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
         >>>                 headers={'x-gmkerl-rotate': '180'}})
-        '''
+        """
+        if need_resume and hasattr(value, 'fileno'):
+            value.seek(0, os.SEEK_END)
+            length = value.tell()
+            value.seek(0, os.SEEK_SET)
+            if length > THRESHOLD:
+                return self._resume(key, value, length, checksum, secret,
+                                    headers, store, reporter)
+
         if headers is None:
             headers = {}
 
@@ -140,7 +159,7 @@ class UpYunRest(object):
         return [k[7 + len(domain):] for k in invalid_urls if k]
 
     # --- private API
-    def __do_http_request(self, method, key,
+    def __do_http_request(self, method=None, key=None,
                           value=None, headers=None, of=None, args='',
                           stream=False, handler=None, params=None):
         _uri = '/%s/%s' % (self.bucket, key if key[0] != '/' else key[1:])
@@ -148,14 +167,13 @@ class UpYunRest(object):
 
         if headers is None:
             headers = {}
-
         length = 0
         if hasattr(value, '__len__'):
             length = len(value)
-            headers['Content-Length'] = length
+            headers['Content-Length'] = str(length)
         elif hasattr(value, 'fileno'):
             length = get_fileobj_size(value)
-            headers['Content-Length'] = length
+            headers['Content-Length'] = str(length)
             # [ugly]:compatible with newest requests feature
             # force the stream upload with empty file to normal upload
             if not length:
@@ -168,6 +186,8 @@ class UpYunRest(object):
         resp = self.hp.do_http_pipe(method, self.endpoint, uri,
                                     value, headers, stream)
         return self.__handle_resp(resp, method, of, handler, params)
+
+    do_http_request = __do_http_request
 
     def __handle_resp(self, resp, method=None, of=None,
                       handler=None, params=None, uri=None):

@@ -63,9 +63,10 @@ class UpYunHttp(object):
             except KeyError:
                 request_id = 'Unknown'
             status = resp.status_code
-            if status / 100 != 2:
+            if status // 100 != 2:
                 msg = resp.reason
                 err = resp.text
+                headers = resp.headers.items()
 
             if self.debug:
                 with open('debug.log', 'a') as f:
@@ -83,7 +84,7 @@ class UpYunHttp(object):
             raise UpYunClientException(e)
 
         if msg:
-            raise UpYunServiceException(request_id, status, msg, err)
+            raise UpYunServiceException(request_id, status, msg, err, headers)
 
         return resp
 

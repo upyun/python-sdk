@@ -25,6 +25,7 @@ class Multipart(object):
         expiration = expiration or 1800
         expiration = int(expiration + time.time())
         block_size = block_size or 1024*1024
+        file_name = os.path.basename(value.name)
         file_size = int(self.__get_size(value))
         block_size = self.__check_size(block_size)
         blocks = int(math.ceil(file_size * 1.0 / block_size)) or 1
@@ -46,7 +47,7 @@ class Multipart(object):
         while not self.__upload_success(status) and retry < 5:
             status_list = pool.map(lambda parms: self.__block_upload(*parms),
                                    zip(range(blocks), itertools.repeat(
-                                       (status, value, file_size,
+                                       (status, value, file_size, file_name,
                                         block_size, expiration,
                                         save_token, token_secret, lock))
                                        ))
@@ -80,7 +81,7 @@ class Multipart(object):
         return self.__do_http_request(postdata)
 
     def __block_upload(self, index, parms):
-        status, value, file_size, block_size, expiration,\
+        status, value, file_size, file_name, block_size, expiration,\
             save_token, token_secret, lock = parms
         # - if status[index] is already 1, skip it
         if status[index]:
@@ -102,7 +103,7 @@ class Multipart(object):
         signature = make_multi_signature(data, token_secret)
         postdata = {'policy': policy,
                     'signature': signature,
-                    'file': file_block,
+                    'file': (os.path.basename(file_name), file_block),
                     }
         resp = self.hp.do_http_pipe('POST', self.host, self.uri,
                                     files=postdata)
