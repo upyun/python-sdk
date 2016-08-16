@@ -152,10 +152,10 @@ class UpYunRest(object):
         length = 0
         if hasattr(value, '__len__'):
             length = len(value)
-            headers['Content-Length'] = length
+            headers['Content-Length'] = str(length)
         elif hasattr(value, 'fileno'):
             length = get_fileobj_size(value)
-            headers['Content-Length'] = length
+            headers['Content-Length'] = str(length)
             # [ugly]:compatible with newest requests feature
             # force the stream upload with empty file to normal upload
             if not length:
