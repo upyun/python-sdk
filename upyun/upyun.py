@@ -68,6 +68,11 @@ class UpYun(object):
             f.write('\n'.join(map(lambda kv: '%s: %s'
                               % (kv[0], kv[1]), kwargs.items())))
 
+    @has_object('up_rest')
+    def set_endpoint(self, endpoint, host=None):
+        self.up_rest.endpoint = endpoint
+        self.up_rest.host = host or ED_AUTO
+
     # --- public rest API
     @has_object('up_rest')
     def usage(self, key='/'):

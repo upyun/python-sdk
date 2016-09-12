@@ -56,6 +56,7 @@ class UpYunRest(object):
         self.chunksize = chunksize
         self.endpoint = endpoint
         self.hp = hp
+        self.host = None
 
     # --- public API
     def usage(self, key):
@@ -148,6 +149,9 @@ class UpYunRest(object):
 
         if headers is None:
             headers = {}
+
+        if self.host:
+            headers["HOST"] = self.host
 
         length = 0
         if hasattr(value, '__len__'):
