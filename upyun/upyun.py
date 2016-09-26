@@ -80,6 +80,7 @@ class UpYun(object):
 
     def put(self, key, value, checksum=False, headers=None,
             handler=None, params=None, secret=None,
+            need_resume=True, store=None, reporter=None,
             multipart=False, block_size=None, form=False,
             expiration=None, **kwargs):
         if (multipart or form) and not self.secret:
@@ -92,8 +93,9 @@ class UpYun(object):
         if multipart and hasattr(value, 'fileno'):
             return self.up_multi.upload(key, value,
                                         block_size, expiration, **kwargs)
-        return self.up_rest.put(key, value, checksum,
-                                headers, handler, params, secret)
+        return self.up_rest.put(
+            key, value, checksum, headers, handler,
+            params, secret, need_resume, store, reporter)
 
     @has_object('up_rest')
     def get(self, key, value=None, handler=None, params=None):

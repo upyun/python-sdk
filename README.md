@@ -111,6 +111,30 @@ with open('unix.png', 'rb') as f:
 
 上传失败，则抛出相应异常。
 
+#### 断点续传
+
+```python
+with open('unix.png', 'rb') as f:
+    res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, need_resume=True)
+```
+
+参数 `need_resume` 默认 False， 置为 True 且上传文件大于 10M 时， 采用断点续传方式上传文件。
+
+```python
+from upyun import FileStore
+from upyun import print_reporter
+
+with open('unix.png', 'rb') as f:
+    res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, need_resume=True, headers={'X-Upyun-Multi-Type': 'image/png'}, store=FileStore(), reporter=print_reporter)
+```
+
+参数 `store` 用来保存断点信息， 默认保存断点信息在内存中。 `FileStore()` 可以保存断点信息到文件， 注意文件夹的权限， 默认保存在 `~/.up-python-resume/`， 提供参数 `directory` 用于修改默认的文件夹路径。 也可以选择继承 `BaseStore` 实现自己的断点存储。 
+
+参数 `reporter` 用于报告上传进度, 默认忽略上传进度。 `print_reporter` 只是 `print` 上传进度, 有需要的请继承 `BaseReporter` 自行处理。 
+
+可以使用头部 `X-Upyun-Multi-Type` 来指定上传文件类型, 默认情况下根据文件名分析处理。 
+
+
 #### 表单方式上传
 
 用户可直接上传文件到 UPYUN，而不需要通过客户服务器进行中转。
