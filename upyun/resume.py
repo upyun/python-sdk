@@ -249,7 +249,7 @@ class UpYunResume(object):
         self.rest = rest
         self.f = f
         self.file_size = file_size
-        self.file_md5 = self.make_md5()
+        self.file_md5 = self.make_md5() if checksum else ""
         self.trace = ResumeTrace(self.rest.bucket, key, f.name, self.file_md5,
                                  file_size, store)
         self.headers = headers or {}
