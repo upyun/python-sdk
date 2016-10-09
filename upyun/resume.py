@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import base64
 import collections
 import hashlib
 import logging
@@ -262,7 +261,7 @@ class UpYunResume(object):
         for chunk in iter(lambda: self.f.read(chunksize), b''):
             md5.update(chunk)
         self.f.seek(0)
-        return decode_msg(base64.b64encode(md5.digest()))
+        return decode_msg(md5.hexdigest())
 
     def init_headers(self, filename):
         if "X-Upyun-Multi-Type" not in self.headers:
