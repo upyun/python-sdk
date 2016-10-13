@@ -1,0 +1,4 @@
+UPYUN_BUCKET = "" # required
+UPYUN_USERNAME = "" # required
+UPYUN_PASSWORD = "" # required
+UPYUN_SECRET = "" # Optional
