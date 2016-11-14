@@ -6,7 +6,7 @@ from .modules.sign import make_rest_signature,\
 from .modules.exception import UpYunClientException
 from .modules.compat import b, str, quote, urlencode, builtin_str
 from .modules.httpipe import cur_dt
-from .resume import UpYunResume, THRESHOLD
+from .resume import UpYunResume
 
 
 def get_fileobj_size(fileobj):
@@ -84,9 +84,8 @@ class UpYunRest(object):
             value.seek(0, os.SEEK_END)
             length = value.tell()
             value.seek(0, os.SEEK_SET)
-            if length > THRESHOLD:
-                return self._resume(key, value, length, checksum, secret,
-                                    headers, store, reporter)
+            return self._resume(key, value, length, checksum, secret,
+                                headers, store, reporter)
 
         if headers is None:
             headers = {}

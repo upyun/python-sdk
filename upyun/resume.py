@@ -18,8 +18,9 @@ except (ImportError, SyntaxError):
 
 TEMP_DIR = '.up-python-resume'
 DEFAULT_CHUNKSIZE = 8192
-THRESHOLD = 10 * 1024 * 1024
+THRESHOLD = 5 * 1024 * 1024
 PART_SIZE = 1024 * 1024
+SMALL_PART_SIZE = 100 * 1024
 log = logging.getLogger(__name__)
 
 
@@ -248,6 +249,8 @@ class UpYunResume(object):
         self.rest = rest
         self.f = f
         self.file_size = file_size
+        self.part_size = PART_SIZE if file_size >= THRESHOLD \
+            else SMALL_PART_SIZE
         self.file_md5 = self.make_md5() if checksum else ""
         self.trace = ResumeTrace(self.rest.bucket, key, f.name, self.file_md5,
                                  file_size, store)
@@ -269,6 +272,7 @@ class UpYunResume(object):
         self.headers["X-Upyun-Multi-Length"] = str(self.trace.file_size)
         self.headers["X-Upyun-Multi-Stage"] = "initiate,upload"
         self.headers["X-Upyun-Part-Id"] = "0"
+        self.headers["X-Upyun-Multi-Part-Size"] = self.part_size
 
     def set_record(self, record, headers):
         next_id = None
@@ -288,11 +292,11 @@ class UpYunResume(object):
             record.start = self.file_size
             record.end = self.file_size
         else:
-            record.start = next_id * PART_SIZE
-            if record.start + PART_SIZE > self.file_size:
+            record.start = next_id * self.part_size
+            if record.start + self.part_size > self.file_size:
                 record.end = self.file_size
             else:
-                record.end = record.start + PART_SIZE
+                record.end = record.start + self.part_size
             record.next_id = next_id
         return next_id
 
@@ -313,7 +317,7 @@ class UpYunResume(object):
             record.update({
                 "next_id": 0, "file_size": self.file_size,
                 "file_md5": self.file_md5, "start": 0,
-                "end": PART_SIZE if PART_SIZE < self.file_size
+                "end": self.part_size if self.part_size < self.file_size
                 else self.file_size})
             headers.update(self.headers)
 
@@ -345,10 +349,10 @@ class UpYunResume(object):
             return True
         else:
             record.start = record.end
-            if record.start + PART_SIZE > self.file_size:
+            if record.start + self.part_size > self.file_size:
                 record.end = self.file_size
             else:
-                record.end = record.start + PART_SIZE
+                record.end = record.start + self.part_size
             record.next_id += 1
             return False
 
