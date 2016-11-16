@@ -10,15 +10,23 @@ except ImportError:
 
 import os
 import sys
-import upyun
+import re
+
 
 if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     sys.exit()
 
+with open('upyun/__init__.py', 'r') as fd:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+                        fd.read(), re.MULTILINE).group(1)
+
+if not version:
+    raise RuntimeError('Cannot find version information')
+
 setup(
     name='upyun',
-    version=upyun.__version__,
+    version=version,
     description='UpYun Storage SDK for Python',
     license='License :: OSI Approved :: MIT License',
     platforms='Platform Independent',
