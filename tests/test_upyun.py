@@ -2,6 +2,7 @@
 import io
 import os
 import sys
+import types
 import uuid
 import json
 import time
@@ -53,7 +54,7 @@ class TestUpYun(unittest.TestCase):
         self.up.mkdir(self.root)
 
     def tearDown(self):
-        time.sleep(2)
+        time.sleep(4)
         self.up.delete(self.root)
 
     def test_getenv_info(self):
@@ -114,7 +115,7 @@ class TestUpYun(unittest.TestCase):
         self.assertEqual(res, 'abcdefghijklmnopqrstuvwxyz\n')
         self.up.delete(self.root + 'test.txt')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getinfo(self.root + 'test.txt')
             self.assertEqual(se.exception.status, 404)
 
@@ -124,14 +125,14 @@ class TestUpYun(unittest.TestCase):
         self.assertDictEqual(res, {'frames': '1', 'width': '1000',
                                    'file-type': 'PNG', 'height': '410'})
 
-        time.sleep(2)
+        time.sleep(4)
         res = self.up.getinfo(self.root + 'test.png')
         self.assertIsInstance(res, dict)
         self.assertEqual(res['file-size'], '13001')
         self.assertEqual(res['file-type'], 'file')
         self.up.delete(self.root + 'test.png')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getinfo(self.root + 'test.png')
         self.assertEqual(se.exception.status, 404)
 
@@ -147,7 +148,7 @@ class TestUpYun(unittest.TestCase):
         os.remove('tests/get.png')
         self.up.delete(self.root + 'test.png')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getinfo(self.root + 'test.png')
         self.assertEqual(se.exception.status, 404)
 
@@ -170,8 +171,31 @@ class TestUpYun(unittest.TestCase):
         os.remove('tests/resume.txt')
         self.up.delete(resume_root + 'resume.txt')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getinfo(resume_root + 'resume.txt')
+        self.assertEqual(se.exception.status, 404)
+
+    def test_resume_small(self):
+        now = datetime.datetime.now().strftime('%b-%d-%y-%H')
+        resume_root = '/pysdk-%s/' % now
+        with open('tests/small-resume.txt', 'w') as f:
+            f.seek(300 * 1024)
+            f.write(uuid.uuid4().hex)
+        with open('tests/small-resume.txt', 'rb') as f:
+            before = upyun.make_content_md5(f)
+            self.up.put(resume_root + 'small-resume.txt',
+                        f, checksum=True, need_resume=True)
+        with open('tests/get.txt', 'wb') as f:
+            self.up.get(resume_root + 'small-resume.txt', f)
+        with open('tests/get.txt', 'rb') as f:
+            after = upyun.make_content_md5(f)
+        self.assertEqual(before, after)
+        os.remove('tests/get.txt')
+        os.remove('tests/small-resume.txt')
+        self.up.delete(resume_root + 'small-resume.txt')
+        with self.assertRaises(upyun.UpYunServiceException) as se:
+            time.sleep(4)
+            self.up.getinfo(resume_root + 'small-resume.txt')
         self.assertEqual(se.exception.status, 404)
 
     def test_resume_store(self):
@@ -194,19 +218,19 @@ class TestUpYun(unittest.TestCase):
         os.remove('tests/resume_store.txt')
         self.up.delete(resume_root + 'resume_store.txt')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getinfo(resume_root + 'resume_store.txt')
         self.assertEqual(se.exception.status, 404)
 
     def test_mkdir(self):
         self.up.mkdir(self.root + 'test')
-        time.sleep(2)
+        time.sleep(4)
         res = self.up.getinfo(self.root + 'test')
         self.assertIsInstance(res, dict)
         self.assertEqual(res['file-type'], 'folder')
         self.up.delete(self.root + 'test')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getinfo(self.root + 'test')
         self.assertEqual(se.exception.status, 404)
 
@@ -214,7 +238,7 @@ class TestUpYun(unittest.TestCase):
         self.up.mkdir(self.root + 'test')
         with open('tests/test.png', 'rb') as f:
             self.up.put(self.root + 'test.png', f, checksum=False)
-        time.sleep(2)
+        time.sleep(4)
         res = self.up.getlist(self.root)
         self.assertIsInstance(res, list)
         self.assertEqual(len(res), 2)
@@ -226,10 +250,21 @@ class TestUpYun(unittest.TestCase):
                                  'name': 'test', 'size': '0'})
         self.assertDictEqual(b, {'time': b['time'], 'type': 'N',
                                  'name': 'test.png', 'size': '13001'})
+
+        lines = self.up.iterlist(self.root)
+        self.assertEqual(isinstance(lines, types.GeneratorType), True)
+        for line in lines:
+            if line['type'] == 'F':
+                self.assertEqual(line['name'], 'test')
+                self.assertEqual(line['size'], '0')
+            else:
+                self.assertEqual(line['type'], 'N')
+                self.assertEqual(line['name'], 'test.png')
+                self.assertEqual(line['size'], '13001')
         self.up.delete(self.root + 'test')
         self.up.delete(self.root + 'test.png')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getlist(self.root + 'test')
         self.assertEqual(se.exception.status, 404)
 
@@ -237,14 +272,14 @@ class TestUpYun(unittest.TestCase):
         with open('tests/test.png', 'rb') as f:
             self.up.put(self.root + 'test/test.png', f, checksum=False)
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.delete(self.root + 'test')
         self.assertIn(se.exception.status, [503, 403])
         self.up.delete(self.root + 'test/test.png')
-        time.sleep(2)
+        time.sleep(4)
         self.up.delete(self.root + 'test')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getinfo(self.root + 'test')
         self.assertEqual(se.exception.status, 404)
 
@@ -258,7 +293,7 @@ class TestUpYun(unittest.TestCase):
 
         self.up.delete(self.root + 'test.png')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getinfo(self.root + 'test.png')
         self.assertEqual(se.exception.status, 404)
 
@@ -288,7 +323,7 @@ class TestUpYun(unittest.TestCase):
 
         self.up.delete(self.root + 'test.png')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getinfo(self.root + 'test.png')
         self.assertEqual(se.exception.status, 404)
 
@@ -335,14 +370,14 @@ class TestUpYun(unittest.TestCase):
                 self.assertEqual(res['image-frames'], 1)
                 self.assertEqual(res['image-type'], 'PNG')
 
-            time.sleep(2)
+            time.sleep(4)
             res = self.up.getinfo(self.root + 'test.png')
             self.assertIsInstance(res, dict)
             self.assertEqual(res['file-size'], '13001')
             self.assertEqual(res['file-type'], 'file')
             self.up.delete(self.root + 'test.png')
             with self.assertRaises(upyun.UpYunServiceException) as se:
-                time.sleep(2)
+                time.sleep(4)
                 self.up.getinfo(self.root + 'test.png')
             self.assertEqual(se.exception.status, 404)
         # - test conflict upload method
@@ -369,7 +404,7 @@ class TestUpYun(unittest.TestCase):
             self.assertEqual(res['file-type'], 'file')
             self.up.delete(self.root + rname)
             with self.assertRaises(upyun.UpYunServiceException) as se:
-                time.sleep(2)
+                time.sleep(4)
                 self.up.getinfo(self.root + rname)
             self.assertEqual(se.exception.status, 404)
 
@@ -387,14 +422,14 @@ class TestUpYun(unittest.TestCase):
                              block_size=1024*1024, **kwargs)
                 self.assertEqual(res['mimetype'], 'text/plain')
 
-            time.sleep(2)
+            time.sleep(4)
             res = up.getinfo(self.root + 'test_bigfile.txt')
             self.assertIsInstance(res, dict)
             self.assertEqual(res['file-size'], '10485786')
             self.assertEqual(res['file-type'], 'file')
             up.delete(self.root + 'test_bigfile.txt')
             with self.assertRaises(upyun.UpYunServiceException) as se:
-                time.sleep(2)
+                time.sleep(4)
                 up.getinfo(self.root + 'test_bigfile.txt')
             self.assertEqual(se.exception.status, 404)
 
@@ -410,7 +445,9 @@ class TestUpYun(unittest.TestCase):
         up.up_multi.username = None
         up.up_multi.password = None
         __put(self.up)
+        time.sleep(2)
         __put(self.up, kwargs=kwargs)
+        time.sleep(2)
         __put(up)
         os.remove('tests/bigfile.txt')
 
@@ -429,7 +466,7 @@ class TestUpYun(unittest.TestCase):
             self.assertIn(taskid, tasks.keys())
         self.up.delete(self.root + 'test.mp4')
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            time.sleep(2)
+            time.sleep(4)
             self.up.getinfo(self.root + 'test.mp4')
         self.assertEqual(se.exception.status, 404)
 

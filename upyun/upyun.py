@@ -80,7 +80,7 @@ class UpYun(object):
 
     def put(self, key, value, checksum=False, headers=None,
             handler=None, params=None, secret=None,
-            need_resume=True, store=None, reporter=None,
+            need_resume=False, store=None, reporter=None,
             multipart=False, block_size=None, form=False,
             expiration=None, **kwargs):
         if (multipart or form) and not self.secret:
@@ -110,8 +110,14 @@ class UpYun(object):
         self.up_rest.mkdir(key)
 
     @has_object('up_rest')
-    def getlist(self, key='/'):
-        return self.up_rest.getlist(key)
+    def getlist(self, key='/', limit=None, order=None,
+                begin=None):
+        return self.up_rest.getlist(key, limit, order, begin)
+
+    @has_object('up_rest')
+    def iterlist(self, key='/', limit=None, order=None,
+                 begin=None):
+        return self.up_rest.iterlist(key, limit, order, begin)
 
     @has_object('up_rest')
     def getinfo(self, key):
