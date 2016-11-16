@@ -147,7 +147,9 @@ class UpYunRest(object):
         lines = self.__do_http_request('GET', key, headers=headers,
                                        stream=True, iter_line=True)
         for line in lines:
-            yield dict(zip(['name', 'type', 'size', 'time'], line.split('\t')))
+            decoded_line = line.decode('utf-8')
+            yield dict(zip(['name', 'type', 'size', 'time'],
+                           decoded_line.split('\t')))
 
     def getinfo(self, key):
         h = self.__do_http_request('HEAD', key)

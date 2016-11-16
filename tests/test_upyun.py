@@ -31,6 +31,7 @@ def b(s):
     else:
         return s
 
+
 BUCKET = os.getenv('UPYUN_BUCKET')
 USERNAME = os.getenv('UPYUN_USERNAME')
 PASSWORD = os.getenv('UPYUN_PASSWORD')

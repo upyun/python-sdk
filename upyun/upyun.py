@@ -189,5 +189,6 @@ def verify_put_sign(value, secret):
     signature = b'&'.join(data)
     return sign == make_content_md5(signature)
 
+
 if __name__ == '__main__':
     pass

@@ -104,6 +104,7 @@ class MemoryStore(BaseStore):
     def delete(self, key):
         self.dict.pop(key, None)
 
+
 memory_store = MemoryStore()
 
 
@@ -229,6 +230,7 @@ class PrintReporter(BaseReporter):
         else:
             print("reporter: Done")
 
+
 print_reporter = PrintReporter()
 
 
@@ -272,7 +274,7 @@ class UpYunResume(object):
         self.headers["X-Upyun-Multi-Length"] = str(self.trace.file_size)
         self.headers["X-Upyun-Multi-Stage"] = "initiate,upload"
         self.headers["X-Upyun-Part-Id"] = "0"
-        self.headers["X-Upyun-Multi-Part-Size"] = self.part_size
+        self.headers["X-Upyun-Multi-Part-Size"] = str(self.part_size)
 
     def set_record(self, record, headers):
         next_id = None
