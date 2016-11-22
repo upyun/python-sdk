@@ -6,7 +6,7 @@ from .modules.sign import make_rest_signature,\
 from .modules.exception import UpYunClientException
 from .modules.compat import b, str, quote, urlencode, builtin_str
 from .modules.httpipe import cur_dt
-from .resume import UpYunResume, THRESHOLD
+from .resume import UpYunResume
 
 
 def get_fileobj_size(fileobj):
@@ -84,9 +84,8 @@ class UpYunRest(object):
             value.seek(0, os.SEEK_END)
             length = value.tell()
             value.seek(0, os.SEEK_SET)
-            if length > THRESHOLD:
-                return self._resume(key, value, length, checksum, secret,
-                                    headers, store, reporter)
+            return self._resume(key, value, length, checksum, secret,
+                                headers, store, reporter)
 
         if headers is None:
             headers = {}
@@ -122,13 +121,35 @@ class UpYunRest(object):
         headers = {'Folder': 'true'}
         self.__do_http_request('POST', key, headers=headers)
 
-    def getlist(self, key):
-        content = self.__do_http_request('GET', key)
+    @staticmethod
+    def __make_list_headers(limit, order, begin):
+        headers = {}
+        header_tuple = (("X-List-Limit", limit),
+                        ("X-List-Order", order),
+                        ("X-List-Iter", begin))
+
+        for k, v in header_tuple:
+            if v is not None:
+                headers[k] = str(v)
+        return headers
+
+    def getlist(self, key, limit, order, begin):
+        headers = self.__make_list_headers(limit, order, begin)
+        content = self.__do_http_request('GET', key, headers=headers)
         if content == '':
             return []
         items = content.split('\n')
         return [dict(zip(['name', 'type', 'size', 'time'],
                 x.split('\t'))) for x in items]
+
+    def iterlist(self, key, limit, order, begin):
+        headers = self.__make_list_headers(limit, order, begin)
+        lines = self.__do_http_request('GET', key, headers=headers,
+                                       stream=True, iter_line=True)
+        for line in lines:
+            decoded_line = line.decode('utf-8')
+            yield dict(zip(['name', 'type', 'size', 'time'],
+                           decoded_line.split('\t')))
 
     def getinfo(self, key):
         h = self.__do_http_request('HEAD', key)
@@ -162,7 +183,8 @@ class UpYunRest(object):
     # --- private API
     def __do_http_request(self, method=None, key=None,
                           value=None, headers=None, of=None, args='',
-                          stream=False, handler=None, params=None):
+                          stream=False, handler=None,
+                          params=None, iter_line=False):
         _uri = '/%s/%s' % (self.bucket, key if key[0] != '/' else key[1:])
         uri = '%s%s' % (quote(encode_msg(_uri), safe='~/'), args)
 
@@ -190,12 +212,13 @@ class UpYunRest(object):
 
         resp = self.hp.do_http_pipe(method, self.endpoint, uri,
                                     value, headers, stream)
-        return self.__handle_resp(resp, method, of, handler, params)
+        return self.__handle_resp(resp, method, of, handler,
+                                  params, iter_line=iter_line)
 
     do_http_request = __do_http_request
 
     def __handle_resp(self, resp, method=None, of=None,
-                      handler=None, params=None, uri=None):
+                      handler=None, params=None, uri=None, iter_line=False):
         content = None
         try:
             if method == 'GET' and of:
@@ -219,6 +242,8 @@ class UpYunRest(object):
                     if not chunk:
                         break
                     of.write(chunk)
+            elif method == 'GET' and iter_line:
+                content = resp.iter_lines()
             elif method == 'GET':
                 content = resp.text
             elif method == 'PUT' or method == 'HEAD':

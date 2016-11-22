@@ -118,7 +118,7 @@ with open('unix.png', 'rb') as f:
     res = up.put('/upyun-python-sdk/xinu.png', f, checksum=True, need_resume=True)
 ```
 
-参数 `need_resume` 默认 False， 置为 True 且上传文件大于 10M 时， 采用断点续传方式上传文件。
+参数 `need_resume` 默认 False， 置为 True 后， 采用断点续传方式上传文件。
 
 ```python
 from upyun import FileStore
@@ -257,6 +257,30 @@ print item['time'] # 创建时间
 ```
 
 获取失败，则抛出相应的异常。该方法默认获取根目录列表信息。
+
+
+#### 分页功能
+
+```python
+res = up.getlist('/upyun-python-sdk/', limit=10, order='asc', begin='xxx')
+```
+
+三个分页参数，默认为空，具体含义请参见 [分页参数](http://docs.upyun.com/api/rest_api/#_25)
+
+
+#### 流式返回
+
+```python
+iter_items = up.iterlist('/upyun-python-sdk/', limit=10, order='asc', begin='xxx')
+# the resulting iterator object
+for item in iter_items:
+    print(item['type'], item['name'], item['size'])
+```
+
+三个分页参数，默认为空，具体含义请参见 [分页参数](http://docs.upyun.com/api/rest_api/#_25)
+
+
+
 
 ### 获取文件信息
 
