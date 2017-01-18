@@ -5,7 +5,12 @@ import base64
 
 from .modules.compat import urlencode, b
 from .modules.exception import UpYunClientException, UpYunServiceException
-from .modules.sign import make_av_signature, decode_msg
+from .modules.sign import (
+    decode_msg,
+    make_signature,
+    make_content_md5
+)
+from .modules.httpipe import cur_dt
 
 
 class AvPretreatment(object):
@@ -18,14 +23,14 @@ class AvPretreatment(object):
             'description',
             'task_id',
             'info',
-            'signature',
-            ]
+            'signature']
 
     def __init__(self, bucket, operator, password,
-                 chunksize, hp):
+                 auth_server, chunksize, hp):
         self.bucket = bucket
         self.operator = operator
         self.password = password
+        self.auth_server = auth_server
         self.chunksize = chunksize
         self.hp = hp
 
@@ -33,7 +38,7 @@ class AvPretreatment(object):
     def pretreat(self, tasks, source, notify_url, app_name=None):
         data = {'bucket_name': self.bucket, 'source': source,
                 'notify_url': notify_url, 'tasks': tasks,
-                'app_name': app_name}
+                'app_name': app_name, 'accept': 'json'}
         if not app_name:
             data.pop('app_name')
         return self.__requests_pretreatment(data)
@@ -56,17 +61,6 @@ class AvPretreatment(object):
                                     'Servers except respond tasks list',
                                     'Service Error')
 
-    # --- Signature not correct right now
-    def verify_tasks(self, data):
-        assert isinstance(data, dict)
-        data = self.__set_params_by_post(data)
-        if 'signature' in data:
-            signature = data['signature']
-            del data['signature']
-            return signature == make_av_signature(data,
-                                                  self.operator, self.password)
-        return False
-
     # --- private API
     def __requests_pretreatment(self, data):
         method = 'POST'
@@ -75,22 +69,33 @@ class AvPretreatment(object):
         data['tasks'] = decode_msg(base64.b64encode(b(json.dumps(tasks))))
 
         uri = self.PRETREAT
-        signature = make_av_signature(data, self.operator, self.password)
-        auth = 'UPYUN %s:%s' % (self.operator, signature)
-        headers = {'Authorization': auth,
-                   'Content-Type': 'application/x-www-form-urlencoded'}
         value = urlencode(data)
+        dt = cur_dt()
+        md5sum = make_content_md5(b(value))
+        signature = make_signature(username=self.operator,
+                                   password=self.password,
+                                   auth_server=self.auth_server,
+                                   method=method, uri=uri,
+                                   date=dt, content_md5=md5sum)
+        headers = {'Authorization': signature,
+                   'Content-Type': 'application/x-www-form-urlencoded',
+                   'Date': dt,
+                   'Content-MD5': md5sum}
         resp = self.hp.do_http_pipe(method, self.HOST, uri,
                                     headers=headers, value=value)
         return self.__handle_resp(resp)
 
     def __requests_status(self, data):
         method = 'GET'
-        signature = make_av_signature(data, self.operator, self.password)
+        dt = cur_dt()
         data = urlencode(data)
         uri = '%s?%s' % (self.STATUS, data)
-        auth = 'UPYUN %s:%s' % (self.operator, signature)
-        headers = {'Authorization': auth}
+        signature = make_signature(username=self.operator,
+                                   password=self.password,
+                                   auth_server=self.auth_server,
+                                   method=method, uri=uri, date=dt)
+        headers = {'Authorization': signature,
+                   'Date': dt}
         resp = self.hp.do_http_pipe(method, self.HOST, uri, headers=headers)
         return self.__handle_resp(resp)
 

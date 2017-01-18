@@ -283,7 +283,8 @@ class UpYunResume(object):
             try:
                 if 'x-upyun-next-part-id' == header[0].lower():
                     next_id = int(header[1])
-                    log.debug("get next_id from headers".format(next_id))
+                    log.debug(
+                        "get {next_id} from headers".format(next_id=next_id))
                     break
             except (ValueError, KeyError, AttributeError):
                 pass

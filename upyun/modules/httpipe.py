@@ -93,7 +93,8 @@ class UpYunHttp(object):
         return json.dumps(default, requests.utils.default_user_agent())
 
     def __set_headers(self, headers):
-        headers['Date'] = cur_dt()
+        if 'Date' not in headers:
+            headers['Date'] = cur_dt()
         if 'User-Agent' not in headers:
             headers['User-Agent'] = self.__make_user_agent()
         return headers
