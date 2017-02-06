@@ -56,7 +56,20 @@ import upyun
 up = upyun.UpYun('bucket', username='username', auth_server='http://localhost:8080')
 ```
 
-该模式下用户需在 `auth_server` 绑定的地址上部署远程签名服务，签名服务示例代码见 [examples/auth\_server.py](./examples/auth_server.py)
+该模式下用户需在 `auth_server` 绑定的地址上部署远程签名服务并实现如下接收 JSON 参数的 POST API:
+
+请求参数        | 必选    | 类型     | 说明
+----------- | ----- | ------ | ----------------------------------
+username    | true  | string | 操作员名称
+method      | true  | string | GET, POST, DELETE, PUT 等 HTTP 方法名称
+uri         | true  | string | 目标 URI 地址
+date        | true  | stirng | RFC1123 格式的时间字符串
+policy      | false | string | policy 字符串
+content_md5 | false | string | HTTP Body 的 MD5 签名
+
+返回结果: `UPYUN: username:signature`
+
+签名服务示例代码见[examples/auth\_server.py](./examples/auth_server.py)
 
 > 远程签名方式暂不支持[缓存刷新](https://docs.upyun.com/api/purge/)功能
 
