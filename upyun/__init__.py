@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .modules.sign import make_content_md5
+from .modules.sign import make_content_md5, make_signature
 from .resume import FileStore, BaseStore, BaseReporter, print_reporter
 from .modules.exception import UpYunServiceException, UpYunClientException
-from .upyun import UpYun, ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT, verify_put_sign
+from .upyun import UpYun, ED_AUTO, ED_TELECOM, ED_CNC, ED_CTT
 
 # Set default logging handler to avoid "No handler found" warnings.
 import logging
@@ -15,7 +15,7 @@ except ImportError:
             pass
 
 __title__ = 'upyun'
-__version__ = '2.4.2'
+__version__ = '2.5.0'
 __author__ = 'Monkey Zhang (timebug)'
 __license__ = 'MIT License: http://www.opensource.org/licenses/mit-license.php'
 __copyright__ = 'Copyright 2015 UPYUN'
@@ -23,7 +23,7 @@ __copyright__ = 'Copyright 2015 UPYUN'
 __all__ = [
     'UpYun', 'UpYunServiceException', 'UpYunClientException',
     'ED_AUTO', 'ED_TELECOM', 'ED_CNC', 'ED_CTT', '__version__',
-    'verify_put_sign', 'make_content_md5', 'FileStore', 'BaseStore',
+    'make_signature', 'make_content_md5', 'FileStore', 'BaseStore',
     'BaseReporter', 'print_reporter', 'add_stderr_logger'
 ]
 

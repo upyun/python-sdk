@@ -2,7 +2,10 @@
 
 import hashlib
 import base64
+import hmac
 import json
+
+import requests
 
 from .compat import b, PY3, builtin_str, bytes, str
 from .exception import UpYunClientException
@@ -41,32 +44,40 @@ def make_policy(data):
     return base64.b64encode(b(policy))
 
 
-def make_rest_signature(bucket, username, password,
-                        method, uri, date, length):
-    if method:
-        signstr = '&'.join([method, uri, date, str(length), password])
-        signature = hashlib.md5(b(signstr)).hexdigest()
-        return 'UpYun %s:%s' % (username, signature)
+def make_signature(**kwargs):
+    """The standard signature algorithm. avaliable kwargs:
+    username: operator
+    password: password md5
+    method: GET, POST ...
+    uri: uri
+    date: fmt rfc1123
+    *policy: params md5
+    *content_md5: content md5
+    *auth_server: the remote address of authentication server
+    """
+    for k in kwargs:
+        if isinstance(kwargs[k], bytes):
+            kwargs[k] = kwargs[k].decode()
 
-    else:
-        signstr = '&'.join([uri, bucket, date, password])
-        signature = hashlib.md5(b(signstr)).hexdigest()
-        return 'UpYun %s:%s:%s' % (bucket, username, signature)
+    if kwargs.get('auth_server'):
+        auth_server = kwargs.pop('auth_server')
+        resp = requests.post(auth_server, json=kwargs)
+        return resp.text
+
+    signarr = [kwargs['method'], kwargs['uri'], kwargs['date']]
+    if kwargs.get('policy'):
+        signarr.append(kwargs['policy'])
+    if kwargs.get('content_md5'):
+        signarr.append(kwargs['content_md5'])
+    signstr = '&'.join(signarr)
+    signature = base64.b64encode(
+        hmac.new(b(kwargs['password']), b(signstr),
+                 digestmod=hashlib.sha1).digest()
+    ).decode()
+    return 'UPYUN %s:%s' % (kwargs['username'], signature)
 
 
-def make_multi_signature(data, secret):
-    list_meta = sorted(data.items(), key=lambda d: d[0])
-    signature = ''.join(map(lambda kv: '%s%s' %
-                        (kv[0], str(kv[1])), list_meta))
-    signature += secret
-    return make_content_md5(b(signature))
-
-
-def make_av_signature(data, operator, password):
-    assert isinstance(data, dict)
-    signature = ''.join(map(lambda kv: '%s%s' %
-                        (kv[0],
-                         kv[1] if type(kv[1]) != list else ''.join(kv[1])),
-                        sorted(data.items())))
-    signature = '%s%s%s' % (operator, signature, password)
-    return make_content_md5(b(signature))
+def make_purge_signature(bucket, username, password, uri, date):
+    signstr = '&'.join([uri, bucket, date, password])
+    signature = hashlib.md5(b(signstr)).hexdigest()
+    return 'UpYun %s:%s:%s' % (bucket, username, signature)

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 
-from .modules.sign import make_rest_signature,\
-    make_content_md5, encode_msg
+from .modules.sign import make_signature,\
+    make_content_md5, encode_msg, make_purge_signature
 from .modules.exception import UpYunClientException
 from .modules.compat import b, str, quote, urlencode, builtin_str
 from .modules.httpipe import cur_dt
@@ -49,11 +49,12 @@ class UploadObject(object):
 
 
 class UpYunRest(object):
-    def __init__(self, bucket, username, password,
+    def __init__(self, bucket, username, password, auth_server,
                  endpoint, chunksize, hp):
         self.bucket = bucket
         self.username = username
         self.password = password
+        self.auth_server = auth_server
         self.chunksize = chunksize
         self.endpoint = endpoint
         self.hp = hp
@@ -172,7 +173,7 @@ class UpYunRest(object):
         params = urlencode({'purge': urlstr})
         headers = {'Content-Type': 'application/x-www-form-urlencoded',
                    'Accept': 'application/json'}
-        self.__set_auth_headers(urlstr, headers=headers)
+        self.__set_auth_headers(urlstr, headers=headers, is_purge=True)
 
         resp = self.hp.do_http_pipe(method, host, uri,
                                     value=params, headers=headers)
@@ -260,15 +261,22 @@ class UpYunRest(object):
                     k[8:].lower() != 'uuid' and
                     k[8:].lower() != 'cluster')
 
-    def __set_auth_headers(self, playload,
-                           method=None, length=0, headers=None):
+    def __set_auth_headers(self, playload, method=None,
+                           length=0, headers=None, is_purge=False):
         if headers is None:
-            headers = []
+            headers = {}
 
         dt = cur_dt()
-        signature = make_rest_signature(self.bucket, self.username,
-                                        self.password, method, playload,
-                                        dt, length)
+        if not is_purge:
+            signature = make_signature(username=self.username,
+                                       password=self.password,
+                                       auth_server=self.auth_server,
+                                       method=method, uri=playload, date=dt,
+                                       content_md5=headers.get('Content-MD5'))
+        else:
+            signature = make_purge_signature(self.bucket, self.username,
+                                             self.password, playload, dt)
 
         headers['Authorization'] = signature
+        headers['Date'] = dt
         return headers
