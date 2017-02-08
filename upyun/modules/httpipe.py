@@ -90,7 +90,8 @@ class UpYunHttp(object):
 
     def __make_user_agent(self):
         default = 'upyun-python-sdk/%s' % upyun.__version__
-        return json.dumps(default, requests.utils.default_user_agent())
+        return json.dumps('%s %s' % (
+            default, requests.utils.default_user_agent()))
 
     def __set_headers(self, headers):
         if 'Date' not in headers:
