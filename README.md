@@ -56,7 +56,7 @@ import upyun
 up = upyun.UpYun('bucket', username='username', auth_server='http://localhost:8080')
 ```
 
-[签名服务](#auth_server)示例代码见 [examples/auth\_server.py](./examples/auth_server.py)
+[签名服务](#远程签名服务)示例代码见 [examples/auth\_server.py](./examples/auth_server.py)
 
 > 远程签名方式暂不支持[缓存刷新](https://docs.upyun.com/api/purge/)功能
 
@@ -468,7 +468,7 @@ headers = {
 assert up.verify_signature(headers['Authorization'], '/api/v1/echo', headers)
 ```
 
-## <span id="auth_server">远程签名服务</span>
+## 远程签名服务
 
 创建自己的远程签名服务以提供签名功能。实现 API 如下：
 
