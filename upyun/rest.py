@@ -49,9 +49,9 @@ class UploadObject(object):
 
 
 class UpYunRest(object):
-    def __init__(self, bucket, username, password, auth_server,
+    def __init__(self, service, username, password, auth_server,
                  endpoint, chunksize, hp):
-        self.bucket = bucket
+        self.service = service
         self.username = username
         self.password = password
         self.auth_server = auth_server
@@ -157,7 +157,7 @@ class UpYunRest(object):
         return self.__get_meta_headers(h)
 
     def purge(self, keys, domain):
-        domain = domain or '%s.b0.upaiyun.com' % (self.bucket)
+        domain = domain or '%s.b0.upaiyun.com' % (self.service)
         if isinstance(keys, builtin_str):
             keys = [keys]
         if isinstance(keys, list):
@@ -186,7 +186,7 @@ class UpYunRest(object):
                           value=None, headers=None, of=None, args='',
                           stream=False, handler=None,
                           params=None, iter_line=False):
-        _uri = '/%s/%s' % (self.bucket, key if key[0] != '/' else key[1:])
+        _uri = '/%s/%s' % (self.service, key if key[0] != '/' else key[1:])
         uri = '%s%s' % (quote(encode_msg(_uri), safe='~/'), args)
 
         if headers is None:
@@ -274,7 +274,7 @@ class UpYunRest(object):
                                        method=method, uri=playload, date=dt,
                                        content_md5=headers.get('Content-MD5'))
         else:
-            signature = make_purge_signature(self.bucket, self.username,
+            signature = make_purge_signature(self.service, self.username,
                                              self.password, playload, dt)
 
         headers['Authorization'] = signature

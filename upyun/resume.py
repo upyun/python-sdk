@@ -26,9 +26,9 @@ log = logging.getLogger(__name__)
 
 class BaseStore(object):
     @staticmethod
-    def get_key(bucket, key, filename):
+    def get_key(service, key, filename):
         return hashlib.md5(b('{0}-{1}-{2}'.format(
-            bucket, key, filename))).hexdigest()
+            service, key, filename))).hexdigest()
 
     def get(self, key):
         raise NotImplementedError("get method not found")
@@ -109,11 +109,12 @@ memory_store = MemoryStore()
 
 
 class ResumeTrace(object):
-    def __init__(self, bucket, key, filename, file_md5, file_size, store=None):
+    def __init__(self, service, key, filename, file_md5, file_size,
+                 store=None):
         self.store = store if store else memory_store
         self.file_md5 = file_md5
         self.file_size = file_size
-        self.store_key = self.store.get_key(bucket, key, filename)
+        self.store_key = self.store.get_key(service, key, filename)
         self.record = UpYunRecord(self.store.get(self.store_key))
         try:
             self.check(self.record)
@@ -254,7 +255,7 @@ class UpYunResume(object):
         self.part_size = PART_SIZE if file_size >= THRESHOLD \
             else SMALL_PART_SIZE
         self.file_md5 = self.make_md5() if checksum else ""
-        self.trace = ResumeTrace(self.rest.bucket, key, f.name, self.file_md5,
+        self.trace = ResumeTrace(self.rest.service, key, f.name, self.file_md5,
                                  file_size, store)
         self.headers = headers or {}
         self.checksum = checksum

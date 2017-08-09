@@ -18,11 +18,11 @@ DEFAULT_CHUNKSIZE = 8192
 
 
 class UpYun(object):
-    def __init__(self, bucket, username=None, password=None,
+    def __init__(self, service, username=None, password=None,
                  auth_server=None, timeout=None, endpoint=None,
                  chunksize=None, debug=False, read_timeout=None):
         super(UpYun, self).__init__()
-        self.bucket = bucket or os.getenv('UPYUN_BUCKET')
+        self.service = service or os.getenv('UPYUN_SERVICE')
         self.username = username or os.getenv('UPYUN_USERNAME')
         password = password or os.getenv('UPYUN_PASSWORD')
         self.password = (hashlib.md5(b(password)).hexdigest()
@@ -37,16 +37,16 @@ class UpYun(object):
             self.requests_timeout = self.timeout
         self.hp = UpYunHttp(self.requests_timeout, debug)
 
-        self.up_rest = UpYunRest(self.bucket, self.username, self.password,
+        self.up_rest = UpYunRest(self.service, self.username, self.password,
                                  self.auth_server, self.endpoint,
                                  self.chunksize, self.hp)
-        self.av = AvPretreatment(self.bucket, self.username, self.password,
+        self.av = AvPretreatment(self.service, self.username, self.password,
                                  self.auth_server, self.chunksize, self.hp)
-        self.up_form = FormUpload(self.bucket, self.username, self.password,
+        self.up_form = FormUpload(self.service, self.username, self.password,
                                   self.auth_server, self.endpoint, self.hp)
 
         if debug:
-            self.__init_debug_log(bucket=bucket, username=username,
+            self.__init_debug_log(service=service, username=username,
                                   password=password, auth_server=auth_server,
                                   timeout=timeout, endpoint=endpoint,
                                   chunksize=chunksize, debug=debug)

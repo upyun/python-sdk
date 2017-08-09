@@ -9,22 +9,22 @@ from .modules.httpipe import cur_dt
 
 class FormUpload(object):
 
-    def __init__(self, bucket, username, password,
+    def __init__(self, service, username, password,
                  auth_server, endpoint, hp):
-        self.bucket = bucket
+        self.service = service
         self.username = username
         self.password = password
         self.auth_server = auth_server
         self.hp = hp
         self.host = endpoint
-        self.uri = '/%s/' % bucket
+        self.uri = '/%s/' % service
 
     def upload(self, key, value, expiration, **kwargs):
         expiration = expiration or 1800
         expiration += int(time.time())
         dt = cur_dt()
         data = {
-            'bucket': self.bucket,
+            'service': self.service,
             'expiration': expiration,
             'save-key': key,
             'date': dt,

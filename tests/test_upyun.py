@@ -28,7 +28,7 @@ def b(s):
         return s
 
 
-BUCKET = os.getenv('UPYUN_BUCKET')
+SERVICE = os.getenv('UPYUN_SERVICE')
 USERNAME = os.getenv('UPYUN_USERNAME')
 PASSWORD = os.getenv('UPYUN_PASSWORD')
 
@@ -44,7 +44,7 @@ class DjangoFile(io.BytesIO):
 
 class TestUpYun(unittest.TestCase):
     def setUp(self):
-        self.up = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
+        self.up = upyun.UpYun(SERVICE, USERNAME, PASSWORD,
                               timeout=100, endpoint=upyun.ED_AUTO)
         self.root = rootpath()
         self.up.mkdir(self.root)
@@ -56,19 +56,19 @@ class TestUpYun(unittest.TestCase):
         upyun.UpYun(None).getinfo('/')
 
     def test_debug_func(self):
-        up = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
+        up = upyun.UpYun(SERVICE, USERNAME, PASSWORD,
                          endpoint=upyun.ED_AUTO, debug=True)
         up.getinfo('/')
         os.remove('debug.log')
 
     def test_auth_failed(self):
         with self.assertRaises(upyun.UpYunServiceException) as se:
-            upyun.UpYun('bucket', 'username', 'password').getinfo('/')
+            upyun.UpYun('service', 'username', 'password').getinfo('/')
         self.assertEqual(se.exception.status, 401)
 
     def test_client_exception(self):
         with self.assertRaises(upyun.UpYunClientException):
-            e = upyun.UpYun('bucket', username='username',
+            e = upyun.UpYun('service', username='username',
                             password='password', timeout=100)
             e.up_rest.endpoint = 'e.api.upyun.com'
             e.getinfo('/')
@@ -328,7 +328,7 @@ class TestUpYun(unittest.TestCase):
                 self.up.getinfo(self.root + 'test.png')
             self.assertEqual(se.exception.status, 404)
         # - test conflict upload method
-        up = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
+        up = upyun.UpYun(SERVICE, USERNAME, PASSWORD,
                          timeout=100, endpoint=upyun.ED_AUTO)
         kwargs = {'allow-file-type': 'jpg,jpeg,png',
                   'notify-url': 'http://httpbin.org/post',
@@ -352,7 +352,7 @@ class TestUpYun(unittest.TestCase):
                 self.up.getinfo(self.root + rname)
             self.assertEqual(se.exception.status, 404)
 
-        up = upyun.UpYun(BUCKET, USERNAME, PASSWORD,
+        up = upyun.UpYun(SERVICE, USERNAME, PASSWORD,
                          timeout=100, endpoint=upyun.ED_AUTO)
         fname = self.root + '{filename}{filename}.{suffix}{.suffix}'
         __put(up, fname)
@@ -392,6 +392,6 @@ class TestUpYun(unittest.TestCase):
                                  content_md5=headers['Content-MD5']))
 
     def test_auth_server(self):
-        up = upyun.UpYun(BUCKET, USERNAME,
+        up = upyun.UpYun(SERVICE, USERNAME,
                          auth_server='http://localhost:8080')
         up.getinfo('/')
