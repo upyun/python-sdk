@@ -77,7 +77,7 @@ def make_signature(**kwargs):
     return 'UPYUN %s:%s' % (kwargs['username'], signature)
 
 
-def make_purge_signature(bucket, username, password, uri, date):
-    signstr = '&'.join([uri, bucket, date, password])
+def make_purge_signature(service, username, password, uri, date):
+    signstr = '&'.join([uri, service, date, password])
     signature = hashlib.md5(b(signstr)).hexdigest()
-    return 'UpYun %s:%s:%s' % (bucket, username, signature)
+    return 'UpYun %s:%s:%s' % (service, username, signature)

@@ -29,7 +29,7 @@ pip install upyun
 > 运行测试用例
 
 ```
-export UPYUN_BUCKET=<bucket>
+export UPYUN_SERVICE=<service>
 export UPYUN_USERNAME=<username>
 export UPYUN_PASSWORD=<password>
 
@@ -43,17 +43,17 @@ make init test
 ```python
 import upyun
 
-up = upyun.UpYun('bucket', 'username', 'password', timeout=30, endpoint=upyun.ED_AUTO)
+up = upyun.UpYun('service', 'username', 'password', timeout=30, endpoint=upyun.ED_AUTO)
 ```
 
-`bucket`，`username`，`password` 分别为空间名，授权操作员帐号，密码。`timeout` 为 HTTP 请求超时时间，默认 60 秒，可选。
+`service`，`username`，`password` 分别为服务名，授权操作员帐号，密码。`timeout` 为 HTTP 请求超时时间，默认 60 秒，可选。
 
 由于直接在 SDK 中暴露密码可能存在安全隐患，因此对于安全性要求较高的用户，可使用如下远程签名方式：
 
 ```python
 import upyun
 
-up = upyun.UpYun('bucket', username='username', auth_server='http://localhost:8080')
+up = upyun.UpYun('service', username='username', auth_server='http://localhost:8080')
 ```
 
 [签名服务](#远程签名服务)示例代码见 [examples/auth\_server.py](./examples/auth_server.py)
@@ -65,7 +65,7 @@ up = upyun.UpYun('bucket', username='username', auth_server='http://localhost:80
 ```python
 import upyun
 
-up = upyun.UpYun('bucket', username='username', password='password')
+up = upyun.UpYun('service', username='username', password='password')
 ```
 
 以及，根据国内的网络情况，UPYUN API 目前提供了电信、联通网通、移动铁通三个接入点，在初始化时可由参数 `endpoint` 进行设置，其可选的值有：
@@ -259,20 +259,20 @@ print res['file-date']
 
 获取成功，返回一个 Python Dict 对象; 失败则抛出相应异常。
 
-### 获取空间使用情况
+### 获取服务使用情况
 
 ```python
 res = up.usage()
 ```
 
-获取成功，始终返回该空间当前使用的总容量，单位 Bytes，值类型为 Python String 对象; 失败则抛出相应异常。
+获取成功，始终返回该服务当前使用的总容量，单位 Bytes，值类型为 Python String 对象; 失败则抛出相应异常。
 
 ### 视频处理
 
-用于处理已经上传到对应存储空间中的视频文件，进行转码、截图等操作。
+用于处理已经上传到对应存储服务中的视频文件，进行转码、截图等操作。
 
 ```python
-source = '/bucket/test.mp4'
+source = '/service/test.mp4'
 tasks = [{'type': 'probe', }, {'type': 'hls', 'hls_time': '100'}]
 notify_url = 'http://httpbin.org/post'
 up.pretreat(tasks, source, notify_url)
@@ -341,7 +341,7 @@ print up.put_tasks(compress_tasks, notify_url, 'compress')
 
 depress_tasks = [
     {
-        "sources": "/source/t.zip",              //UPYUN 存储空间中内文件路径
+        "sources": "/source/t.zip",              //UPYUN 存储服务中内文件路径
         "save_as": "/result/t/",                 //保存路径
     },
 ]
@@ -387,7 +387,7 @@ except upyun.UpYunClientException as ce:
 ### 自定义数据流大小
 
 ```python
-up = upyun.UpYun('bucket', 'username', 'password', chunksize=8192)
+up = upyun.UpYun('service', 'username', 'password', chunksize=8192)
 ```
 
 当通过数据流方式上传和下载文件时，`chunksize` 决定了每次读操作的缓存区大小，默认 8192 字节。
@@ -426,15 +426,15 @@ with open('unix.png', 'rb') as f:
     res = up.put('xinu.png', f, secret="abc")
 ```
 
-其中参数 `secret` 可指定具体密钥内容；默认 `None`，表示不设置密钥。特别地，该功能仅对配置了缩略图版本号的图片空间有效。
+其中参数 `secret` 可指定具体密钥内容；默认 `None`，表示不设置密钥。特别地，该功能仅对配置了缩略图版本号的图片服务有效。
 
 详见 [UPYUN HTTP REST API 接口](http://docs.upyun.com/api/rest_api/) 中关于原图密钥保护的说明。
 
 ## 缓存刷新
 
-基于 [UPYUN 缓存刷新 API 接口](http://docs.upyun.com/api/purge/) 开发，方便对 CDN 空间缓存资源进行主动刷新。
+基于 [UPYUN 缓存刷新 API 接口](http://docs.upyun.com/api/purge/) 开发，方便对 CDN 服务缓存资源进行主动刷新。
 
-特别地，云存储空间正常情况下，资源更新则不需要额外提交刷新请求，缓存系统会自动进行处理。
+特别地，云存储服务正常情况下，资源更新则不需要额外提交刷新请求，缓存系统会自动进行处理。
 
 ```python
 >>> print up.purge('/upyun-python-sdk/xinu.png')
@@ -446,7 +446,7 @@ with open('unix.png', 'rb') as f:
 ['/unix.png', '/unix.png']
 ```
 
-支持提交单个或一组 URI 到缓存刷新队列，其中 `domain` 参数可特别指定为该空间对应的绑定域名作为本次刷新的域，默认其值为 `None`，表示始终使用默认域名。
+支持提交单个或一组 URI 到缓存刷新队列，其中 `domain` 参数可特别指定为该服务对应的绑定域名作为本次刷新的域，默认其值为 `None`，表示始终使用默认域名。
 
 提交成功，返回一个 Python List 对象，包含本次提交中无效的 URI 列表；失败则抛出相应异常。
 
@@ -457,7 +457,7 @@ with open('unix.png', 'rb') as f:
 ```python
 import upyun
 
-up = upyun.UpYun('bucket', 'username', 'password')
+up = upyun.UpYun('service', 'username', 'password')
 
 headers = {
     'Date': 'Fri, 20 Jan 2017 08:46:20 GMT',

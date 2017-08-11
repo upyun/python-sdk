@@ -17,7 +17,7 @@ class AvPretreatment(object):
     HOST = 'p0.api.upyun.com'
     PRETREAT = '/pretreatment/'
     STATUS = '/status/'
-    KEYS = ['bucket_name',
+    KEYS = ['service',
             'status_code',
             'path',
             'description',
@@ -25,9 +25,9 @@ class AvPretreatment(object):
             'info',
             'signature']
 
-    def __init__(self, bucket, operator, password,
+    def __init__(self, service, operator, password,
                  auth_server, chunksize, hp):
-        self.bucket = bucket
+        self.service = service
         self.operator = operator
         self.password = password
         self.auth_server = auth_server
@@ -36,7 +36,7 @@ class AvPretreatment(object):
 
     # --- public API
     def pretreat(self, tasks, source, notify_url, app_name=None):
-        data = {'bucket_name': self.bucket, 'source': source,
+        data = {'service': self.service, 'source': source,
                 'notify_url': notify_url, 'tasks': tasks,
                 'app_name': app_name, 'accept': 'json'}
         if not app_name:
@@ -52,7 +52,7 @@ class AvPretreatment(object):
         else:
             raise UpYunClientException('length of taskids should less than 20')
 
-        data['bucket_name'] = self.bucket
+        data['service'] = self.service
         data['task_ids'] = taskids
         content = self.__requests_status(data)
         if type(content) == dict and 'tasks' in content:
