@@ -63,7 +63,8 @@ def image_async_joint():
     """
     # tasks见文档说明
     tasks = [{"image_matrix": image_matrix, "save_as": save_as}]
-    print up.put_tasks(tasks, notify_url, "jigsaw")
+    res = up.put_tasks(tasks, notify_url, "jigsaw")
+    print(res)
 
 
 def video_form_process():
@@ -126,7 +127,8 @@ def spiderman():
     # tasks见文档说明
     tasks = [{"url": url, "random": False,
               "overwrite": True, "save_as": save_as}]
-    print up.put_tasks(tasks, notify_url, "spiderman")
+    res = up.put_tasks(tasks, notify_url, "spiderman")
+    print(res)
 
 
 def file_form_convert():
@@ -147,4 +149,5 @@ def file_convert():
     """
     # tasks见文档说明
     tasks = [{"source": doc_file, "save_as": save_as}]
-    print up.put_tasks(tasks, notify_url, "uconvert")
+    res = up.put_tasks(tasks, notify_url, "uconvert")
+    print(res)

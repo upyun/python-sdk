@@ -38,7 +38,8 @@ def image_pretreatment():
     '''
     # tasks见文档说明
     tasks = [{"source": image_file}]
-    print up.put_tasks(tasks, notify_url, "imgaudit")
+    res = up.put_tasks(tasks, notify_url, "imgaudit")
+    print(res)
 
 
 def video_form():
@@ -57,4 +58,5 @@ def video_pretreatment():
     '''
     # tasks见文档说明
     tasks = [{"source": video_file, "save_as": save_as}]
-    print up.put_tasks(tasks, notify_url, "videoaudit")
+    res = up.put_tasks(tasks, notify_url, "videoaudit")
+    print(res)
