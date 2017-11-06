@@ -39,3 +39,5 @@ nosetests.xml
 *.png
 !tests/test.png
 .cache
+
+.vscode
