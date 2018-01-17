@@ -233,6 +233,24 @@ res = up.getlist('/upyun-python-sdk/', limit=10, order='asc', begin='xxx')
 
 三个分页参数，默认为空，具体含义请参见 [分页参数](http://docs.upyun.com/api/rest_api/#_25)
 
+#### 分页获取文件
+
+```
+res = get_list_with_iter('/upyun-python-sdk/', limit=10, order='asc', begin='xxx')
+
+{
+	'files': [{
+		'name': 'xxx.m4a',
+		'type': 'N',
+		'size': '332918',
+		'time': '1449137388'
+	}],
+	'iter': 'xxxxx'
+}
+```
+
+三个分页参数，默认为空，具体含义请参见 [分页参数](http://docs.upyun.com/api/rest_api/#_25)
+
 
 #### 流式返回
 
