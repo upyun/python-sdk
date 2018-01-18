@@ -143,6 +143,19 @@ class UpYunRest(object):
         return [dict(zip(['name', 'type', 'size', 'time'],
                 x.split('\t'))) for x in items]
 
+    def get_list_with_iter(self, key, limit, order, begin):
+        headers = self.__make_list_headers(limit, order, begin)
+        resp = self.__do_http_request('GET', key, headers=headers, with_headers=True)
+        ret = {'files': [], 'iter': None}
+        if resp['headers']:
+            ret['iter'] = dict(resp['headers']).get('x-upyun-list-iter')
+        if resp['content'] == '':
+            return ret
+        items = resp['content'].split('\n')
+        ret['files'] = [dict(zip(['name', 'type', 'size', 'time'],
+                                 x.split('\t'))) for x in items]
+        return ret
+
     def iterlist(self, key, limit, order, begin):
         headers = self.__make_list_headers(limit, order, begin)
         lines = self.__do_http_request('GET', key, headers=headers,
@@ -185,7 +198,7 @@ class UpYunRest(object):
     def __do_http_request(self, method=None, key=None,
                           value=None, headers=None, of=None, args='',
                           stream=False, handler=None,
-                          params=None, iter_line=False):
+                          params=None, iter_line=False, with_headers=False):
         _uri = '/%s/%s' % (self.service, key if key[0] != '/' else key[1:])
         uri = '%s%s' % (quote(encode_msg(_uri), safe='~/'), args)
 
@@ -214,12 +227,12 @@ class UpYunRest(object):
         resp = self.hp.do_http_pipe(method, self.endpoint, uri,
                                     value, headers, stream)
         return self.__handle_resp(resp, method, of, handler,
-                                  params, iter_line=iter_line)
+                                  params, iter_line=iter_line, with_headers=with_headers)
 
     do_http_request = __do_http_request
 
     def __handle_resp(self, resp, method=None, of=None,
-                      handler=None, params=None, uri=None, iter_line=False):
+                      handler=None, params=None, uri=None, iter_line=False, with_headers=False):
         content = None
         try:
             if method == 'GET' and of:
@@ -245,6 +258,8 @@ class UpYunRest(object):
                     of.write(chunk)
             elif method == 'GET' and iter_line:
                 content = resp.iter_lines()
+            elif method == 'GET' and with_headers:
+                content = {'content': resp.text, 'headers': resp.headers.items()}
             elif method == 'GET':
                 content = resp.text
             elif method == 'PUT' or method == 'HEAD':

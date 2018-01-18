@@ -101,6 +101,10 @@ class UpYun(object):
                 begin=None):
         return self.up_rest.getlist(key, limit, order, begin)
 
+    def get_list_with_iter(self, key='/', limit=None, order=None,
+                           begin=None):
+        return self.up_rest.get_list_with_iter(key, limit, order, begin)
+
     def iterlist(self, key='/', limit=None, order=None,
                  begin=None):
         return self.up_rest.iterlist(key, limit, order, begin)
