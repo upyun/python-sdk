@@ -224,6 +224,7 @@ class TestUpYun(unittest.TestCase):
         self.assertEqual(se.exception.status, 404)
 
     def test_delete(self):
+        self.up.mkdir(self.root + 'test')
         with open('tests/test.png', 'rb') as f:
             self.up.put(self.root + 'test/test.png', f, checksum=False)
         with self.assertRaises(upyun.UpYunServiceException) as se:
