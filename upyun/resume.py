@@ -247,7 +247,8 @@ class UpYunResume(object):
     """
 
     def __init__(self, rest, key, f, file_size,
-                 headers=None, checksum=False, store=None, reporter=None, part_size=None):
+                 headers=None, checksum=False, store=None,
+                 reporter=None, part_size=None):
         self.key = key
         self.rest = rest
         self.f = f
@@ -257,8 +258,8 @@ class UpYunResume(object):
             self.part_size = PART_SIZE if file_size >= THRESHOLD \
                 else SMALL_PART_SIZE
         self.file_md5 = self.make_md5() if checksum else ""
-        self.trace = ResumeTrace(self.rest.service, key, f.name, self.file_md5,
-                                 file_size, store)
+        self.trace = ResumeTrace(self.rest.service, key, f.name,
+                                 self.file_md5, file_size, store)
         self.headers = headers or {}
         self.checksum = checksum
         self.init_headers(f.name)

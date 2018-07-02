@@ -66,7 +66,8 @@ class UpYunRest(object):
         return str(int(res))
 
     def _resume(self, key, f, file_size, checksum=None,
-                secret=None, headers=None, store=None, reporter=None, part_size=None):
+                secret=None, headers=None, store=None,
+                reporter=None, part_size=None):
         if secret:
             headers = headers or {}
             headers['Content-Secret'] = secret
@@ -145,7 +146,8 @@ class UpYunRest(object):
 
     def get_list_with_iter(self, key, limit, order, begin):
         headers = self.__make_list_headers(limit, order, begin)
-        resp = self.__do_http_request('GET', key, headers=headers, with_headers=True)
+        resp = self.__do_http_request('GET', key, headers=headers,
+                                      with_headers=True)
         ret = {'files': [], 'iter': None}
         if resp['headers']:
             ret['iter'] = dict(resp['headers']).get('x-upyun-list-iter')
@@ -227,12 +229,14 @@ class UpYunRest(object):
         resp = self.hp.do_http_pipe(method, self.endpoint, uri,
                                     value, headers, stream)
         return self.__handle_resp(resp, method, of, handler,
-                                  params, iter_line=iter_line, with_headers=with_headers)
+                                  params, iter_line=iter_line,
+                                  with_headers=with_headers)
 
     do_http_request = __do_http_request
 
     def __handle_resp(self, resp, method=None, of=None,
-                      handler=None, params=None, uri=None, iter_line=False, with_headers=False):
+                      handler=None, params=None, uri=None,
+                      iter_line=False, with_headers=False):
         content = None
         try:
             if method == 'GET' and of:
@@ -259,7 +263,8 @@ class UpYunRest(object):
             elif method == 'GET' and iter_line:
                 content = resp.iter_lines()
             elif method == 'GET' and with_headers:
-                content = {'content': resp.text, 'headers': resp.headers.items()}
+                content = {'content': resp.text,
+                           'headers': resp.headers.items()}
             elif method == 'GET':
                 content = resp.text
             elif method == 'PUT' or method == 'HEAD':
