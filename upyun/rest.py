@@ -66,16 +66,16 @@ class UpYunRest(object):
         return str(int(res))
 
     def _resume(self, key, f, file_size, checksum=None,
-                secret=None, headers=None, store=None, reporter=None):
+                secret=None, headers=None, store=None, reporter=None, part_size=None):
         if secret:
             headers = headers or {}
             headers['Content-Secret'] = secret
         resumer = UpYunResume(self, key, f, file_size,
-                              headers, checksum, store, reporter)
+                              headers, checksum, store, reporter, part_size)
         return resumer.upload()
 
     def put(self, key, value, checksum, headers, handler, params, secret,
-            need_resume, store, reporter):
+            need_resume, store, reporter, part_size):
         """
         >>> with open('foo.png', 'rb') as f:
         >>>    res = up.put('/path/to/bar.png', f, checksum=False,
@@ -86,7 +86,7 @@ class UpYunRest(object):
             length = value.tell()
             value.seek(0, os.SEEK_SET)
             return self._resume(key, value, length, checksum, secret,
-                                headers, store, reporter)
+                                headers, store, reporter, part_size)
 
         if headers is None:
             headers = {}
