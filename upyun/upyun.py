@@ -81,12 +81,13 @@ class UpYun(object):
 
     def put(self, key, value, checksum=False, headers=None,
             handler=None, params=None, secret=None,
-            need_resume=False, store=None, reporter=None,
+            need_resume=False, store=None, reporter=None, part_size=None,
             form=False, expiration=None, **kwargs):
         if form and hasattr(value, 'fileno'):
             return self.up_form.upload(key, value, expiration, **kwargs)
-        return self.up_rest.put(key, value, checksum, headers, handler, params,
-                                secret, need_resume, store, reporter)
+        return self.up_rest.put(key, value, checksum, headers, handler,
+                                params, secret, need_resume,
+                                store, reporter, part_size)
 
     def get(self, key, value=None, handler=None, params=None):
         return self.up_rest.get(key, value, handler, params)
