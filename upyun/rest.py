@@ -10,6 +10,9 @@ from .resume import UpYunResume
 
 
 def get_fileobj_size(fileobj):
+    if hasattr(fileobj, 'stream'):
+        return int(fileobj.getheader("Content-Length"))
+
     try:
         if hasattr(fileobj, 'fileno'):
             return os.fstat(fileobj.fileno()).st_size
@@ -25,11 +28,19 @@ class UploadObject(object):
         self.chunksize = chunksize
         self.totalsize = get_fileobj_size(fileobj)
         self.readsofar = 0
+        self.hdr = None
         if handler:
             self.hdr = handler(self.totalsize, params)
 
     def __iter__(self):
-        return self
+        if hasattr(self.fileobj, 'stream'):
+            yield self.fileobj.iter_content(self.chunksize)
+        else:
+            while True:
+                chunk = self.fileobj.read(self.chunksize)
+                if not chunk:
+                    break
+                yield chunk
 
     def __next__(self):
         chunk = self.fileobj.read(self.chunksize)
@@ -101,7 +112,7 @@ class UpYunRest(object):
         if secret:
             headers['Content-Secret'] = secret
 
-        if handler and hasattr(value, 'fileno'):
+        if hasattr(value, 'fileno'):
             value = UploadObject(value, chunksize=self.chunksize,
                                  handler=handler, params=params)
 
