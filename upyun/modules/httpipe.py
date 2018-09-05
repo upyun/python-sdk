@@ -64,7 +64,7 @@ class UpYunHttp(object):
                 request_id = 'Unknown'
             status = resp.status_code
             if status // 100 != 2:
-                msg = resp.reason
+                msg = resp.reason or "Unknown"
                 err = resp.text
                 headers = resp.headers.items()
 
