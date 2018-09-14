@@ -21,7 +21,7 @@
 参数信息
 
 ```
-`local_file` 本地把文件路劲
+`local_file` 本地文件路径
 
 `image_file` 云存储中的图片路径
 
