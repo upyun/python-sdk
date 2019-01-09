@@ -106,12 +106,13 @@ class MemoryStore(BaseStore):
 
 
 memory_store = MemoryStore()
+file_store = FileStore()
 
 
 class ResumeTrace(object):
     def __init__(self, service, key, filename, file_md5, file_size,
                  store=None):
-        self.store = store if store else memory_store
+        self.store = file_store if store == "file_store" else memory_store
         self.file_md5 = file_md5
         self.file_size = file_size
         self.store_key = self.store.get_key(service, key, filename)
