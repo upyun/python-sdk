@@ -105,8 +105,11 @@ class TestUpYun(unittest.TestCase):
     def test_put(self):
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f, checksum=False)
-        self.assertDictEqual(res, {'frames': '1', 'width': '1000', 'content-length': '13001', 'content-type': 'image/png',
-                                   'file-type': 'PNG', 'height': '410'})
+        self.assertDictEqual(res, {'frames': '1', 'width': '1000',
+                                   'file-type': 'PNG',
+                                   'content-length': '13001',
+                                   'content-type': 'image/png',
+                                   'height': '410'})
 
         res = self.up.getinfo(self.root + 'test.png')
         self.assertIsInstance(res, dict)
@@ -119,9 +122,13 @@ class TestUpYun(unittest.TestCase):
 
     def test_put_with_memorystore(self):
         with open('tests/test.png', 'rb') as f:
-            res = self.up.put(self.root + 'test.png', f, checksum=False, store="memory_store")
-        self.assertDictEqual(res, {'frames': '1', 'width': '1000', 'content-length': '13001', 'content-type': 'image/png',
-                                   'file-type': 'PNG', 'height': '410'})
+            res = self.up.put(self.root + 'test.png', f,
+                              checksum=False, store="memory_store")
+        self.assertDictEqual(res, {'frames': '1', 'width': '1000',
+                                   'file-type': 'PNG',
+                                   'content-length': '13001',
+                                   'content-type': 'image/png',
+                                   'height': '410'})
 
         res = self.up.getinfo(self.root + 'test.png')
         self.assertIsInstance(res, dict)
@@ -134,9 +141,13 @@ class TestUpYun(unittest.TestCase):
 
     def test_put_with_filestore(self):
         with open('tests/test.png', 'rb') as f:
-            res = self.up.put(self.root + 'test.png', f, checksum=False, store="file_store")
-        self.assertDictEqual(res, {'frames': '1', 'width': '1000', 'content-length': '13001', 'content-type': 'image/png',
-                                   'file-type': 'PNG', 'height': '410'})
+            res = self.up.put(self.root + 'test.png', f,
+                              checksum=False, store="file_store")
+        self.assertDictEqual(res, {'frames': '1', 'width': '1000',
+                                   'file-type': 'PNG',
+                                   'content-length': '13001',
+                                   'content-type': 'image/png',
+                                   'height': '410'})
 
         res = self.up.getinfo(self.root + 'test.png')
         self.assertIsInstance(res, dict)
@@ -283,8 +294,11 @@ class TestUpYun(unittest.TestCase):
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f, checksum=False,
                               headers=headers)
-        self.assertDictEqual(res, {'frames': '1', 'width': '410', 'content-length': '15524', 'content-type': 'image/png',
-                                   'file-type': 'PNG', 'height': '1000'})
+        self.assertDictEqual(res, {'frames': '1', 'width': '410',
+                                   'content-length': '15524',
+                                   'content-type': 'image/png',
+                                   'file-type': 'PNG',
+                                   'height': '1000'})
 
         self.delete(self.root + 'test.png')
         with self.assertRaises(upyun.UpYunServiceException) as se:
@@ -339,14 +353,16 @@ class TestUpYun(unittest.TestCase):
         f = io.BytesIO(b('www.upyun.com'))
         res = self.up.put(self.root + 'test.txt', f, checksum=True,
                           handler=ProgressBarHandler, params=self)
-        self.assertDictEqual(res, {'content-length': '13', 'content-type': 'text/plain'})
+        self.assertDictEqual(res, {'content-length': '13',
+                                   'content-type': 'text/plain'})
         f.close()
         self.delete(self.root + 'test.txt')
 
     def test_filelike_object_django(self):
         f = DjangoFile(b('www.upyun.com'))
         res = self.up.put(self.root + 'test.txt', f, checksum=False)
-        self.assertDictEqual(res, {'content-length': '13', 'content-type': 'text/plain'})
+        self.assertDictEqual(res, {'content-length': '13',
+                                   'content-type': 'text/plain'})
         f.close()
         self.delete(self.root + 'test.txt')
 
@@ -413,7 +429,8 @@ class TestUpYun(unittest.TestCase):
     def test_pretreat(self):
         with open('/tmp/test.mp4', 'rb') as f:
             res = self.up.put(self.root + 'test.mp4', f, checksum=False)
-        self.assertDictEqual(res, {'content-length': '1165569', 'content-type': 'video/mp4'})
+        self.assertDictEqual(res, {'content-length': '1165569',
+                                   'content-type': 'video/mp4'})
         tasks = [{'type': 'probe'}]
 
         source = self.root + 'test.mp4'
