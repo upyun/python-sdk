@@ -70,8 +70,6 @@ def make_signature(**kwargs):
     if kwargs.get('content_md5'):
         signarr.append(kwargs['content_md5'])
     signstr = '&'.join(signarr)
-    print("kwargs['password']:" + kwargs['password'])
-    print("the hmac key is:" + b(kwargs['password']))
     signature = base64.b64encode(
         hmac.new(b(kwargs['password']), b(signstr),
                  digestmod=hashlib.sha1).digest()

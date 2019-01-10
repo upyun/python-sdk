@@ -299,7 +299,6 @@ class UpYunRest(object):
 
         dt = cur_dt()
         if not is_purge:
-            print("password:" + self.password)
             signature = make_signature(username=self.username,
                                        password=self.password,
                                        auth_server=self.auth_server,
