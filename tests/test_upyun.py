@@ -48,7 +48,6 @@ class TestUpYun(unittest.TestCase):
     def setUp(self):
         self.up = upyun.UpYun(SERVICE, USERNAME, PASSWORD,
                               timeout=100, endpoint=upyun.ED_AUTO)
-        print("password:" + PASSWORD)
         self.root = rootpath()
         self.up.mkdir(self.root)
 
