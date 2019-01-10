@@ -96,6 +96,7 @@ class UpYun(object):
         self.up_rest.delete(key)
 
     def mkdir(self, key):
+        print("the mkdir key is:" + key)
         self.up_rest.mkdir(key)
 
     def getlist(self, key='/', limit=None, order=None,
