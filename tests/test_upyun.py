@@ -74,9 +74,6 @@ class TestUpYun(unittest.TestCase):
         os.remove('debug.log')
 
     def test_auth_failed(self):
-        print(SERVICE)
-        print(USERNAME)
-        print(PASSWORD)
         with self.assertRaises(upyun.UpYunServiceException) as se:
             upyun.UpYun('service', 'username', 'password').getinfo('/')
         self.assertEqual(se.exception.status, 401)
