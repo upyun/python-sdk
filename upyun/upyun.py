@@ -20,13 +20,14 @@ DEFAULT_CHUNKSIZE = 8192
 class UpYun(object):
     def __init__(self, service, username=None, password=None,
                  auth_server=None, timeout=None, endpoint=None,
-                 chunksize=None, debug=False, read_timeout=None):
+                 chunksize=None, debug=False, read_timeout=None,
+                 encrypt_pwd=None):
         super(UpYun, self).__init__()
         self.service = service or os.getenv('UPYUN_SERVICE')
         self.username = username or os.getenv('UPYUN_USERNAME')
         password = password or os.getenv('UPYUN_PASSWORD')
         self.password = (hashlib.md5(b(password)).hexdigest()
-                         if password else None)
+                         if password else encrypt_pwd)
         self.auth_server = auth_server
         self.endpoint = endpoint or ED_AUTO
         self.chunksize = chunksize or DEFAULT_CHUNKSIZE
