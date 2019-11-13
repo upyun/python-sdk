@@ -21,9 +21,9 @@ init: uninstall-upyun
 
 test:
 	@echo $(TAG)Running tests$(END)
-	wget http://zj-files.b0.upaiyun.com/python_sdk/mid.mp4 -O /tmp/test.mp4
+	wget http://yejingx.b0.upaiyun.com/python_sdk/mid.mp4 -O /tmp/test.mp4
 	pip install --upgrade pytest pytest-cov flake8 tornado
-	flake8 upyun tests --ignore=E402,E226
+	flake8 upyun tests --ignore=E402,E226,W504
 	python examples/auth_server.py > /dev/null 2>&1 &
 	py.test --cov ./upyun --cov ./tests --verbose ./tests
 	ps aux | grep 'auth_server.py' | grep -v grep | awk '{print $$2}' | xargs kill -9

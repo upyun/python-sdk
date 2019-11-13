@@ -20,7 +20,6 @@ TEMP_DIR = '.up-python-resume'
 DEFAULT_CHUNKSIZE = 8192
 THRESHOLD = 5 * 1024 * 1024
 PART_SIZE = 1024 * 1024
-SMALL_PART_SIZE = 100 * 1024
 log = logging.getLogger(__name__)
 
 
@@ -255,8 +254,7 @@ class UpYunResume(object):
         self.file_size = file_size
         self.part_size = part_size
         if not part_size:
-            self.part_size = PART_SIZE if file_size >= THRESHOLD \
-                else SMALL_PART_SIZE
+            self.part_size = PART_SIZE
         self.file_md5 = self.make_md5() if checksum else ""
         self.trace = ResumeTrace(self.rest.service, key, f.name,
                                  self.file_md5, file_size, store)
@@ -388,9 +386,9 @@ class UpYunResume(object):
                         elif reason['msg'] in (
                                 "x-upyun-multi-uuid not found",
                                 "file md5 not match"):
-                                log.debug(reason['msg'])
-                                record.clear()
-                                raise e
+                            log.debug(reason['msg'])
+                            record.clear()
+                            raise e
                         else:
                             raise e
                 else:
