@@ -287,10 +287,16 @@ class UpYunRest(object):
         return content
 
     def __get_meta_headers(self, headers):
-        return dict((k[8:].lower(), v) for k, v in headers
-                    if k[:8].lower() == 'x-upyun-' and
-                    k[8:].lower() != 'uuid' and
-                    k[8:].lower() != 'cluster')
+        heads = {}
+        for k, v in headers:
+            k = k.lower()
+            if k[:8] == 'x-upyun-' and k[8:] != 'uuid' and k[8:] != 'cluster':
+                heads[k[8:]] = v
+            elif k == "content-md5":
+                heads[k] = v
+            elif k == "etag":
+                heads[k] = v
+        return heads
 
     def __set_auth_headers(self, playload, method=None,
                            length=0, headers=None, is_purge=False):
