@@ -80,6 +80,22 @@ class UpYun(object):
     def usage(self, key='/'):
         return self.up_rest.usage(key)
 
+    def move(self, src, dest):
+        if not src:
+            raise UpYunClientException("missing source")
+        if not dest:
+            raise UpYunClientException("missing destination")
+
+        return self.up_rest.move(src, dest)
+
+    def copy(self, src, dest):
+        if not src:
+            raise UpYunClientException("missing source")
+        if not dest:
+            raise UpYunClientException("missing destination")
+
+        return self.up_rest.copy(src, dest)
+
     def put(self, key, value, checksum=False, headers=None,
             handler=None, params=None, secret=None,
             need_resume=False, store=None, reporter=None, part_size=None,

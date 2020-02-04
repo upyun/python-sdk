@@ -86,6 +86,18 @@ class UpYunRest(object):
                               headers, checksum, store, reporter, part_size)
         return resumer.upload()
 
+    def move(self, src, dest):
+        source = '/%s/%s' % (self.service, src if src[0] != '/' else src[1:])
+        headers = {"X-Upyun-Move-Source": source}
+        h = self.__do_http_request('PUT', dest, None, headers)
+        return self.__get_meta_headers(h)
+
+    def copy(self, src, dest):
+        source = '/%s/%s' % (self.service, src if src[0] != '/' else src[1:])
+        headers = {"X-Upyun-Copy-Source": source}
+        h = self.__do_http_request('PUT', dest, None, headers)
+        return self.__get_meta_headers(h)
+
     def put(self, key, value, checksum, headers, handler, params, secret,
             need_resume, store, reporter, part_size):
         """
