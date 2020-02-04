@@ -102,6 +102,42 @@ class TestUpYun(unittest.TestCase):
             self.up.getinfo(self.root + 'test.txt')
             self.assertEqual(se.exception.status, 404)
 
+    def test_move(self):
+        res = self.up.put(self.root + 'test-move.txt', "move")
+        self.assertEqual(res["content-length"], "4")
+        time.sleep(1)
+        res = self.up.get(self.root + 'test-move.txt')
+        self.assertEqual(res, "move")
+        time.sleep(1)
+        res = self.up.move(self.root + 'test-move.txt',
+                           self.root + 'test-move1.txt')
+        self.assertEqual(res["content-length"], "4")
+        time.sleep(1)
+        res = self.up.get(self.root + 'test-move1.txt')
+        self.assertEqual(res, "move")
+        with self.assertRaises(upyun.UpYunServiceException) as se:
+            self.up.getinfo(self.root + 'test-move.txt')
+        self.assertEqual(se.exception.status, 404)
+        self.delete(self.root + 'test-move1.txt')
+
+    def test_copy(self):
+        res = self.up.put(self.root + 'test-copy.txt', "copy")
+        self.assertEqual(res["content-length"], "4")
+        time.sleep(1)
+        res = self.up.get(self.root + 'test-copy.txt')
+        self.assertEqual(res, "copy")
+        time.sleep(1)
+        res = self.up.copy(self.root + 'test-copy.txt',
+                           self.root + 'test-copy1.txt')
+        self.assertEqual(res["content-length"], "4")
+        time.sleep(1)
+        res = self.up.get(self.root + 'test-copy.txt')
+        self.assertEqual(res, "copy")
+        res = self.up.get(self.root + 'test-copy1.txt')
+        self.assertEqual(res, "copy")
+        self.delete(self.root + 'test-copy.txt')
+        self.delete(self.root + 'test-copy1.txt')
+
     def test_put(self):
         with open('tests/test.png', 'rb') as f:
             res = self.up.put(self.root + 'test.png', f, checksum=False)

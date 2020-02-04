@@ -115,6 +115,22 @@ with open('unix.png', 'rb') as f:
 
 上传失败，则抛出相应异常。
 
+#### 移动文件
+
+```python
+up.move('/upyun-python-sdk/move-from.txt', '/upyun-python-sdk/move-to.txt')
+```
+
+第一个参数是源文件地址， 第二个参数是目的文件地址
+
+#### 拷贝文件
+
+```python
+up.copy('/upyun-python-sdk/copy-from.txt', '/upyun-python-sdk/copy-to.txt')
+```
+
+第一个参数是源文件地址， 第二个参数是目的文件地址
+
 #### 断点续传
 
 ```python
