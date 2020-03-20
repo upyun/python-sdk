@@ -154,6 +154,20 @@ with open('unix.png', 'rb') as f:
 
 可以使用头部 `X-Upyun-Multi-Type` 来指定上传文件类型, 默认情况下根据文件名分析处理。
 
+#### 并发上传
+并发上传是把文件按照part_size切割后，并发上传，都上传完毕后调用`complete`结束上传。  
+part_size取值1M(1024*1024)的整数倍，默认是1M。  
+下面的示例是并发上传一个2.5M的文件，数据内容是随机生成的。其中的`upload`方法可以多线程并发调用
+```python
+uploder = up.init_multi_uploader(key) #初始化上传
+
+#并发上传需要数据块
+uploder.upload(2, os.urandom(512 * 1024))    
+uploder.upload(0, os.urandom(1024 * 1024))
+uploder.upload(1, os.urandom(1024 * 1024))
+res = uploder.complete() #所有块都上传完毕后，调用结束
+```
+若在上传过程中不需要上传了，可以调用`uploader.cancel()`取消上传任务。取消的任务无法再继续上传。
 
 #### 表单方式上传
 
