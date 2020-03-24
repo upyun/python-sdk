@@ -5,6 +5,7 @@ import os
 from .rest import UpYunRest
 from .form import FormUpload
 from .av import AvPretreatment
+from .multi import UpYunMultiUploader
 
 from .modules.httpipe import UpYunHttp
 from .modules.exception import UpYunClientException
@@ -105,6 +106,12 @@ class UpYun(object):
         return self.up_rest.put(key, value, checksum, headers, handler,
                                 params, secret, need_resume,
                                 store, reporter, part_size)
+
+    def init_multi_uploader(self, key, headers=None, part_size=None,
+                            file_size=None):
+        uploader = UpYunMultiUploader(self.up_rest, key, headers=headers,
+                                      part_size=part_size, file_size=file_size)
+        return uploader
 
     def get(self, key, value=None, handler=None, params=None):
         return self.up_rest.get(key, value, handler, params)

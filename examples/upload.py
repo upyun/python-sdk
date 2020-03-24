@@ -2,6 +2,7 @@
 
 import upyun
 import hashlib
+import os
 
 # 需要填写自己的服务名，操作员名，密码
 service = ""
@@ -46,3 +47,13 @@ def form_upload():
     with open(local_file, 'rb') as f:
         res = up.put(remote_file, f, checksum=True, form=True)
         print(res)
+
+def rest_multi_upload():
+    """
+    文件并发上传
+    """
+    uploder = up.init_multi_uploader(remote_file)
+    uploder.upload(1, os.urandom(20))
+    uploder.upload(0, os.urandom(1024 * 1024))
+    res = uploder.complete()
+    print(res)

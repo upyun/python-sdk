@@ -309,6 +309,7 @@ class UpYunRest(object):
             elif k == "etag":
                 heads[k] = v
         return heads
+    get_meta_headers = __get_meta_headers
 
     def __set_auth_headers(self, playload, method=None,
                            length=0, headers=None, is_purge=False):

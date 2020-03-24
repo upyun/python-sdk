@@ -188,6 +188,27 @@ class TestUpYun(unittest.TestCase):
             self.up.getinfo(self.root + 'resume.txt')
         self.assertEqual(se.exception.status, 404)
 
+    def test_multi(self):
+        uploder = self.up.init_multi_uploader(self.root + "multi")
+        md5s = range(0, 3)
+
+        data = os.urandom(512 * 1024)
+        md5s[2] = upyun.make_content_md5(data)
+        uploder.upload(2, data)
+
+        data = os.urandom(1024 * 1024)
+        md5s[0] = upyun.make_content_md5(data)
+        uploder.upload(0, data)
+
+        data = os.urandom(1024 * 1024)
+        md5s[1] = upyun.make_content_md5(data)
+        uploder.upload(1, data)
+
+        multi_md5 = upyun.make_content_md5("".join(md5s))
+        uploder.complete(multi_md5=multi_md5)
+
+        self.delete(self.root + 'multi')
+
     def test_resume_small(self):
         with open('tests/small-resume.txt', 'w') as f:
             f.seek(300 * 1024)
