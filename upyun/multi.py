@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .modules.exception import UpYunClientException
 
+
 class UpYunMultiUploader(object):
     """断点续传
     :param rest: upyun rest 实例
@@ -11,8 +12,8 @@ class UpYunMultiUploader(object):
     """
 
     def __init__(self, rest, key, headers=None,
-                part_size=None, file_size=None):
-        if part_size and part_size%(1024*1024) != 0:
+                 part_size=None, file_size=None):
+        if part_size and part_size % (1024*1024) != 0:
             raise UpYunClientException('part size wrong')
 
         self.key = key
