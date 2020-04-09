@@ -159,13 +159,30 @@ with open('unix.png', 'rb') as f:
 part_size取值1M(1024*1024)的整数倍，默认是1M。  
 下面的示例是并发上传一个2.5M的文件，数据内容是随机生成的。其中的`upload`方法可以多线程并发调用
 ```python
-uploder = up.init_multi_uploader(key) #初始化上传
+uploader = up.init_multi_uploader(key) #初始化上传
 
 #并发上传需要数据块
-uploder.upload(2, os.urandom(512 * 1024))    
-uploder.upload(0, os.urandom(1024 * 1024))
-uploder.upload(1, os.urandom(1024 * 1024))
-res = uploder.complete() #所有块都上传完毕后，调用结束
+uploader.upload(2, os.urandom(512 * 1024))    
+uploader.upload(0, os.urandom(1024 * 1024))
+uploader.upload(1, os.urandom(1024 * 1024))
+res = uploader.complete() #所有块都上传完毕后，调用结束
+```
+
+一次上传没有完成, 可以把uploader.upload_id的值保存下来, 下次继续上传
+```python
+uploader = up.init_multi_uploader(remote_file, upload_id=uploader.upload_id)
+```
+如果有需要，可以列出来已经上传成功的parts
+```python
+datas = uploader.list_uploaded_parts() 
+```
+返回一个json结构的数组
+```json
+[{
+    "id": 0,
+    "suze": 1048576,
+    "etag": "cf97350abc2b45804d09a829b55eeeaf",
+}]
 ```
 若在上传过程中不需要上传了，可以调用`uploader.cancel()`取消上传任务。取消的任务无法再继续上传。
 

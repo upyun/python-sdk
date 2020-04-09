@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from .modules.exception import UpYunClientException
+import json
 
 
 class UpYunMultiUploader(object):
@@ -12,7 +13,7 @@ class UpYunMultiUploader(object):
     """
 
     def __init__(self, rest, key, headers=None,
-                 part_size=None, file_size=None):
+                 part_size=None, file_size=None, upload_id=None):
         if part_size and part_size % (1024*1024) != 0:
             raise UpYunClientException('part size wrong')
 
@@ -21,10 +22,14 @@ class UpYunMultiUploader(object):
         self.part_size = part_size
         self.file_size = file_size
         self.headers = headers or {}
-        self._init()
+        if upload_id:
+            if not isinstance(upload_id, str) or len(upload_id) != 36:
+                raise UpYunClientException('the format of upload_id wrong')
+            self.upload_id = upload_id
+        else:
+            self._init()
 
     def _init(self):
-        # if headers is None:
         headers = self.headers
         if self.part_size:
             headers["X-Upyun-Multi-Part-Size"] = str(self.part_size)
@@ -35,12 +40,12 @@ class UpYunMultiUploader(object):
         h = self.rest.do_http_request(
             key=self.key, method="PUT", headers=headers)
         res_headers = self.rest.get_meta_headers(h)
-        self.uuid = res_headers['multi-uuid']
+        self.upload_id = res_headers['multi-uuid']
 
     def upload(self, part_id, data):
         headers = {
             "X-Upyun-Multi-Stage": "upload",
-            "X-Upyun-Multi-Uuid": self.uuid,
+            "X-Upyun-Multi-Uuid": self.upload_id,
             "X-Upyun-Part-Id": str(part_id),
         }
         self.rest.do_http_request(
@@ -49,7 +54,7 @@ class UpYunMultiUploader(object):
     def complete(self, multi_md5=None):
         headers = {
             "X-Upyun-Multi-Stage": "complete",
-            "X-Upyun-Multi-Uuid": self.uuid,
+            "X-Upyun-Multi-Uuid": self.upload_id,
         }
         if multi_md5:
             headers["X-Upyun-Multi-Md5"] = multi_md5
@@ -61,7 +66,16 @@ class UpYunMultiUploader(object):
 
     def cancel(self):
         headers = {
-            "X-Upyun-Multi-Uuid": self.uuid,
+            "X-Upyun-Multi-Uuid": self.upload_id,
         }
         self.rest.do_http_request(
             key=self.key, method="DELETE", headers=headers)
+
+    def list_uploaded_parts(self):
+        headers = {
+            "X-Upyun-Multi-Uuid": self.upload_id,
+        }
+
+        datas = self.rest.do_http_request(
+            key=self.key, method="GET", headers=headers)
+        return json.loads(datas)["parts"]

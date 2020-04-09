@@ -52,8 +52,28 @@ def rest_multi_upload():
     """
     文件并发上传
     """
-    uploder = up.init_multi_uploader(remote_file)
-    uploder.upload(1, os.urandom(20))
-    uploder.upload(0, os.urandom(1024 * 1024))
-    res = uploder.complete()
+    uploader = up.init_multi_uploader(remote_file)
+    uploader.upload(1, os.urandom(20))
+    uploader.upload(0, os.urandom(1024 * 1024))
+    res = uploader.complete()
+    upload_id = uploader.upload_id
     print(res)
+
+
+    """
+    一次上传没有完成, 可以把uploader.upload_id的值保存下来, 下次继续上传
+    """
+    uploader = up.init_multi_uploader(remote_file, upload_id=upload_id)
+    """
+    如果有需要，可以列出来已经上传成功的parts, 返回一个json结构的数组
+    [{
+        "id": 0,
+        "suze": 1048576,
+        "etag": "cf97350abc2b45804d09a829b55eeeaf",
+    }]
+    """
+    datas = uploader.list_uploaded_parts() 
+    print(datas)
+    
+
+    
