@@ -108,9 +108,10 @@ class UpYun(object):
                                 store, reporter, part_size)
 
     def init_multi_uploader(self, key, headers=None, part_size=None,
-                            file_size=None):
+                            file_size=None, upload_id=None):
         uploader = UpYunMultiUploader(self.up_rest, key, headers=headers,
-                                      part_size=part_size, file_size=file_size)
+                                      part_size=part_size, file_size=file_size,
+                                      upload_id=upload_id)
         return uploader
 
     def get(self, key, value=None, handler=None, params=None):

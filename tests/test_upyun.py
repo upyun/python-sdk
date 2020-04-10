@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from upyun import FileStore
+import upyun
 import io
 import os
 import sys
@@ -15,8 +17,6 @@ else:
 curpath = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, curpath)
 
-import upyun
-from upyun import FileStore
 
 upyun.add_stderr_logger()
 
@@ -189,25 +189,44 @@ class TestUpYun(unittest.TestCase):
         self.assertEqual(se.exception.status, 404)
 
     def test_multi(self):
-        uploder = self.up.init_multi_uploader(self.root + "multi")
+        uploader = self.up.init_multi_uploader(self.root + "multi")
         md5s = range(0, 3)
 
         data = os.urandom(512 * 1024)
         md5s[2] = upyun.make_content_md5(data)
-        uploder.upload(2, data)
+        uploader.upload(2, data)
 
         data = os.urandom(1024 * 1024)
         md5s[0] = upyun.make_content_md5(data)
-        uploder.upload(0, data)
+        uploader.upload(0, data)
 
         data = os.urandom(1024 * 1024)
         md5s[1] = upyun.make_content_md5(data)
-        uploder.upload(1, data)
+        uploader.upload(1, data)
 
         multi_md5 = upyun.make_content_md5("".join(md5s))
-        uploder.complete(multi_md5=multi_md5)
-
+        uploader.complete(multi_md5=multi_md5)
+        time.sleep(2)
         self.delete(self.root + 'multi')
+
+    def test_multi_list_uploaded_parts(self):
+        uploader = self.up.init_multi_uploader(self.root + "multi")
+        md5s = range(0, 3)
+
+        data = os.urandom(512 * 1024)
+        md5s[2] = upyun.make_content_md5(data)
+        uploader.upload(2, data)
+
+        data = os.urandom(1024 * 1024)
+        md5s[0] = upyun.make_content_md5(data)
+        uploader.upload(0, data)
+
+        uploader1 = self.up.init_multi_uploader(
+            self.root + "multi", upload_id=uploader.upload_id)
+        parts = uploader1.list_uploaded_parts()
+        self.assertEqual(len(parts), 2)
+        self.assertEqual(parts[0]["id"], 0)
+        self.assertEqual(parts[1]["id"], 2)
 
     def test_resume_small(self):
         with open('tests/small-resume.txt', 'w') as f:
