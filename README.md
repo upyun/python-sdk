@@ -152,7 +152,7 @@ with open('unix.png', 'rb') as f:
 
 参数 `reporter` 用于报告上传进度, 默认忽略上传进度。 `print_reporter` 只是 `print` 上传进度, 有需要的请继承 `BaseReporter` 自行处理。
 
-可以使用头部 `X-Upyun-Multi-Type` 来指定上传文件类型, 默认情况下根据文件名分析处理。
+可以使用头部 `X-Upyun-Multi-Type` 来指定待上传文件的 MIME 类型，默认 application/octet-stream，建议自行设置。
 
 #### 并发上传
 并发上传是把文件按照part_size切割后，并发上传，都上传完毕后调用`complete`结束上传。  
